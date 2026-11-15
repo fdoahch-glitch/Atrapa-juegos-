@@ -67,10 +67,12 @@ jobs:
       - name: Armar «Atrapa Juegos Studio» para Windows
         run: |
           mkdir -p salida/motor
-          cp plantilla/*.exe salida/AtrapaJuegosStudio.exe
-          cp plantilla/*.exe salida/motor/plantilla.windows.exe
+          ls -R plantilla plantilla_web
+          EXE=$(ls plantilla/*.exe | grep -v console | head -1)
+          cp "$EXE" salida/AtrapaJuegosStudio.exe
+          cp "$EXE" salida/motor/plantilla.windows.exe
           cp creador.pck salida/AtrapaJuegosStudio.pck
           cp juego.pck salida/motor/juego.pck
-          cp plantilla_web/*.zip salida/motor/plantilla.web.zip
+          cp "$(ls plantilla_web/*.zip | head -1)" salida/motor/plantilla.web.zip
       - uses: actions/upload-artifact@v4
         with: { name: AtrapaJuegosStudio-Windows, path: salida }
