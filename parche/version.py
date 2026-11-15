@@ -1,0 +1,9 @@
+short_name = "atrapajuegos"
+name = "Atrapa Juegos Studio (basado en Godot)"
+major = 4
+minor = 4
+patch = 1
+status = "estudio"
+module_config = ""
+website = "https://godotengine.org"
+docs = "4.4"

@@ -1,0 +1,76 @@
+name: Compilar Atrapa Juegos Studio
+on: workflow_dispatch
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: git clone --depth 1 --branch 4.4.1-stable https://github.com/godotengine/godot.git fuente
+      - run: pip install scons
+      - run: |
+          cp parche/version.py fuente/version.py
+          cp custom.py fuente/custom.py
+      - working-directory: fuente
+        run: scons platform=windows target=template_release arch=x86_64 -j4
+      - uses: actions/upload-artifact@v4
+        with: { name: plantilla-windows, path: fuente/bin/*.exe }
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mymindstorm/setup-emsdk@v14
+        with: { version: 3.1.64 }
+      - run: git clone --depth 1 --branch 4.4.1-stable https://github.com/godotengine/godot.git fuente
+      - run: pip install scons
+      - run: |
+          cp parche/version.py fuente/version.py
+          cp custom.py fuente/custom.py
+      - working-directory: fuente
+        run: scons platform=web target=template_release threads=no -j4
+      - uses: actions/upload-artifact@v4
+        with: { name: plantilla-web, path: fuente/bin/*.zip }
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - run: git clone --depth 1 --branch 4.4.1-stable https://github.com/godotengine/godot.git fuente
+      - run: pip install scons
+      - run: |
+          cp parche/version.py fuente/version.py
+          cp custom.py fuente/custom.py
+      - working-directory: fuente
+        run: |
+          scons platform=android target=template_release arch=arm64 -j4
+          scons platform=android target=template_release arch=arm32 -j4
+          scons platform=android target=template_release arch=arm64 generate_android_binaries=yes -j4
+      - uses: actions/upload-artifact@v4
+        with: { name: plantilla-android, path: fuente/bin/android_release.apk }
+  ensamblar:
+    needs: [windows, web]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: chickensoft-games/setup-godot@v2
+        with: { version: 4.4.1, use-dotnet: false }
+      - uses: actions/download-artifact@v4
+        with: { name: plantilla-windows, path: plantilla }
+      - uses: actions/download-artifact@v4
+        with: { name: plantilla-web, path: plantilla_web }
+      - name: Paquetes de recursos (juego base y creador)
+        run: |
+          cd proyecto/plantilla_juego && godot --headless --import || true
+          godot --headless --export-pack Web ../../juego.pck
+          cd .. && rm -rf .godot && godot --headless --import || true
+          godot --headless --export-pack Web ../creador.pck
+      - name: Armar «Atrapa Juegos Studio» para Windows
+        run: |
+          mkdir -p salida/motor
+          cp plantilla/*.exe salida/AtrapaJuegosStudio.exe
+          cp plantilla/*.exe salida/motor/plantilla.windows.exe
+          cp creador.pck salida/AtrapaJuegosStudio.pck
+          cp juego.pck salida/motor/juego.pck
+          cp plantilla_web/*.zip salida/motor/plantilla.web.zip
+      - uses: actions/upload-artifact@v4
+        with: { name: AtrapaJuegosStudio-Windows, path: salida }
