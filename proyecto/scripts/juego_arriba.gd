@@ -97,6 +97,14 @@ func _mover(delta: Vector2) -> void:
 			_poner_centro(c)
 
 
+func _enemigo_choca(x: float, y: float) -> bool:
+	var r := Rect2(x * T + 10, y * T + 10, T - 20, T - 20)
+	for p in plats:
+		if r.intersects(p):
+			return true
+	return false
+
+
 func _actualizar(dt: float) -> void:
 	t += dt
 	_reglas_tick(dt)
@@ -130,14 +138,22 @@ func _actualizar(dt: float) -> void:
 		var vuela: bool = bool(e["it"].get("fly", false))
 		var paso: float = e["dir"] * e["sp"] * _lento / T * dt
 		if vuela:
-			e["y"] += paso
+			var ny: float = e["y"] + paso
+			if _enemigo_choca(e["x"], ny):
+				e["dir"] = -e["dir"]  # una pared: da la vuelta en vez de atravesarla
+			else:
+				e["y"] = ny
 			if e["y"] > e["y0"] + e["r"]:
 				e["dir"] = -1.0
 			if e["y"] < e["y0"] - e["r"]:
 				e["dir"] = 1.0
 			e["it"]["y"] = e["y"]
 		else:
-			e["x"] += paso
+			var nx: float = e["x"] + paso
+			if _enemigo_choca(nx, e["y"]):
+				e["dir"] = -e["dir"]
+			else:
+				e["x"] = nx
 			if e["x"] > e["x0"] + e["r"]:
 				e["dir"] = -1.0
 			if e["x"] < e["x0"] - e["r"]:

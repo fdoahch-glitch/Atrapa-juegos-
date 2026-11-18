@@ -341,7 +341,7 @@ func _agachar() -> void:
 
 # ------------------------------------------------------------------ lógica
 func _process(delta: float) -> void:
-	_actualizar(minf(delta, 0.033))
+	_avanzar(delta)
 	if _raiz and _mundo3:
 		_sincronizar()
 	_hud.queue_redraw()

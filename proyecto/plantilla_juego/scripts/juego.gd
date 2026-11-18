@@ -386,8 +386,23 @@ func _pulsado(z: String) -> bool:
 
 
 # ------------------------------------------------------------------ lógica
+const PASO := 1.0 / 120.0   # la física avanza siempre en pasos iguales: así el salto mide lo mismo a 30 o a 144 fps
+var _acum := 0.0
+
+
+func _avanzar(delta: float) -> void:
+	_acum += minf(delta, 0.1)
+	var n := 0
+	while _acum >= PASO and n < 12:
+		_actualizar(PASO)
+		_acum -= PASO
+		n += 1
+	if n >= 12:
+		_acum = 0.0
+
+
 func _process(delta: float) -> void:
-	_actualizar(minf(delta, 0.033))
+	_avanzar(delta)
 	escala = maxf(0.1, size.y / (Datos.FILAS * T))
 	_mundo.scale = Vector2(escala, escala)
 	_mundo.position = Vector2(-cam * escala, 0.0)

@@ -298,11 +298,11 @@ func convertir(origen: Dictionary, destino: String) -> Dictionary:
 				if a == "arriba":
 					if t == "plat" and not (int(it.get("y", 0)) in [0, 13] or int(it.get("x", 0)) in [0, cols - 1]) and int(it.get("h", 1)) <= 2:
 						var p: Dictionary = it.duplicate(true)
-						p["y"] = 8 + int(y) % 3
+						p["y"] = 10 + int(y) % 2  # a 1 o 2 filas sobre el suelo: se sube de un salto
 						p["h"] = 1
 						add.call(p)
 					elif t in ["coin", "star", "gem"]:
-						add.call({"t": t, "x": x, "y": 8 + y % 3})
+						add.call({"t": t, "x": x, "y": 9 + y % 3})
 					elif t == "spike":
 						add.call({"t": "spike", "x": x, "y": 11})
 					elif t == "enemy":
@@ -315,7 +315,7 @@ func convertir(origen: Dictionary, destino: String) -> Dictionary:
 						add.call(d2)
 				else:
 					if t in ["coin", "star", "gem"]:
-						add.call({"t": t, "x": x, "y": 11 - (2 - a_carril(y)) * 2 - 0})
+						add.call({"t": t, "x": x, "y": 11 - (2 - a_carril(y))})
 					elif t == "valla":
 						add.call({"t": "spike", "x": x, "y": 11})
 					elif t == "pared":
@@ -324,6 +324,14 @@ func convertir(origen: Dictionary, destino: String) -> Dictionary:
 						var d3: Dictionary = it.duplicate(true)
 						d3["y"] = 11
 						add.call(d3)
+			# ningún premio queda dentro de una plataforma ni fuera del alcance de un salto
+			for it in salida:
+				if not ["coin", "star", "gem"].has(str(it.get("t", ""))):
+					continue
+				for p2 in salida:
+					if str(p2.get("t", "")) == "plat" and int(p2["y"]) < 12 and int(it["x"]) >= int(p2["x"]) and int(it["x"]) < int(p2["x"]) + int(p2["w"]) and int(it["y"]) >= int(p2["y"]) and int(it["y"]) < int(p2["y"]) + int(p2["h"]):
+						it["y"] = int(p2["y"]) - 1
+				it["y"] = clampi(int(it["y"]), 8, 11)
 	n["items"] = salida
 	n["cols"] = cols
 	match destino:

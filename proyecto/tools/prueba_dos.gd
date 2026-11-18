@@ -22,7 +22,7 @@ func _ready() -> void:
 	var j = pa._juego
 	ok(j.j2 and j._s_jug2 != null, "hay segundo jugador")
 	j._input(_ev(KEY_A)); j._input(_ev(KEY_RIGHT)); j._input(_ev(KEY_UP))
-	for f in 12:
+	for f in 3:
 		await get_tree().process_frame
 	ok(j.carril == 0 and j.carril2 == 2, "cada uno en su carril: %d y %d" % [j.carril, j.carril2])
 	ok(j.vy2 > 0.0 or j.py2 > 0.0, "salta solo el jugador 2")

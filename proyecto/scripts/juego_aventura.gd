@@ -9,7 +9,7 @@ const C := 2.0              # metros por celda
 const RADIO := 0.38         # radio del héroe
 const VEL3 := 6.5
 const G3 := 26.0
-const SALTO3 := 9.0
+const SALTO3 := 10.0   # llega a ~1,9 de alto: se sube a bloques de altura 2 (los más altos, con escalones)
 
 var _raiz: Node3D
 var _mundo3: Node3D
@@ -242,7 +242,7 @@ func _dir_entrada() -> Vector2:
 
 # ------------------------------------------------------------------ lógica
 func _process(delta: float) -> void:
-	_actualizar(minf(delta, 0.033))
+	_avanzar(delta)
 	if _raiz and _mundo3:
 		_sincronizar()
 	_hud.queue_redraw()
@@ -255,6 +255,13 @@ func _techo(x: float, z: float) -> float:
 		if (b["r"] as Rect2).grow(RADIO * 0.6).has_point(Vector2(x, z)) and b["top"] > m and p3.y >= b["top"] - 0.45:
 			m = b["top"]
 	return m
+
+
+func _bicho_choca(x: float, z: float) -> bool:
+	for b in bloques:
+		if (b["r"] as Rect2).grow(0.4).has_point(Vector2(x, z)):
+			return true
+	return false
 
 
 func _choca(x: float, z: float) -> bool:
@@ -316,7 +323,11 @@ func _actualizar(dt: float) -> void:
 		if b["muerto"]:
 			b["sqt"] += dt
 			continue
-		b["x"] += b["dir"] * b["sp"] * dt
+		var bx: float = b["x"] + b["dir"] * b["sp"] * dt
+		if _bicho_choca(bx, b["z"]):
+			b["dir"] = -b["dir"]  # un bloque: da la vuelta en vez de atravesarlo
+		else:
+			b["x"] = bx
 		if b["x"] > b["x0"] + b["r"]:
 			b["dir"] = -1.0
 		if b["x"] < b["x0"] - b["r"]:
