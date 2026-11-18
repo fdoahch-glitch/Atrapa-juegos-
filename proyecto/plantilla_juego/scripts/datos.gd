@@ -464,7 +464,7 @@ func proyecto() -> Dictionary:
 	var lista: Array = []
 	for n in niveles:
 		var c: Dictionary = n.duplicate(true)
-		for k in ["name", "modo", "disp", "orient", "tipo"]:
+		for k in ["disp", "orient"]:  # del proyecto entero; nombre, modo y tipo son de cada nivel
 			c[k] = nivel.get(k, c.get(k))
 		lista.append(c)
 	return {"v": 2, "reglas": reglas_completas(reglas), "niveles": lista}
@@ -506,6 +506,7 @@ func _poner_nivel(n: Dictionary) -> void:
 
 
 func establecer_proyecto(p: Dictionary) -> void:
+	respaldar()
 	niveles = p["niveles"]
 	reglas = reglas_completas(p.get("reglas", {}))
 	idx = 0
@@ -574,6 +575,7 @@ func borrar_nivel() -> bool:
 # ---------------------------------------------------------------- historial
 ## Empieza un juego nuevo con un solo nivel.
 func establecer(n: Dictionary) -> void:
+	respaldar()
 	niveles = [n]
 	idx = 0
 	reglas = reglas_completas({})
@@ -598,7 +600,8 @@ func deshacer() -> void:
 		return
 	futuro.append(_actual)
 	_actual = historial.pop_back()
-	nivel = JSON.parse_string(_actual)
+	nivel = normalizar(JSON.parse_string(_actual))
+	_actual = JSON.stringify(nivel)
 	guardar()
 	nivel_cambiado.emit()
 
@@ -608,19 +611,50 @@ func rehacer() -> void:
 		return
 	historial.append(_actual)
 	_actual = futuro.pop_back()
-	nivel = JSON.parse_string(_actual)
+	nivel = normalizar(JSON.parse_string(_actual))
+	_actual = JSON.stringify(nivel)
 	guardar()
 	nivel_cambiado.emit()
 
 
+## Guarda sin riesgo: escribe en un archivo temporal, comprueba que se lee bien y recién entonces
+## reemplaza el anterior (que queda como copia «.bak»). Así un corte a mitad no borra el juego.
 func guardar() -> void:
-	var f := FileAccess.open(GUARDADO, FileAccess.WRITE)
-	if f:
-		f.store_string(a_json())
+	var texto := a_json()
+	var tmp := GUARDADO + ".tmp"
+	var f := FileAccess.open(tmp, FileAccess.WRITE)
+	if f == null:
+		return
+	f.store_string(texto)
+	f.close()
+	if not (JSON.parse_string(texto) is Dictionary):
+		return
+	if FileAccess.file_exists(GUARDADO):
+		DirAccess.copy_absolute(GUARDADO, GUARDADO + ".bak")
+	DirAccess.rename_absolute(tmp, GUARDADO)
+
+
+const DIR_RESPALDOS := "user://respaldos"
+
+
+## Antes de reemplazar el juego por otro, guarda una copia (se conservan las últimas 5).
+func respaldar() -> void:
+	if not FileAccess.file_exists(GUARDADO):
+		return
+	DirAccess.make_dir_recursive_absolute(DIR_RESPALDOS)
+	var t := Time.get_datetime_dict_from_system()
+	var nombre := "%04d%02d%02d_%02d%02d%02d.json" % [t["year"], t["month"], t["day"], t["hour"], t["minute"], t["second"]]
+	DirAccess.copy_absolute(GUARDADO, DIR_RESPALDOS + "/" + nombre)
+	var viejos := Array(DirAccess.get_files_at(DIR_RESPALDOS))
+	viejos.sort()
+	while viejos.size() > 5:
+		DirAccess.remove_absolute(DIR_RESPALDOS + "/" + str(viejos.pop_front()))
 
 
 func cargar_guardado() -> void:
 	var p := leer_proyecto(GUARDADO)
+	if p.is_empty():
+		p = leer_proyecto(GUARDADO + ".bak")  # si el principal se dañó, usa la copia
 	if p.is_empty():
 		p = {"niveles": [normalizar(nivel_inicial())], "reglas": reglas_completas({})}
 	niveles = p["niveles"]

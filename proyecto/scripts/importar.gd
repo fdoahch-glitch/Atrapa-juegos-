@@ -25,7 +25,12 @@ static func nombre_de(id: String) -> String:
 ## Imagen que representa al asset (el propio dibujo, o la miniatura del modelo).
 static func ruta_dibujo(id: String) -> String:
 	if id.begins_with("g:"):
-		return CARPETA.path_join(nombre_de(id) + ".png")
+		var png := nombre_de(id) + ".png"
+		var junto := OS.get_executable_path().get_base_dir().path_join("assets").path_join(png)
+		for c in [junto, "/assets/" + png]:
+			if FileAccess.file_exists(c):
+				return c
+		return CARPETA.path_join(png)
 	return ruta_archivo(id)
 
 

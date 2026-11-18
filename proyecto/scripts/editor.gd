@@ -340,7 +340,8 @@ func _construir() -> void:
 
 ## En pantallas angostas la barra superior muestra solo íconos.
 func _adaptar() -> void:
-	var compacto := size.x < 1400.0
+	# En celular la pantalla física es pequeña aunque el ancho lógico sea grande: también cuenta.
+	var compacto := size.x < 1400.0 or float(get_window().size.x) < 1000.0
 	_titulo.visible = not compacto
 	_modo_txt.visible = size.x > 1250.0
 	_nombre.custom_minimum_size.x = 150.0 if compacto else 250.0

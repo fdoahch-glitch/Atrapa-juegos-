@@ -1,0 +1,376 @@
+{
+ "v": 2,
+ "reglas": {
+  "vidas": 4,
+  "tiempo": 0,
+  "meta": "todo",
+  "titulo": true,
+  "final": "¡Descubriste todos los tesoros!",
+  "mascota": "🦊",
+  "poder": "vida"
+ },
+ "niveles": [
+  {
+   "name": "Aldea misteriosa",
+   "modo": "3d",
+   "tipo": "aventura",
+   "theme": "dia",
+   "hero": "a:explorador",
+   "cols": 30,
+   "rows": 14,
+   "items": [
+    {
+     "id": "i1",
+     "t": "player",
+     "x": 2,
+     "y": 6
+    },
+    {
+     "id": "i2",
+     "t": "goal",
+     "x": 27,
+     "y": 6
+    },
+    {
+     "id": "i3",
+     "t": "plat",
+     "x": 8,
+     "y": 3,
+     "w": 3,
+     "h": 2,
+     "alt": 1
+    },
+    {
+     "id": "i4",
+     "t": "plat",
+     "x": 12,
+     "y": 8,
+     "w": 4,
+     "h": 2,
+     "alt": 2
+    },
+    {
+     "id": "i5",
+     "t": "plat",
+     "x": 20,
+     "y": 5,
+     "w": 2,
+     "h": 4,
+     "alt": 1
+    },
+    {
+     "id": "i6",
+     "t": "coin",
+     "x": 5,
+     "y": 6
+    },
+    {
+     "id": "i7",
+     "t": "coin",
+     "x": 6,
+     "y": 6
+    },
+    {
+     "id": "i8",
+     "t": "coin",
+     "x": 7,
+     "y": 6
+    },
+    {
+     "id": "i9",
+     "t": "coin",
+     "x": 10,
+     "y": 5
+    },
+    {
+     "id": "i10",
+     "t": "coin",
+     "x": 14,
+     "y": 6
+    },
+    {
+     "id": "i11",
+     "t": "coin",
+     "x": 18,
+     "y": 9
+    },
+    {
+     "id": "i12",
+     "t": "coin",
+     "x": 22,
+     "y": 7
+    },
+    {
+     "id": "i13",
+     "t": "coin",
+     "x": 24,
+     "y": 4
+    },
+    {
+     "id": "i14",
+     "t": "star",
+     "x": 17,
+     "y": 2
+    },
+    {
+     "id": "i15",
+     "t": "gem",
+     "x": 25,
+     "y": 10
+    },
+    {
+     "id": "i16",
+     "t": "spike",
+     "x": 11,
+     "y": 6
+    },
+    {
+     "id": "i17",
+     "t": "enemy",
+     "x": 15,
+     "y": 10,
+     "e": "a:slime",
+     "r": 3,
+     "sp": 50,
+     "fly": false
+    },
+    {
+     "id": "i18",
+     "t": "enemy",
+     "x": 23,
+     "y": 3,
+     "e": "a:esqueleto",
+     "r": 3,
+     "sp": 60,
+     "fly": false
+    },
+    {
+     "id": "i19",
+     "t": "deco",
+     "x": 4,
+     "y": 2,
+     "e": "a:arbol",
+     "s": 125
+    },
+    {
+     "id": "i20",
+     "t": "deco",
+     "x": 6,
+     "y": 11,
+     "e": "a:pino",
+     "s": 134
+    },
+    {
+     "id": "i21",
+     "t": "deco",
+     "x": 22,
+     "y": 11,
+     "e": "a:casa",
+     "s": 125
+    },
+    {
+     "id": "i22",
+     "t": "deco",
+     "x": 9,
+     "y": 10,
+     "e": "a:roca",
+     "s": 77
+    },
+    {
+     "id": "i23",
+     "t": "deco",
+     "x": 3,
+     "y": 9,
+     "e": "a:farol",
+     "s": 115
+    },
+    {
+     "id": "i24",
+     "t": "deco",
+     "x": 26,
+     "y": 8,
+     "e": "a:cofre",
+     "s": 38
+    },
+    {
+     "id": "i25",
+     "t": "deco",
+     "x": 13,
+     "y": 11,
+     "e": "a:arbusto",
+     "s": 43
+    }
+   ]
+  },
+  {
+   "name": "Cueva de cristales",
+   "modo": "3d",
+   "tipo": "aventura",
+   "theme": "noche",
+   "hero": "a:mago",
+   "cols": 30,
+   "rows": 14,
+   "items": [
+    {
+     "id": "i1",
+     "t": "player",
+     "x": 2,
+     "y": 6
+    },
+    {
+     "id": "i2",
+     "t": "goal",
+     "x": 27,
+     "y": 6
+    },
+    {
+     "id": "i3",
+     "t": "plat",
+     "x": 7,
+     "y": 4,
+     "w": 3,
+     "h": 2,
+     "alt": 1
+    },
+    {
+     "id": "i4",
+     "t": "plat",
+     "x": 14,
+     "y": 7,
+     "w": 3,
+     "h": 3,
+     "alt": 2
+    },
+    {
+     "id": "i5",
+     "t": "plat",
+     "x": 19,
+     "y": 2,
+     "w": 4,
+     "h": 2,
+     "alt": 1
+    },
+    {
+     "id": "i6",
+     "t": "coin",
+     "x": 4,
+     "y": 6
+    },
+    {
+     "id": "i7",
+     "t": "coin",
+     "x": 5,
+     "y": 6
+    },
+    {
+     "id": "i8",
+     "t": "coin",
+     "x": 9,
+     "y": 5
+    },
+    {
+     "id": "i9",
+     "t": "coin",
+     "x": 15,
+     "y": 5
+    },
+    {
+     "id": "i10",
+     "t": "coin",
+     "x": 16,
+     "y": 5
+    },
+    {
+     "id": "i11",
+     "t": "coin",
+     "x": 21,
+     "y": 8
+    },
+    {
+     "id": "i12",
+     "t": "coin",
+     "x": 24,
+     "y": 7
+    },
+    {
+     "id": "i13",
+     "t": "star",
+     "x": 20,
+     "y": 1
+    },
+    {
+     "id": "i14",
+     "t": "gem",
+     "x": 25,
+     "y": 10
+    },
+    {
+     "id": "i15",
+     "t": "spike",
+     "x": 11,
+     "y": 6
+    },
+    {
+     "id": "i16",
+     "t": "enemy",
+     "x": 14,
+     "y": 9,
+     "e": "a:murcielago",
+     "r": 3,
+     "sp": 70,
+     "fly": true
+    },
+    {
+     "id": "i17",
+     "t": "enemy",
+     "x": 21,
+     "y": 4,
+     "e": "a:fantasma",
+     "r": 3,
+     "sp": 60,
+     "fly": true
+    },
+    {
+     "id": "i18",
+     "t": "deco",
+     "x": 5,
+     "y": 3,
+     "e": "a:cristal",
+     "s": 62
+    },
+    {
+     "id": "i19",
+     "t": "deco",
+     "x": 18,
+     "y": 11,
+     "e": "a:cristal",
+     "s": 62
+    },
+    {
+     "id": "i20",
+     "t": "deco",
+     "x": 8,
+     "y": 10,
+     "e": "a:rocas",
+     "s": 48
+    },
+    {
+     "id": "i21",
+     "t": "deco",
+     "x": 25,
+     "y": 3,
+     "e": "a:fogata",
+     "s": 34
+    },
+    {
+     "id": "i22",
+     "t": "deco",
+     "x": 26,
+     "y": 9,
+     "e": "a:cofre",
+     "s": 38
+    }
+   ]
+  }
+ ]
+}

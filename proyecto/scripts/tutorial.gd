@@ -120,7 +120,7 @@ func _mostrar() -> void:
 	var p: Dictionary = pasos[paso]
 	_num.text = "Paso %d de %d" % [paso + 1, pasos.size()]
 	_texto.text = p["txt"]
-	_siguiente.text = "Terminar" if paso == pasos.size() - 1 else "Saltar paso  ›"
+	_siguiente.text = "¡Listo!" if paso == pasos.size() - 1 else "Siguiente  ›"
 	for c in _puntos.get_children():
 		c.queue_free()
 	for i in pasos.size():

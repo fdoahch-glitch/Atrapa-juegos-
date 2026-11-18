@@ -64,3 +64,6 @@ Dilofosaurio, Iguanodón, Estegosaurio, Parasaurolophus, Pachycephalosaurus (Min
 Tyrannosaurus Rex (Mini), Oviraptor, Carnotaurio y Plesiosaurio. Aún no están: accesorios, piezas coleccionables,
 bitácora de fósiles, persecuciones (se aproximan como enemigos más lentos) ni las skins Brachiosaurus y Clásico. Nota: Godot no lee modelos con la extensión
 KHR_mesh_quantization; estos se convirtieron antes de incluirlos. Si un .glb tuyo no carga, conviértelo igual.
+
+## Guía y ejemplos
+En la carpeta docs/ hay una guía para niños y familias (GUIA.md) y 5 juegos de ejemplo (docs/ejemplos/*.json): se abren con «Pegar nivel».

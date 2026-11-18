@@ -10,7 +10,7 @@ ARCHIVOS = ["project.godot", "icon.svg", "arranque.tscn", "arranque.gd",
             "scripts/datos.gd", "scripts/dibujo.gd", "scripts/capa.gd",
             "scripts/sonido.gd", "scripts/juego.gd", "scripts/estilo.gd",
             "scripts/juego25.gd", "scripts/juego3d.gd", "scripts/mundo3d.gd",
-            "scripts/assets3d.gd", "scripts/hornear.gd", "scripts/importar.gd", "scripts/juego_aventura.gd", "scripts/juego_arriba.gd", "scripts/partida.gd"]
+            "scripts/assets3d.gd", "scripts/hornear.gd", "scripts/importar.gd", "scripts/juego_aventura.gd", "scripts/juego_arriba.gd", "scripts/partida.gd", "scripts/tienda.gd"]
 shutil.rmtree(DEST, ignore_errors=True)
 for a in ARCHIVOS:
     d = os.path.join(DEST, a)

@@ -77,9 +77,16 @@ func _seguro(n: String) -> String:
 
 func exportar(plataforma: String, nombre: String, nivel_json: String) -> void:
 	if _hilo != null and _hilo.is_started():
+		if _hilo.is_alive():
+			return  # ya hay una exportación en marcha: no empezar otra encima
 		_hilo.wait_to_finish()
 	_hilo = Thread.new()
 	_hilo.start(_trabajo.bind(plataforma, nombre, nivel_json))
+
+
+func _exit_tree() -> void:
+	if _hilo != null and _hilo.is_started():
+		_hilo.wait_to_finish()
 
 
 func _fin(ok: bool, msg: String, carpeta: String = "") -> void:
@@ -153,6 +160,9 @@ func _web_propio(nombre: String, nivel_json: String, plantilla: String, salida: 
 			f.store_buffer(datos)
 	z.close()
 	var f2 := FileAccess.open(salida.path_join("index.pck"), FileAccess.WRITE)
+	if f2 == null:
+		_fin(false, "No pude escribir los archivos del juego. Revisa que la carpeta no esté protegida.")
+		return
 	f2.store_buffer(pck)
 	f2.close()
 	var config := {"args": [], "canvasResizePolicy": 2, "ensureCrossOriginIsolationHeaders": false, "executable": "index", "experimentalVK": false, "fileSizes": tam, "focusCanvas": true, "gdextensionLibs": []}
@@ -162,6 +172,9 @@ func _web_propio(nombre: String, nivel_json: String, plantilla: String, salida: 
 		precarga += "\t\tengine.preloadFile('assets/%s', '/assets/%s');\n" % [n.uri_encode(), n]
 	html = html.replace("engine.startGame({", precarga + "\t\tengine.startGame({")
 	var fh := FileAccess.open(salida.path_join("index.html"), FileAccess.WRITE)
+	if fh == null:
+		_fin(false, "No pude escribir index.html. Revisa que la carpeta no esté protegida.")
+		return
 	fh.store_string(html)
 	fh.close()
 	var fn := FileAccess.open(salida.path_join("nivel.json"), FileAccess.WRITE)
@@ -179,20 +192,19 @@ func _copiar_assets(nivel_json: String, salida: String) -> Array:
 	if nv is Dictionary:
 		if nv.has("niveles") and nv["niveles"] is Array:
 			niveles = nv["niveles"]
-			var mus := str((nv.get("reglas", {}) as Dictionary).get("musica", ""))
-			if mus != "":
-				usados[mus] = true
-			for ci in (nv.get("reglas", {}) as Dictionary).get("catalogo", []):
-				usados[str(ci.get("id", ""))] = true
-			for ji in (nv.get("reglas", {}) as Dictionary).get("jugables", []):
-				usados[str(ji.get("id", ""))] = true
-			usados[str((nv.get("reglas", {}) as Dictionary).get("heroe2", ""))] = true
-			var mas := str((nv.get("reglas", {}) as Dictionary).get("mascota", ""))
-			if mas != "":
-				usados[mas] = true
+			var rg: Dictionary = nv["reglas"] if nv.get("reglas") is Dictionary else {}
+			for clave in ["musica", "heroe2", "mascota"]:
+				if str(rg.get(clave, "")) != "":
+					usados[str(rg[clave])] = true
+			for lista in ["catalogo", "jugables"]:
+				for ci in (rg.get(lista, []) if rg.get(lista, []) is Array else []):
+					if ci is Dictionary:
+						usados[str(ci.get("id", ""))] = true
 		else:
 			niveles = [nv]
 	for n in niveles:
+		if not n is Dictionary:
+			continue
 		var ids: Array = [str(n.get("hero", "")), str(n.get("fondo", ""))]
 		for it in n.get("items", []):
 			ids.append(str(it.get("e", "")))
@@ -206,6 +218,12 @@ func _copiar_assets(nivel_json: String, salida: String) -> Array:
 			DirAccess.make_dir_recursive_absolute(salida.path_join("assets"))
 			_copiar_archivo(origen, salida.path_join("assets").path_join(Importar.nombre_de(id)))
 			nombres.append(Importar.nombre_de(id))
+		if id.begins_with("g:"):  # la miniatura del modelo (tienda, selección de personaje)
+			var mini := Importar.ruta_dibujo(id)
+			if FileAccess.file_exists(mini):
+				DirAccess.make_dir_recursive_absolute(salida.path_join("assets"))
+				_copiar_archivo(mini, salida.path_join("assets").path_join(mini.get_file()))
+				nombres.append(mini.get_file())
 	return nombres
 
 
@@ -276,7 +294,7 @@ func _poner_nombre(ruta: String, nombre: String) -> void:
 	var lineas := txt.split("\n")
 	for i in lineas.size():
 		if lineas[i].begins_with("config/name="):
-			lineas[i] = 'config/name="%s"' % nombre.replace('"', "")
+			lineas[i] = 'config/name="%s"' % nombre.replace('"', "").replace("\\", "")
 	var g := FileAccess.open(ruta, FileAccess.WRITE)
 	g.store_string("\n".join(lineas))
 

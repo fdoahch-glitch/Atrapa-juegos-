@@ -35,9 +35,11 @@ static func leer() -> Dictionary:
 
 
 static func guardar(d: Dictionary) -> void:
-	var f := FileAccess.open(RUTA, FileAccess.WRITE)
+	var f := FileAccess.open(RUTA + ".tmp", FileAccess.WRITE)
 	if f:
 		f.store_string(JSON.stringify(d))
+		f.close()
+		DirAccess.rename_absolute(RUTA + ".tmp", RUTA)
 
 
 static func ganar(cantidad: int) -> void:

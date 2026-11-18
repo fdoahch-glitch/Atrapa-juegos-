@@ -204,7 +204,7 @@ func _alcance() -> float:
 func _mascota_3d(mundo: Node3D, p: Vector3, desf: Vector3) -> void:
 	if not _tiene_mascota():
 		return
-	if _m3 == null:
+	if _m3 == null or not is_instance_valid(_m3):
 		_m3 = preload("res://scripts/mundo3d.gd").objeto(str(reglas["mascota"]), 0.75)
 		if _m3 is Sprite3D:
 			(_m3 as Sprite3D).billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
@@ -506,7 +506,18 @@ func _actualizar(dt: float) -> void:
 			_sonido.tocar(1000.0, 0.4, "triangulo")
 			_mostrar_fin("🎉", "¡Nivel completado!", "Puntos: %d · Recogiste %d de %d" % [puntos, recogidos, total])
 	if pos.y > Datos.FILAS * T + T * 2:
-		_herir()
+		_caida()
+
+
+## Caer al vacío: si hay protección (inmunidad o escudo) no se pierde vida, pero vuelve al inicio.
+func _caida() -> void:
+	if estado != "jugar":
+		return
+	if inv > 0.0 or _absorber():
+		pos = inicio
+		vel = Vector2.ZERO
+		return
+	_herir()
 
 
 func _herir() -> void:

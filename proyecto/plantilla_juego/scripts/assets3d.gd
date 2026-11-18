@@ -7,6 +7,7 @@ extends RefCounted
 const PERSONAJES := [
 	["explorador", "Explorador"], ["caballero", "Caballero"], ["mago", "Mago"], ["robot", "Robot"],
 	["astronauta", "Astronauta"], ["pirata", "Pirata"], ["ninja", "Ninja"], ["bichito", "Bichito"], ["animalito", "Animalito"],
+	["hada", "Hada"], ["dragon", "Dragón"], ["pinguino", "Pingüino"], ["conejo", "Conejo"], ["rana", "Rana"], ["osito", "Osito"],
 ]
 # mascotas dinosaurio hechas con formas (las otras mascotas de Dino Run son modelos GLB)
 const MASCOTAS := [
@@ -16,13 +17,17 @@ const MASCOTAS := [
 const ENEMIGOS := [
 	["slime", "Slime", false, 40], ["murcielago", "Murciélago", true, 80], ["esqueleto", "Esqueleto", false, 60],
 	["arana", "Araña", false, 90], ["fantasma", "Fantasma", true, 60], ["robot_malo", "Robot malo", false, 70],
+	["cangrejo", "Cangrejo", false, 70], ["abeja", "Abeja", true, 70], ["zombi", "Zombi", false, 50], ["momia", "Momia", false, 60],
+	["calabaza", "Calabaza", false, 80], ["pulpo", "Pulpo", false, 70],
 ]
 # categoría -> [id, nombre, alto en celdas (metros) por defecto]
 const OBJETOS := {
 	"Naturaleza": [["arbol", "Árbol", 2.6], ["pino", "Pino", 2.8], ["palmera", "Palmera", 2.8], ["arbusto", "Arbusto", 0.9], ["flor", "Flor", 0.6], ["hongo", "Hongo", 0.7], ["cactus", "Cactus", 1.6], ["troncos", "Troncos", 0.8], ["nube", "Nube", 1.2]],
 	"Rocas": [["roca", "Roca grande", 1.6], ["piedra", "Piedra", 0.6], ["rocas", "Rocas", 1.0], ["cristal", "Cristal", 1.3]],
 	"Construcciones": [["casa", "Casa", 2.6], ["torre", "Torre", 4.0], ["castillo", "Castillo", 3.4], ["edificio", "Edificio", 4.5], ["tienda", "Tienda", 1.8], ["cerca", "Cerca", 0.9], ["farol", "Farol", 2.4], ["cartel", "Cartel", 1.3], ["arco", "Arco", 2.6]],
-	"Cosas": [["caja", "Caja", 0.9], ["barril", "Barril", 1.0], ["cofre", "Cofre", 0.8], ["fogata", "Fogata", 0.7], ["bandera", "Bandera", 2.2]],
+	"Cosas": [["caja", "Caja", 0.9], ["barril", "Barril", 1.0], ["cofre", "Cofre", 0.8], ["fogata", "Fogata", 0.7], ["bandera", "Bandera", 2.2],
+		["llave", "Llave", 0.8], ["antorcha", "Antorcha", 1.3], ["cohete", "Cohete", 2.0], ["corazon", "Corazón", 0.7], ["escudo", "Escudo", 0.9], ["puerta", "Puerta", 2.2],
+		["espada", "Espada", 1.2], ["pocion", "Poción", 0.7], ["ancla", "Ancla", 1.2], ["globo", "Globo", 1.8], ["estrella", "Estrella", 0.8], ["helado", "Helado", 0.9]],
 }
 
 
@@ -516,6 +521,223 @@ static func _modelo(r: Node3D, id: String) -> void:
 			f(r, "cilindro", Vector3(0.08, 2.2, 0.08), Color("e5e7eb"), Vector3(0, 1.1, 0))
 			f(r, "caja", Vector3(0.8, 0.5, 0.04), Color("e5484d"), Vector3(0.44, 1.9, 0))
 			f(r, "esfera", Vector3(0.14, 0.14, 0.14), Color("fbbf24"), Vector3(0, 2.25, 0), Vector3.ZERO, 0.6)
+		# ---------------- personajes nuevos
+		"hada":
+			_humanoide(r, Color("f472b6"), Color("f6d3b5"), Color("c084fc"))
+			f(r, "cono", Vector3(0.62, 0.55, 0.5), Color("f9a8d4"), Vector3(0, 0.78, 0))
+			f(r, "esfera", Vector3(0.46, 0.3, 0.46), Color("fcd34d"), Vector3(0, 1.62, -0.03))
+			f(r, "esfera", Vector3(0.2, 0.2, 0.2), Color("fcd34d"), Vector3(0, 1.84, -0.05))
+			f(r, "cono", Vector3(0.16, 0.2, 0.16), Color("fde047"), Vector3(0, 1.98, 0.0), Vector3.ZERO, 0.8)
+			for lado in [-1, 1]:
+				f(r, "esfera", Vector3(0.1, 0.7, 0.3), Color("a5f3fc"), Vector3(lado * 0.3, 1.25, -0.2), Vector3(0, lado * 20, lado * -25), 0.5)
+				f(r, "esfera", Vector3(0.08, 0.4, 0.22), Color("e9d5ff"), Vector3(lado * 0.28, 0.9, -0.2), Vector3(0, lado * 20, lado * 20), 0.5)
+			f(r, "cilindro", Vector3(0.03, 0.7, 0.03), Color("fcd34d"), Vector3(0.42, 0.85, 0.25), Vector3(20, 0, 10))
+			f(r, "esfera", Vector3(0.16, 0.16, 0.16), Color("fde047"), Vector3(0.46, 1.2, 0.32), Vector3.ZERO, 1.2)
+		"dragon":
+			_dino_bipedo(r, Color("8b5cf6"), Color("fcd34d"), Color("f97316"), "cresta")
+			for lado in [-1, 1]:
+				f(r, "cono", Vector3(0.09, 0.28, 0.09), Color("fde68a"), Vector3(lado * 0.14, 1.24, 0.42), Vector3(-15, 0, lado * -12))
+				f(r, "esfera", Vector3(0.08, 0.7, 0.5), Color("f472b6"), Vector3(lado * 0.3, 1.0, -0.15), Vector3(0, lado * 20, lado * 25))
+			for k in 4:
+				f(r, "cono", Vector3(0.1, 0.18, 0.1), Color("f97316"), Vector3(0, 1.0 - k * 0.1, 0.0 - k * 0.2), Vector3(-20, 0, 0))
+			f(r, "esfera", Vector3(0.12, 0.1, 0.1), Color("f97316"), Vector3(0, 0.92, 0.93), Vector3.ZERO, 0.8)
+		"pinguino":
+			f(r, "capsula", Vector3(0.75, 1.05, 0.6), Color("1e293b"), Vector3(0, 0.6, 0))
+			f(r, "esfera", Vector3(0.52, 0.8, 0.3), Color.WHITE, Vector3(0, 0.55, 0.2))
+			f(r, "esfera", Vector3(0.58, 0.5, 0.52), Color("1e293b"), Vector3(0, 1.2, 0.02))
+			f(r, "esfera", Vector3(0.4, 0.3, 0.22), Color.WHITE, Vector3(0, 1.18, 0.2))
+			f(r, "cono", Vector3(0.18, 0.22, 0.14), Color("fb923c"), Vector3(0, 1.15, 0.38), Vector3(90, 0, 0))
+			for lado in [-1, 1]:
+				f(r, "esfera", Vector3(0.1, 0.12, 0.06), Color.BLACK, Vector3(lado * 0.12, 1.28, 0.3))
+				f(r, "esfera", Vector3(0.04, 0.04, 0.03), Color.WHITE, Vector3(lado * 0.12, 1.31, 0.33))
+				var pv := _pivote(r, "pierna_i" if lado < 0 else "pierna_d", Vector3(lado * 0.17, 0.15, 0.05))
+				f(pv, "caja", Vector3(0.2, 0.06, 0.34), Color("fb923c"), Vector3(0, -0.1, 0.08))
+				var av := _pivote(r, "brazo_i" if lado < 0 else "brazo_d", Vector3(lado * 0.38, 0.95, 0))
+				f(av, "capsula", Vector3(0.1, 0.5, 0.2), Color("1e293b"), Vector3(lado * 0.04, -0.22, 0), Vector3(0, 0, lado * 12))
+		"conejo":
+			_humanoide(r, Color("a78bfa"), Color("f5f0e8"), Color("7c3aed"), 0.55)
+			f(r, "esfera", Vector3(0.44, 0.4, 0.44), Color("f5f0e8"), Vector3(0, 1.42, 0))
+			for lado in [-1, 1]:
+				f(r, "capsula", Vector3(0.14, 0.6, 0.1), Color("f5f0e8"), Vector3(lado * 0.12, 1.92, -0.02), Vector3(0, 0, lado * -8))
+				f(r, "capsula", Vector3(0.07, 0.4, 0.05), Color("f9a8d4"), Vector3(lado * 0.12, 1.92, 0.03), Vector3(0, 0, lado * -8))
+			f(r, "esfera", Vector3(0.1, 0.07, 0.07), Color("f472b6"), Vector3(0, 1.38, 0.2))
+			f(r, "esfera", Vector3(0.18, 0.18, 0.18), Color.WHITE, Vector3(0, 0.75, -0.22))
+		"rana":
+			f(r, "esfera", Vector3(0.9, 0.75, 0.8), Color("4ade80"), Vector3(0, 0.55, 0))
+			f(r, "esfera", Vector3(0.6, 0.45, 0.4), Color("dcfce7"), Vector3(0, 0.4, 0.22))
+			f(r, "caja", Vector3(0.5, 0.05, 0.06), Color("be123c"), Vector3(0, 0.62, 0.4))
+			for lado in [-1, 1]:
+				f(r, "esfera", Vector3(0.3, 0.3, 0.3), Color("4ade80"), Vector3(lado * 0.25, 1.0, 0.1))
+				f(r, "esfera", Vector3(0.2, 0.22, 0.12), Color.WHITE, Vector3(lado * 0.25, 1.02, 0.25))
+				f(r, "esfera", Vector3(0.1, 0.12, 0.08), Color.BLACK, Vector3(lado * 0.25, 1.02, 0.31))
+				f(r, "esfera", Vector3(0.12, 0.08, 0.04), Color("fda4af"), Vector3(lado * 0.3, 0.7, 0.38))
+				var pv := _pivote(r, "pierna_i" if lado < 0 else "pierna_d", Vector3(lado * 0.3, 0.2, 0.05))
+				f(pv, "esfera", Vector3(0.26, 0.2, 0.44), Color("22c55e"), Vector3(0, -0.06, 0.1))
+				var av := _pivote(r, "brazo_i" if lado < 0 else "brazo_d", Vector3(lado * 0.42, 0.55, 0.15))
+				f(av, "capsula", Vector3(0.12, 0.4, 0.12), Color("22c55e"), Vector3(0, -0.18, 0))
+		"osito":
+			_humanoide(r, Color("f59e0b"), Color("b4783c"), Color("b4783c"), 0.55)
+			f(r, "esfera", Vector3(0.5, 0.5, 0.46), Color("b4783c"), Vector3(0, 1.42, 0))
+			f(r, "esfera", Vector3(0.34, 0.3, 0.2), Color("fde7c0"), Vector3(0, 1.35, 0.2))
+			f(r, "esfera", Vector3(0.1, 0.07, 0.07), Color("1f1b2e"), Vector3(0, 1.4, 0.3))
+			f(r, "esfera", Vector3(0.36, 0.34, 0.2), Color("fde7c0"), Vector3(0, 0.88, 0.14))
+			for lado in [-1, 1]:
+				f(r, "esfera", Vector3(0.2, 0.2, 0.14), Color("b4783c"), Vector3(lado * 0.2, 1.68, 0))
+				f(r, "esfera", Vector3(0.1, 0.1, 0.06), Color("fda4af"), Vector3(lado * 0.2, 1.68, 0.05))
+		# ---------------- enemigos nuevos
+		"cangrejo":
+			f(r, "esfera", Vector3(0.95, 0.5, 0.65), Color("ef4444"), Vector3(0, 0.4, 0))
+			f(r, "esfera", Vector3(0.75, 0.2, 0.45), Color("fca5a5"), Vector3(0, 0.3, 0.12))
+			for lado in [-1, 1]:
+				f(r, "cilindro", Vector3(0.04, 0.22, 0.04), Color("dc2626"), Vector3(lado * 0.16, 0.74, 0.22))
+				f(r, "esfera", Vector3(0.14, 0.16, 0.1), Color.WHITE, Vector3(lado * 0.16, 0.88, 0.22))
+				f(r, "esfera", Vector3(0.07, 0.09, 0.06), Color.BLACK, Vector3(lado * 0.16, 0.88, 0.28))
+				var pv := _pivote(r, "pierna_i" if lado < 0 else "pierna_d", Vector3(lado * 0.4, 0.3, 0))
+				for k in 2:
+					f(pv, "cilindro", Vector3(0.05, 0.4, 0.05), Color("dc2626"), Vector3(lado * 0.12, -0.08, -0.12 + k * 0.22), Vector3(0, 0, lado * -60))
+				var av := _pivote(r, "brazo_i" if lado < 0 else "brazo_d", Vector3(lado * 0.45, 0.5, 0.2))
+				f(av, "cilindro", Vector3(0.08, 0.3, 0.08), Color("dc2626"), Vector3(lado * 0.08, 0.1, 0.1), Vector3(40, 0, lado * -30))
+				f(av, "esfera", Vector3(0.3, 0.22, 0.2), Color("ef4444"), Vector3(lado * 0.12, 0.28, 0.24))
+				f(av, "cono", Vector3(0.1, 0.18, 0.08), Color("b91c1c"), Vector3(lado * 0.12, 0.28, 0.4), Vector3(90, 0, 0))
+			f(r, "caja", Vector3(0.2, 0.04, 0.04), Color("7f1d1d"), Vector3(0, 0.45, 0.33))
+		"abeja":
+			f(r, "esfera", Vector3(0.62, 0.6, 0.9), Color("facc15"), Vector3(0, 0.55, -0.1))
+			for z in [-0.2, 0.0, 0.2]:
+				f(r, "cilindro", Vector3(0.6 - absf(z) * 0.3, 0.08, 0.6 - absf(z) * 0.3), Color("1f1b2e"), Vector3(0, 0.55, z - 0.1), Vector3(90, 0, 0))
+			f(r, "esfera", Vector3(0.5, 0.48, 0.45), Color("fde047"), Vector3(0, 0.62, 0.42))
+			f(r, "cono", Vector3(0.1, 0.25, 0.1), Color("1f1b2e"), Vector3(0, 0.5, -0.65), Vector3(-90, 0, 0))
+			for lado in [-1, 1]:
+				f(r, "esfera", Vector3(0.14, 0.16, 0.08), Color.WHITE, Vector3(lado * 0.14, 0.68, 0.62))
+				f(r, "esfera", Vector3(0.07, 0.09, 0.05), Color.BLACK, Vector3(lado * 0.14, 0.68, 0.68))
+				f(r, "cilindro", Vector3(0.03, 0.3, 0.03), Color("1f1b2e"), Vector3(lado * 0.12, 1.0, 0.55), Vector3(0, 0, lado * -20))
+				f(r, "esfera", Vector3(0.07, 0.07, 0.07), Color("1f1b2e"), Vector3(lado * 0.2, 1.14, 0.55))
+				var ala := _pivote(r, "brazo_i" if lado < 0 else "brazo_d", Vector3(lado * 0.2, 0.85, -0.1))
+				f(ala, "esfera", Vector3(0.6, 0.05, 0.3), Color("bae6fd"), Vector3(lado * 0.3, 0.05, 0), Vector3(0, 0, lado * -15), 0.3)
+		"zombi":
+			_humanoide(r, Color("6b7280"), Color("86c46a"), Color("4b5563"))
+			f(r, "esfera", Vector3(0.44, 0.2, 0.44), Color("3f3f46"), Vector3(0, 1.58, -0.04))
+			f(r, "caja", Vector3(0.22, 0.04, 0.04), Color("7f1d1d"), Vector3(0, 1.28, 0.2))
+			f(r, "caja", Vector3(0.3, 0.12, 0.06), Color("86c46a"), Vector3(0.1, 0.9, 0.18), Vector3(0, 0, 20))
+			f(r, "esfera", Vector3(0.1, 0.1, 0.05), Color("fde047"), Vector3(-0.1, 1.38, 0.19), Vector3.ZERO, 0.8)
+			f(r, "caja", Vector3(0.04, 0.14, 0.04), Color("7f1d1d"), Vector3(0.12, 1.5, 0.2), Vector3(0, 0, 20))
+		"momia":
+			_humanoide(r, Color("e8dcc0"), Color("e8dcc0"), Color("d6c9a6"))
+			for k in 4:
+				f(r, "cilindro", Vector3(0.5, 0.05, 0.36), Color("c9bb94"), Vector3(0, 0.78 + k * 0.14, 0), Vector3(0, k * 25, 0))
+			for k in 3:
+				f(r, "cilindro", Vector3(0.46, 0.05, 0.46), Color("c9bb94"), Vector3(0, 1.38 + k * 0.1, 0), Vector3(8, k * 40, 0))
+			for lado in [-1, 1]:
+				f(r, "esfera", Vector3(0.12, 0.09, 0.05), Color("1f1b2e"), Vector3(lado * 0.1, 1.42, 0.2))
+				f(r, "esfera", Vector3(0.06, 0.05, 0.03), Color("f87171"), Vector3(lado * 0.1, 1.42, 0.23), Vector3.ZERO, 1.5)
+		"calabaza":
+			f(r, "esfera", Vector3(1.0, 0.85, 0.9), Color("f97316"), Vector3(0, 0.55, 0))
+			f(r, "esfera", Vector3(0.6, 0.8, 0.85), Color("fb923c"), Vector3(0.0, 0.55, 0.05))
+			f(r, "cilindro", Vector3(0.12, 0.2, 0.12), Color("4d7c0f"), Vector3(0, 1.03, 0), Vector3(0, 0, 12))
+			for lado in [-1, 1]:
+				f(r, "prisma", Vector3(0.2, 0.2, 0.06), Color("fde047"), Vector3(lado * 0.2, 0.68, 0.42), Vector3.ZERO, 1.3)
+				var pv := _pivote(r, "pierna_i" if lado < 0 else "pierna_d", Vector3(lado * 0.22, 0.15, 0.05))
+				f(pv, "esfera", Vector3(0.24, 0.16, 0.34), Color("65a30d"), Vector3(0, -0.04, 0.05))
+			for k in 4:
+				f(r, "caja", Vector3(0.1, 0.08, 0.06), Color("fde047"), Vector3(-0.21 + k * 0.14, 0.4 + (k % 2) * 0.06, 0.43), Vector3.ZERO, 1.3)
+		"pulpo":
+			f(r, "esfera", Vector3(0.9, 1.0, 0.85), Color("a855f7"), Vector3(0, 1.0, 0))
+			f(r, "esfera", Vector3(0.5, 0.4, 0.2), Color("c084fc"), Vector3(-0.15, 1.3, 0.25))
+			for lado in [-1, 1]:
+				f(r, "esfera", Vector3(0.24, 0.3, 0.14), Color.WHITE, Vector3(lado * 0.2, 0.95, 0.38))
+				f(r, "esfera", Vector3(0.12, 0.16, 0.1), Color.BLACK, Vector3(lado * 0.2, 0.95, 0.45))
+				var pv := _pivote(r, "pierna_i" if lado < 0 else "pierna_d", Vector3(lado * 0.25, 0.6, 0.1))
+				f(pv, "capsula", Vector3(0.16, 0.6, 0.16), Color("9333ea"), Vector3(0, -0.2, 0))
+				f(pv, "esfera", Vector3(0.18, 0.14, 0.18), Color("a855f7"), Vector3(0, -0.5, 0))
+				var av := _pivote(r, "brazo_i" if lado < 0 else "brazo_d", Vector3(lado * 0.42, 0.7, 0.05))
+				f(av, "capsula", Vector3(0.15, 0.55, 0.15), Color("9333ea"), Vector3(lado * 0.08, -0.15, 0), Vector3(0, 0, lado * 25))
+				f(r, "capsula", Vector3(0.15, 0.5, 0.15), Color("9333ea"), Vector3(lado * 0.25, 0.3, -0.2), Vector3(0, 0, lado * 20))
+			f(r, "caja", Vector3(0.22, 0.05, 0.05), Color("581c87"), Vector3(0, 0.7, 0.42))
+		# ---------------- cosas nuevas
+		"llave":
+			for k in 10:
+				f(r, "esfera", Vector3(0.14, 0.14, 0.1), Color("fbbf24"), Vector3(cos(k * 0.628) * 0.26, 1.1 + sin(k * 0.628) * 0.26, 0), Vector3.ZERO, 0.4)
+			f(r, "cilindro", Vector3(0.12, 0.85, 0.1), Color("fbbf24"), Vector3(0, 0.48, 0), Vector3.ZERO, 0.4)
+			for d in [[0.2, 0.2], [0.18, 0.4], [0.14, 0.6]]:
+				f(r, "caja", Vector3(d[0] * 1.2, 0.1, 0.1), Color("f59e0b"), Vector3(d[0] * 0.6 + 0.06, d[1] - 0.02, 0), Vector3.ZERO, 0.4)
+		"antorcha":
+			f(r, "cilindro", Vector3(0.14, 1.0, 0.14), Color("7a4a2a"), Vector3(0, 0.5, 0))
+			f(r, "cono", Vector3(0.4, 0.3, 0.4), Color("4b5563"), Vector3(0, 1.1, 0), Vector3(180, 0, 0))
+			f(r, "cilindro", Vector3(0.44, 0.08, 0.44), Color("374151"), Vector3(0, 1.28, 0))
+			f(r, "esfera", Vector3(0.4, 0.5, 0.4), Color("f97316"), Vector3(0, 1.5, 0), Vector3.ZERO, 1.0)
+			f(r, "cono", Vector3(0.3, 0.4, 0.3), Color("f97316"), Vector3(0, 1.85, 0), Vector3.ZERO, 1.0)
+			f(r, "esfera", Vector3(0.2, 0.3, 0.2), Color("fde047"), Vector3(0, 1.45, 0.04), Vector3.ZERO, 1.3)
+		"cohete":
+			f(r, "cilindro", Vector3(0.6, 1.3, 0.6), Color("f5f5f5"), Vector3(0, 1.0, 0))
+			f(r, "cono", Vector3(0.6, 0.6, 0.6), Color("ef4444"), Vector3(0, 1.95, 0))
+			f(r, "cilindro", Vector3(0.62, 0.15, 0.62), Color("ef4444"), Vector3(0, 0.5, 0))
+			f(r, "esfera", Vector3(0.3, 0.3, 0.12), Color("38bdf8"), Vector3(0, 1.25, 0.28), Vector3.ZERO, 0.5)
+			for k in 3:
+				var a := k * 2.094
+				f(r, "prisma", Vector3(0.1, 0.55, 0.45), Color("ef4444"), Vector3(sin(a) * 0.38, 0.6, cos(a) * 0.38), Vector3(0, 90 + k * 120, 0))
+			f(r, "cono", Vector3(0.36, 0.5, 0.36), Color("f97316"), Vector3(0, 0.1, 0), Vector3(180, 0, 0), 1.2)
+			f(r, "cono", Vector3(0.2, 0.3, 0.2), Color("fde047"), Vector3(0, 0.2, 0), Vector3(180, 0, 0), 1.4)
+		"corazon":
+			f(r, "caja", Vector3(0.62, 0.62, 0.4), Color("ef4444"), Vector3(0, 0.45, 0), Vector3(0, 0, 45), 0.25)
+			for lado in [-1, 1]:
+				f(r, "esfera", Vector3(0.62, 0.62, 0.4), Color("ef4444"), Vector3(lado * 0.22, 0.67, 0), Vector3.ZERO, 0.25)
+			f(r, "esfera", Vector3(0.14, 0.1, 0.06), Color("fecaca"), Vector3(-0.28, 0.86, 0.2), Vector3(0, 0, 30))
+		"escudo":
+			f(r, "caja", Vector3(0.9, 0.5, 0.12), Color("3b82f6"), Vector3(0, 1.0, 0))
+			f(r, "cono", Vector3(0.9, 0.7, 0.12), Color("3b82f6"), Vector3(0, 0.6, 0), Vector3(180, 0, 0))
+			f(r, "caja", Vector3(0.12, 0.9, 0.06), Color("fde047"), Vector3(0, 0.85, 0.08))
+			f(r, "caja", Vector3(0.6, 0.12, 0.06), Color("fde047"), Vector3(0, 1.0, 0.08))
+			f(r, "esfera", Vector3(0.2, 0.2, 0.12), Color("fbbf24"), Vector3(0, 0.95, 0.1), Vector3.ZERO, 0.4)
+			f(r, "caja", Vector3(0.96, 0.08, 0.14), Color("9ca3af"), Vector3(0, 1.25, 0))
+		"puerta":
+			f(r, "caja", Vector3(1.3, 1.8, 0.3), Color("9ca3af"), Vector3(0, 0.9, 0))
+			f(r, "cilindro", Vector3(1.3, 0.3, 1.3), Color("9ca3af"), Vector3(0, 1.8, 0), Vector3(90, 0, 0))
+			f(r, "caja", Vector3(0.9, 1.7, 0.1), Color("92400e"), Vector3(0, 0.85, 0.12))
+			f(r, "cilindro", Vector3(0.9, 0.1, 0.9), Color("92400e"), Vector3(0, 1.7, 0.12), Vector3(90, 0, 0))
+			for x in [-0.22, 0.22]:
+				f(r, "caja", Vector3(0.04, 1.7, 0.04), Color("6b3410"), Vector3(x, 0.85, 0.18))
+			f(r, "esfera", Vector3(0.12, 0.12, 0.12), Color("fbbf24"), Vector3(0.3, 0.85, 0.2), Vector3.ZERO, 0.5)
+		"espada":
+			f(r, "cono", Vector3(0.22, 0.25, 0.05), Color("d1d5db"), Vector3(0, 0.125, 0), Vector3(180, 0, 0))
+			f(r, "caja", Vector3(0.22, 1.0, 0.05), Color("e5e7eb"), Vector3(0, 0.75, 0))
+			f(r, "caja", Vector3(0.05, 0.9, 0.06), Color("9ca3af"), Vector3(0, 0.75, 0.01))
+			f(r, "caja", Vector3(0.7, 0.12, 0.14), Color("fbbf24"), Vector3(0, 1.28, 0), Vector3.ZERO, 0.3)
+			f(r, "cilindro", Vector3(0.1, 0.35, 0.1), Color("7a4a2a"), Vector3(0, 1.5, 0))
+			f(r, "esfera", Vector3(0.18, 0.18, 0.18), Color("e5484d"), Vector3(0, 1.7, 0), Vector3.ZERO, 0.6)
+		"pocion":
+			f(r, "esfera", Vector3(0.75, 0.75, 0.6), Color("e9d5ff"), Vector3(0, 0.38, 0))
+			f(r, "esfera", Vector3(0.62, 0.55, 0.5), Color("ec4899"), Vector3(0, 0.33, 0.03), Vector3.ZERO, 0.8)
+			f(r, "cilindro", Vector3(0.24, 0.35, 0.24), Color("e9d5ff"), Vector3(0, 0.85, 0))
+			f(r, "cilindro", Vector3(0.28, 0.14, 0.28), Color("a16207"), Vector3(0, 1.08, 0))
+			for d in [[0.1, 0.5, 0.08], [-0.12, 0.35, 0.06], [0.05, 0.25, 0.05]]:
+				f(r, "esfera", Vector3(d[2], d[2], d[2]), Color("fbcfe8"), Vector3(d[0], d[1], 0.3), Vector3.ZERO, 0.6)
+		"ancla":
+			f(r, "cilindro", Vector3(0.12, 1.3, 0.12), Color("475569"), Vector3(0, 0.75, 0))
+			f(r, "caja", Vector3(0.6, 0.12, 0.12), Color("475569"), Vector3(0, 1.1, 0))
+			for k in 8:
+				f(r, "esfera", Vector3(0.1, 0.1, 0.1), Color("64748b"), Vector3(cos(k * 0.785) * 0.14, 1.52 + sin(k * 0.785) * 0.14, 0))
+			for lado in [-1, 1]:
+				f(r, "capsula", Vector3(0.12, 0.7, 0.12), Color("475569"), Vector3(lado * 0.28, 0.28, 0), Vector3(0, 0, lado * -50))
+				f(r, "cono", Vector3(0.22, 0.28, 0.1), Color("334155"), Vector3(lado * 0.55, 0.52, 0), Vector3(0, 0, lado * -50))
+		"globo":
+			f(r, "esfera", Vector3(0.95, 1.15, 0.95), Color("ef4444"), Vector3(0, 1.5, 0))
+			f(r, "esfera", Vector3(0.18, 0.3, 0.1), Color("fecaca"), Vector3(-0.25, 1.75, 0.35), Vector3(0, 0, 25))
+			f(r, "cono", Vector3(0.14, 0.14, 0.14), Color("b91c1c"), Vector3(0, 0.88, 0), Vector3(180, 0, 0))
+			f(r, "cilindro", Vector3(0.02, 0.8, 0.02), Color("fef3c7"), Vector3(0, 0.45, 0))
+			f(r, "esfera", Vector3(0.14, 0.14, 0.14), Color("fef3c7"), Vector3(0, 0.03, 0))
+		"estrella":
+			f(r, "esfera", Vector3(0.55, 0.55, 0.22), Color("fbbf24"), Vector3(0, 0.9, 0), Vector3.ZERO, 0.6)
+			for k in 5:
+				var a := deg_to_rad(k * 72.0)
+				f(r, "cono", Vector3(0.36, 0.6, 0.2), Color("fbbf24"), Vector3(-sin(a) * 0.4, 0.9 + cos(a) * 0.4, 0), Vector3(0, 0, k * 72), 0.6)
+			f(r, "esfera", Vector3(0.1, 0.12, 0.05), Color("78350f"), Vector3(-0.1, 0.95, 0.12))
+			f(r, "esfera", Vector3(0.1, 0.12, 0.05), Color("78350f"), Vector3(0.1, 0.95, 0.12))
+		"helado":
+			f(r, "cono", Vector3(0.5, 0.8, 0.5), Color("e9a95c"), Vector3(0, 0.4, 0), Vector3(180, 0, 0))
+			for k in 3:
+				f(r, "caja", Vector3(0.04, 0.5, 0.04), Color("c98a3e"), Vector3(-0.1 + k * 0.1, 0.4, 0.2), Vector3(0, 0, -20 + k * 20))
+			f(r, "esfera", Vector3(0.62, 0.5, 0.62), Color("f9a8d4"), Vector3(0, 0.88, 0))
+			f(r, "esfera", Vector3(0.55, 0.5, 0.55), Color("99f6e4"), Vector3(0, 1.25, 0))
+			f(r, "esfera", Vector3(0.16, 0.16, 0.16), Color("dc2626"), Vector3(0, 1.58, 0), Vector3.ZERO, 0.3)
 		_:
 			f(r, "caja", Vector3(0.8, 0.8, 0.8), Color("c084fc"), Vector3(0, 0.4, 0))
 
