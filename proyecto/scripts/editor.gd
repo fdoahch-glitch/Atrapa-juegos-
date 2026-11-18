@@ -178,8 +178,13 @@ func _construir() -> void:
 	b_ayuda.pressed.connect(_iniciar_tutorial)
 	fila.add_child(b_ayuda)
 	_textos_barra.append([b_ayuda, " Ayuda"])
-	var b_jugar := _boton(" ¡Jugar!", "▶", Estilo.VERDE, Color.WHITE, 130)
-	b_jugar.add_theme_font_size_override("font_size", 22)
+	var b_sorp := _boton(" Sorpréndeme", "✨", c_claro)
+	b_sorp.tooltip_text = "Cambia el fondo y el héroe al azar"
+	b_sorp.pressed.connect(_sorprender)
+	fila.add_child(b_sorp)
+	_textos_barra.append([b_sorp, " Sorpréndeme"])
+	var b_jugar := _boton(" ¡Jugar!", "▶", Estilo.VERDE, Color.WHITE, 150)
+	b_jugar.add_theme_font_size_override("font_size", 26)
 	b_jugar.pressed.connect(_jugar)
 	fila.add_child(b_jugar)
 	var b_exp := _boton(" Exportar", "🚀", Estilo.AMARILLO, Color("4a3300"), 140)
@@ -343,7 +348,7 @@ func _adaptar() -> void:
 	# En celular la pantalla física es pequeña aunque el ancho lógico sea grande: también cuenta.
 	var compacto := size.x < 1400.0 or float(get_window().size.x) < 1000.0
 	_titulo.visible = not compacto
-	_modo_txt.visible = size.x > 1250.0
+	_modo_txt.visible = size.x > 1600.0
 	_nombre.custom_minimum_size.x = 150.0 if compacto else 250.0
 	for par in _textos_barra:
 		par[0].text = "" if compacto else par[1]
@@ -1087,6 +1092,23 @@ func _aviso(msg: String) -> void:
 
 
 # ------------------------------------------------------------------ jugar
+## Cambia el fondo y el héroe al azar (sin tocar lo que ya colocaste).
+func _sorprender() -> void:
+	var fondos: Array = Datos.temas.keys()
+	var cambio: String = str(fondos[randi() % fondos.size()])
+	Datos.nivel.erase("fondo")
+	Datos.nivel["theme"] = cambio
+	var heroes: Array = []
+	for h in Datos.heroes:
+		heroes.append(str(h[1]))
+	for h in Assets3D.PERSONAJES:
+		heroes.append("a:" + str(h[0]))
+	Datos.nivel["hero"] = heroes[randi() % heroes.size()]
+	_esc.sel = null
+	Datos.confirmar()
+	_aviso("¡Sorpresa! Prueba a darle a Jugar")
+
+
 func _jugar() -> void:
 	if _jugando:
 		return
@@ -1159,7 +1181,7 @@ func _abrir_exportar() -> void:
 	v.add_child(desc)
 	if _exp.disponible():
 		desc.text = "Elige dónde quieres jugarlo. El botón mágico crea los archivos por ti y los deja en la carpeta «Mis juegos» de Documentos."
-		for d in [["web", "🌐", "  Página web (HTML)", "Se abre en cualquier navegador"], ["windows", "🖥", "  Programa de Windows (.exe)", "Para jugar en la computadora"], ["android", "📱", "  App de Android (.apk)", "Para celulares y tablets"]]:
+		for d in [["web", "🌐", "  Jugar en internet", "Se abre en cualquier navegador"], ["windows", "🖥", "  En la computadora", "Un programa para Windows"]]:
 			var b := Button.new()
 			b.text = "%s   —   %s" % [d[2], d[3]]
 			b.icon = Datos.textura(d[1])
@@ -1188,7 +1210,7 @@ func _abrir_exportar() -> void:
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 8)
 	v.add_child(h)
-	var copiar := _boton(" Copiar código del nivel", "📋")
+	var copiar := _boton(" Copiar mi nivel (avanzado)", "📋")
 	copiar.pressed.connect(func():
 		DisplayServer.clipboard_set(Datos.a_json())
 		_estado_exp.text = "¡Código copiado!")

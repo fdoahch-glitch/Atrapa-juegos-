@@ -376,6 +376,7 @@ func normalizar(n: Dictionary) -> Dictionary:
 	n["modo"] = str(n.get("modo", "2d")) if ["2d", "25d", "3d"].has(str(n.get("modo", "2d"))) else "2d"
 	if not temas.has(str(n.get("theme", "dia"))):
 		n["theme"] = "dia"
+	n["theme"] = str(n.get("theme", "dia"))
 	if str(n.get("hero", "")) == "":
 		n["hero"] = "🐱"
 	if not (n.get("items") is Array):
@@ -384,9 +385,20 @@ func normalizar(n: Dictionary) -> Dictionary:
 	for it in n["items"]:
 		if not (it is Dictionary) or not it.has("t"):
 			continue
+		# sin posición no se puede colocar: se descarta en vez de romper el juego
+		if not ((it.get("x") is int or it.get("x") is float) and (it.get("y") is int or it.get("y") is float)):
+			continue
 		for k in ["x", "y", "w", "h", "r", "sp", "s", "alt"]:
 			if it.has(k):
-				it[k] = int(it[k])
+				if it[k] is int or it[k] is float:
+					it[k] = int(it[k])
+				else:
+					it.erase(k)
+		if ["plat", "pared", "viga", "valla"].has(str(it["t"])):
+			it["w"] = maxi(1, int(it.get("w", 1)))
+			it["h"] = maxi(1, int(it.get("h", 1)))
+		if ["deco", "enemy"].has(str(it["t"])) and str(it.get("e", "")) == "":
+			it["e"] = "👾" if str(it["t"]) == "enemy" else "🌳"
 		if not it.has("id"):
 			it["id"] = nuevo_id()
 		limpios.append(it)
