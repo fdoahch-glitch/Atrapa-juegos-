@@ -3,7 +3,7 @@ func _ready() -> void:
 	var a = load("res://arranque.tscn").instantiate()
 	add_child(a)
 	await get_tree().create_timer(0.8).timeout
-	a.get_child(0).crear.emit("2d", {})
+	a.get_child(0).crear_juego.emit({"modo":"2d","tipo":"plataformas"})
 	await get_tree().create_timer(0.6).timeout
 	var e = a.get_child(0)
 	e._tut.terminar() if e.get("_tut") and e._tut.has_method("terminar") else null

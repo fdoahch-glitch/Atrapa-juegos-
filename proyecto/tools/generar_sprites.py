@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw, ImageFont
 FUENTE = sys.argv[1] if len(sys.argv) > 1 else "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf"
 SALIDA = os.path.join(os.path.dirname(__file__), "..", "assets", "emoji")
 EMOJIS = ("🐱🐶🦖🐰🦊🐼🤖🧙 🐌👾🐝🦀👻 🌳🌲🌸🌻🍄🌵🏠🏰☁ ⭐💎🏁📍 "
-          "❤🔊🔇▶🚀❓✨🖼🧱↩↪📄🧽✋🗑📋➕➖↔🎮🎉😵⬅➡⬆⚙📁🌐🖥📱⏸🔁📑🏆🪙🔧🧊🏃↕🗺✅⏰😕🛡🧲🛒").replace(" ", "")
+          "❤🔊🔇▶🚀❓✨🖼🧱↩↪📄🧽✋🗑📋➕➖↔🎮🎉😵⬅➡⬆⚙📁🌐🖥📱⏸🔁📑🏆🪙🔧🧊🏃↕🗺✅⏰😕🛡🧲🛒🐧🏎💥🥊🎯🕯⚔🎲📐🎨🖌🎵🔔⭐🔒🔓📷").replace(" ", "")
 font = ImageFont.truetype(FUENTE, 109)
 os.makedirs(SALIDA, exist_ok=True)
 hechos = 0

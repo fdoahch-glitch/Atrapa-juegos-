@@ -37,7 +37,7 @@ var niveles: Array = []             # copias de todos los niveles (el actual se 
 var idx := 0                        # posición del nivel actual
 var reglas: Dictionary = {}         # reglas del juego completo
 const MAX_NIVELES := 10
-const REGLAS_BASE := {"vidas": 3, "tiempo": 0, "meta": "meta", "pts_coin": 1, "pts_gem": 3, "pts_star": 5, "pts_enemy": 2, "titulo": true, "final": "¡Ganaste el juego!", "musica": "", "mascota": "", "poder": "escudo", "tienda": false, "jugadores": 1, "heroe2": ""}
+const REGLAS_BASE := {"vidas": 3, "tiempo": 0, "meta": "meta", "pts_coin": 1, "pts_gem": 3, "pts_star": 5, "pts_enemy": 2, "titulo": true, "final": "¡Ganaste el juego!", "musica": "", "mascota": "", "poder": "escudo", "tienda": false, "jugadores": 1, "heroe2": "", "plataforma": "windows", "categoria": "", "subtipo": ""}
 var historial: Array[String] = []
 var futuro: Array[String] = []
 var _actual := ""
@@ -415,6 +415,45 @@ func normalizar(n: Dictionary) -> Dictionary:
 
 
 ## Reglas con todos los valores presentes (los que falten usan el valor base).
+const ANIMACIONES := [["ninguna", "Quieto"], ["flotar", "Flotar"], ["latir", "Latir"], ["balancear", "Balancear"], ["rebotar", "Rebotar"], ["brillar", "Brillar"], ["girar", "Girar"]]
+const ACCIONES := [["ninguna", "Nada"], ["jugar", "Jugar"], ["personajes", "Elegir personaje"], ["tienda", "Tienda"], ["salir", "Salir"]]
+
+
+## La portada de un juego: título, imagen de fondo y botones (con su animación y su acción).
+## Las posiciones son fracciones del lienzo (0 a 1), así sirven en cualquier pantalla.
+func portada_normal(p: Variant) -> Dictionary:
+	var d: Dictionary = p if p is Dictionary else {}
+	var o := {"titulo": str(d.get("titulo", "")), "fondo": str(d.get("fondo", "")), "color": str(d.get("color", "#6f4ad8")), "botones": []}
+	var anims: Array = []
+	for a in ANIMACIONES:
+		anims.append(a[0])
+	var accs: Array = []
+	for a in ACCIONES:
+		accs.append(a[0])
+	var lista: Array = d.get("botones", []) if d.get("botones", []) is Array else []
+	for b in lista:
+		if not (b is Dictionary):
+			continue
+		var accion := str(b.get("accion", "ninguna"))
+		if not accs.has(accion) and not accion.begins_with("mundo:"):
+			accion = "ninguna"
+		o["botones"].append({
+			"txt": str(b.get("txt", "")),
+			"img": str(b.get("img", "")),
+			"x": clampf(float(b.get("x", 0.5)), 0.0, 1.0),
+			"y": clampf(float(b.get("y", 0.7)), 0.0, 1.0),
+			"w": clampf(float(b.get("w", 0.4)), 0.05, 1.0),
+			"h": clampf(float(b.get("h", 0.12)), 0.03, 1.0),
+			"anim": str(b.get("anim", "ninguna")) if anims.has(str(b.get("anim", "ninguna"))) else "ninguna",
+			"accion": accion,
+		})
+	return o
+
+
+func portada_nueva(nombre: String) -> Dictionary:
+	return portada_normal({"titulo": nombre, "botones": [{"txt": "Jugar", "x": 0.5, "y": 0.78, "w": 0.42, "h": 0.12, "anim": "latir", "accion": "jugar"}]})
+
+
 func reglas_completas(r: Dictionary) -> Dictionary:
 	var o: Dictionary = REGLAS_BASE.duplicate()
 	for k in o.keys():
@@ -426,6 +465,7 @@ func reglas_completas(r: Dictionary) -> Dictionary:
 				o[k] = str(v)
 			else:
 				o[k] = int(v)
+	o["portada"] = portada_normal(r.get("portada", {}))
 	var cat: Array = []
 	if r.get("catalogo", []) is Array:
 		for it in r.get("catalogo", []):

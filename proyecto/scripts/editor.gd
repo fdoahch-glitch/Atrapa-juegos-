@@ -2,6 +2,7 @@ extends Control
 ## El creador: barra superior, biblioteca (personajes, fondos, objetos,
 ## decoración), escenario, tutorial y exportación con el botón mágico.
 
+const PortadaEd := preload("res://scripts/portada_editor.gd")
 const Estilo := preload("res://scripts/estilo.gd")
 const Escenario := preload("res://scripts/escenario.gd")
 const Ficha := preload("res://scripts/ficha.gd")
@@ -47,6 +48,11 @@ var _construido := false
 var _titulo: Label
 var _modo_txt: Label
 var _niveles_fila: HFlowContainer
+var _port: Control
+var _herr: Control
+var _panel_bib: Control
+var _etapa := "mundo"
+var _etapas_fila: HBoxContainer
 var _borrar_pend := false
 var _modal_es_reglas := false
 var _prev_audio: AudioStreamPlayer
@@ -203,6 +209,7 @@ func _construir() -> void:
 	panel.add_theme_stylebox_override("panel", Estilo.caja(Color.WHITE, 0, 0, Color.TRANSPARENT, 10))
 	principal.add_child(panel)
 	_objetivos["biblioteca"] = panel
+	_panel_bib = panel
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 8)
 	panel.add_child(v)
@@ -246,8 +253,15 @@ func _construir() -> void:
 	_esc.seleccionado.connect(func(_i): _refrescar_props(); if _i != null: _tut.avisar("select"))
 	_esc.cambio.connect(_refrescar_props)
 	_objetivos["escenario"] = zona
+	_port = PortadaEd.new()
+	zona.add_child(_port)
+	_port.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_port.visible = false
+	_port.cambio.connect(func(): Datos.guardar())
+	_port.aviso.connect(func(t): _aviso(t))
 	# herramientas
 	var herr := HBoxContainer.new()
+	_herr = herr
 	herr.position = Vector2(12, 12)
 	herr.add_theme_constant_override("separation", 6)
 	zona.add_child(herr)
@@ -609,19 +623,40 @@ func _refrescar_niveles() -> void:
 		_niveles_fila.remove_child(c)
 		c.queue_free()
 	var n := Datos.num_niveles()
+	var bp := Button.new()
+	bp.text = " Portada"
+	bp.icon = Datos.textura("🎮")
+	bp.expand_icon = true
+	bp.add_theme_constant_override("icon_max_width", 24)
+	bp.custom_minimum_size = Vector2(0, 40)
+	bp.focus_mode = Control.FOCUS_NONE
+	if _etapa == "portada":
+		Estilo.pintar(bp, Estilo.MORADO)
+	bp.pressed.connect(func(): _set_etapa("portada"))
+	_niveles_fila.add_child(bp)
+	var bj := Button.new()
+	bj.text = " Personajes"
+	bj.icon = Datos.textura("🏃")
+	bj.expand_icon = true
+	bj.add_theme_constant_override("icon_max_width", 24)
+	bj.custom_minimum_size = Vector2(0, 40)
+	bj.focus_mode = Control.FOCUS_NONE
+	bj.tooltip_text = "Elige qué personajes se pueden usar"
+	bj.pressed.connect(func(): _set_etapa("mundo"); _abrir_reglas())
+	_niveles_fila.add_child(bj)
 	var et := Label.new()
-	et.text = "Niveles:"
+	et.text = "Mundos:"
 	et.add_theme_color_override("font_color", Estilo.TINTA)
 	et.add_theme_color_override("font_outline_color", Color(1, 1, 1, 0.9))
 	et.add_theme_constant_override("outline_size", 6)
 	_niveles_fila.add_child(et)
 	for i in n:
 		var b := Button.new()
-		b.text = str(i + 1)
-		b.custom_minimum_size = Vector2(44, 40)
+		b.text = "Mundo %d" % (i + 1)
+		b.custom_minimum_size = Vector2(0, 40)
 		b.focus_mode = Control.FOCUS_NONE
 		b.tooltip_text = "Nivel %d" % (i + 1)
-		if i == Datos.idx:
+		if i == Datos.idx and _etapa == "mundo":
 			Estilo.pintar(b, Estilo.MORADO)
 		b.pressed.connect(_ir_nivel.bind(i))
 		_niveles_fila.add_child(b)
@@ -650,7 +685,20 @@ func _refrescar_niveles() -> void:
 	_niveles_fila.add_child(reg)
 
 
+func _set_etapa(e: String) -> void:
+	_etapa = e
+	_esc.visible = e == "mundo"
+	_herr.visible = e == "mundo"
+	_panel_bib.visible = e == "mundo"
+	_port.visible = e == "portada"
+	if e == "portada":
+		_port.refrescar()
+	_refrescar_niveles()
+
+
 func _ir_nivel(i: int) -> void:
+	if _etapa != "mundo":
+		_set_etapa("mundo")
 	_borrar_pend = false
 	_esc.sel = null
 	_esc.stamp = {}

@@ -50,21 +50,31 @@ func _mostrar_inicio() -> void:
 	var ini := Inicio.new()
 	add_child(ini)
 	ini.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	ini.crear.connect(func(modo: String, cfg: Dictionary):
+	ini.crear_juego.connect(func(cfg: Dictionary):
+		var modo := str(cfg.get("modo", "2d"))
+		var tipo := str(cfg.get("tipo", "plataformas"))
 		var n: Dictionary
-		if modo == "3d" and cfg.get("tipo", "corredor") == "aventura":
+		if modo == "3d" and tipo == "aventura":
 			n = Datos.nivel_aventura()
 		elif modo == "3d":
 			n = Datos.nivel_corredor()
-		elif modo == "2d" and cfg.get("tipo", "plataformas") == "arriba":
+		elif tipo == "arriba":
 			n = Datos.nivel_arriba()
 		else:
 			n = Datos.nivel_inicial()
 		n["modo"] = modo
-		n["disp"] = cfg.get("disp", "pc")
-		n["orient"] = cfg.get("orient", "horizontal")
-		n["tipo"] = cfg.get("tipo", "corredor") if modo == "3d" else ("arriba" if modo == "2d" and cfg.get("tipo", "") == "arriba" else "plataformas")
-		Datos.establecer(Datos.normalizar(n))
+		n["tipo"] = tipo
+		n["theme"] = str(cfg.get("theme", n.get("theme", "dia")))
+		n["hero"] = str(cfg.get("hero", n.get("hero", "🐱")))
+		n["name"] = "Mundo 1"
+		n["disp"] = str(cfg.get("disp", "pc"))
+		n["orient"] = str(cfg.get("orient", "horizontal"))
+		var reglas := Datos.reglas_completas({})
+		reglas["plataforma"] = str(cfg.get("plataforma", "windows"))
+		reglas["categoria"] = str(cfg.get("categoria", ""))
+		reglas["subtipo"] = str(cfg.get("subtipo", ""))
+		reglas["portada"] = Datos.portada_nueva(str(cfg.get("nombre", "Mi juego")))
+		Datos.establecer_proyecto({"niveles": [Datos.normalizar(n)], "reglas": reglas})
 		_abrir_editor())
 	ini.continuar.connect(func():
 		Datos.cargar_guardado()

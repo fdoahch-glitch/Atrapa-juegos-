@@ -14,6 +14,7 @@ const Juego3D := preload("res://scripts/juego3d.gd")
 const JuegoAventura := preload("res://scripts/juego_aventura.gd")
 const JuegoArriba := preload("res://scripts/juego_arriba.gd")
 const Tienda := preload("res://scripts/tienda.gd")
+const PortadaEd := preload("res://scripts/portada_editor.gd")
 
 var proy: Dictionary = {}
 var idx := 0
@@ -89,9 +90,99 @@ func _limpiar() -> void:
 
 
 # ------------------------------------------------------------------ título
+## Portada hecha por el usuario (fondo + botones con animación y acción).
+func _mostrar_portada_propia(n: Dictionary, p: Dictionary) -> void:
+	var cv := Control.new()
+	_titulo = cv
+	add_child(cv)
+	cv.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var vertical: bool = str(n.get("orient", "horizontal")) == "vertical"
+	var ratio := 9.0 / 16.0 if vertical else 16.0 / 9.0
+	cv.draw.connect(func():
+		cv.draw_rect(Rect2(Vector2.ZERO, cv.size), Color.BLACK)
+		var w := cv.size.x
+		var h := w / ratio
+		if h > cv.size.y:
+			h = cv.size.y
+			w = h * ratio
+		var m := Rect2((cv.size - Vector2(w, h)) / 2.0, Vector2(w, h))
+		var tex: Texture2D = Datos.textura(str(p["fondo"])) if str(p["fondo"]) != "" else null
+		if tex:
+			cv.draw_texture_rect(tex, m, false)
+		else:
+			cv.draw_rect(m, Color(str(p["color"])))
+		var tit := str(p["titulo"])
+		if tit != "":
+			var fs := int(m.size.y * 0.09)
+			var pos := Vector2(m.position.x, m.position.y + m.size.y * 0.22)
+			cv.draw_string_outline(ThemeDB.fallback_font, pos, tit, HORIZONTAL_ALIGNMENT_CENTER, m.size.x, fs, 8, Color(0.1, 0.08, 0.3, 0.9))
+			cv.draw_string(ThemeDB.fallback_font, pos, tit, HORIZONTAL_ALIGNMENT_CENTER, m.size.x, fs, Color.WHITE)
+		var tt := Time.get_ticks_msec() / 1000.0
+		for b in p["botones"]:
+			var s := Vector2(b["w"] * m.size.x, b["h"] * m.size.y)
+			var r := Rect2(m.position + Vector2(b["x"] * m.size.x, b["y"] * m.size.y) - s / 2.0, s)
+			r.position += PortadaEd.anim_offset(str(b["anim"]), tt, r.size)
+			PortadaEd.dibujar_boton(cv, b, r))
+	cv.gui_input.connect(func(ev):
+		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+			var w := cv.size.x
+			var h := w / ratio
+			if h > cv.size.y:
+				h = cv.size.y
+				w = h * ratio
+			var m := Rect2((cv.size - Vector2(w, h)) / 2.0, Vector2(w, h))
+			for b in p["botones"]:
+				var s := Vector2(b["w"] * m.size.x, b["h"] * m.size.y)
+				var r := Rect2(m.position + Vector2(b["x"] * m.size.x, b["y"] * m.size.y) - s / 2.0, s)
+				if r.has_point(ev.position):
+					_accion_portada(str(b["accion"]))
+					return)
+	var t := Timer.new()
+	t.wait_time = 0.03
+	t.timeout.connect(func(): cv.queue_redraw())
+	cv.add_child(t)
+	t.start()
+	if con_salir:
+		var e := Button.new()
+		e.text = "  Editar"
+		e.icon = Datos.textura("↩")
+		e.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+		e.offset_left = -140.0
+		e.offset_right = -15.0
+		e.offset_top = 10.0
+		e.offset_bottom = 56.0
+		e.pressed.connect(func(): salir.emit())
+		cv.add_child(e)
+
+
+func _accion_portada(a: String) -> void:
+	var n: int = proy["niveles"].size()
+	var multi: bool = (proy["reglas"].get("jugables", []) as Array).size() > 1
+	if a == "jugar":
+		if multi:
+			_mostrar_personajes()
+		else:
+			_empezar(0)
+	elif a == "personajes":
+		if multi:
+			_mostrar_personajes()
+		else:
+			_empezar(0)
+	elif a == "tienda":
+		_mostrar_tienda()
+	elif a.begins_with("mundo:"):
+		_empezar(clampi(int(a.substr(6)) - 1, 0, n - 1))
+	elif a == "salir":
+		salir.emit()
+
+
 func _mostrar_titulo() -> void:
 	_limpiar()
 	var n: Dictionary = proy["niveles"][0]
+	var pp: Dictionary = Datos.portada_normal(proy["reglas"].get("portada", {}))
+	if (pp["botones"] as Array).size() > 0 or str(pp["fondo"]) != "":
+		_mostrar_portada_propia(n, pp)
+		return
 	_titulo = Control.new()
 	_titulo.draw.connect(func(): Dibujo.fondo_de(_titulo, n, _tema, _titulo.size, _t * 30.0, _t))
 	add_child(_titulo)
