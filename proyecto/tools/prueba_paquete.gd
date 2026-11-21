@@ -6,7 +6,7 @@ func ok(c: bool, m: String) -> void:
 	if not c: fallos += 1
 func _ready() -> void:
 	var r: Dictionary = Paquete.abrir_proyecto("/tmp/dino_out/dino-run.atrapa.json")
-	ok(r["ok"] and r["assets"] >= 30, "abre Dino Run (%s archivos)" % str(r.get("assets")))
+	ok(r["ok"] and r["assets"] >= 30, "abre un juego guardado (%s archivos)" % str(r.get("assets")))
 	ok(Datos.niveles.size() == 5 and str(Datos.niveles[0]["name"]) == "Bosque de Aysén", "5 mundos con sus nombres")
 	ok(Datos.tema_de(Datos.niveles[1])["cielo"][0].is_equal_approx(Color("f2c08a")), "paleta propia del mundo 2")
 	ok(Datos.reglas["catalogo"].size() == 15 and Datos.reglas["jugables"].size() == 5, "tienda de 15 y 5 jugables")

@@ -9,7 +9,7 @@ const PERSONAJES := [
 	["astronauta", "Astronauta"], ["pirata", "Pirata"], ["ninja", "Ninja"], ["bichito", "Bichito"], ["animalito", "Animalito"],
 	["hada", "Hada"], ["dragon", "Dragón"], ["pinguino", "Pingüino"], ["conejo", "Conejo"], ["rana", "Rana"], ["osito", "Osito"],
 ]
-# mascotas dinosaurio hechas con formas (las otras mascotas de Dino Run son modelos GLB)
+# mascotas dinosaurio hechas con formas
 const MASCOTAS := [
 	["d_velociraptor", "Velociraptor"], ["d_dilofosaurio", "Dilofosaurio"], ["d_iguanodon", "Iguanodón"],
 	["d_parasaurolophus", "Parasaurolophus"], ["d_apatosaurio", "Apatosaurio"],
