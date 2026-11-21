@@ -499,6 +499,18 @@ func normalizar(n: Dictionary) -> Dictionary:
 		n["perseguidor"] = true
 	else:
 		n.erase("perseguidor")
+	if not (n.get("decorado", []) is Array) or (n.get("decorado", []) as Array).is_empty():
+		n.erase("decorado")
+	else:
+		var dl: Array = []
+		for d in n["decorado"]:
+			if d is Dictionary and str(d.get("e", "")) != "":
+				dl.append({"e": str(d["e"]), "alto": clampf(float(d.get("alto", 3.0)), 0.2, 20.0), "dist": d.get("dist", [5.5, 11.0])})
+		n["decorado"] = dl
+	if not (n.get("obstaculos", {}) is Dictionary) or (n.get("obstaculos", {}) as Dictionary).is_empty():
+		n.erase("obstaculos")
+	if not (n.get("premios", {}) is Dictionary) or (n.get("premios", {}) as Dictionary).is_empty():
+		n.erase("premios")
 	if n.has("densidad"):
 		n["densidad"] = clampf(float(n["densidad"]), 0.2, 2.5)
 		if is_equal_approx(float(n["densidad"]), 1.0):
@@ -740,7 +752,7 @@ func agregar_nivel(copiar: bool = false) -> bool:
 			it["id"] = nuevo_id()
 	else:
 		n = nivel_en_blanco()
-		for k in ["name", "modo", "disp", "orient", "tipo", "theme", "hero", "paleta", "clima", "hora", "perseguidor", "densidad"]:
+		for k in ["name", "modo", "disp", "orient", "tipo", "theme", "hero", "paleta", "clima", "hora", "perseguidor", "densidad", "decorado", "obstaculos", "premios"]:
 			if nivel.has(k) or n.has(k):
 				n[k] = nivel.get(k, n.get(k))
 		n = normalizar(n)

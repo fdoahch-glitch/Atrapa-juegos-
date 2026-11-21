@@ -88,3 +88,9 @@ Botón **Colores** (arriba): cielo, colinas, tierra y pasto de este mundo, con s
 - **Rendimiento**: brillo suave (bloom) y sombras para el 3D.
 - En el juego: botones Misiones, Bitácora (fichas que se abren con fósiles), Vestuario (skins y accesorios con monedas) y Récords; mando (cruceta/palanca, A salta, B agacha) con vibración al chocar.
 - Todo se guarda en el aparato del jugador (`user://progreso.json`). En el JSON del juego: `coleccion`, `skins`, `accesorios`, `misiones_lista`.
+
+## Objetos de la pista (Colores → Objetos de la pista, mundos 3D)
+- Cada obstáculo (bajo, alto, por arriba) puede ser uno de tus modelos 3D; en el JSON: `obstaculos: {"valla": ["g:tronco.glb", …], "pared": […], "viga": […]}` (si pones varios, salen alternados).
+- «Adorno de los lados»: elige varios modelos y salen repartidos a ambos lados en vez de los árboles del tema (`decorado: [{e, alto, dist:[min,max]}]`).
+- `premios: {"gem": "g:fosil.glb"}` cambia el dibujo de moneda, estrella o gema por un modelo.
+- Un obstáculo alto con modelo propio solo choca por debajo de su altura real: una roca baja se puede saltar.

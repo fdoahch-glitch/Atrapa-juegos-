@@ -37,6 +37,7 @@ func _ready() -> void:
 		_opcion(v, "Hora del día", "hora", [["", "Según el tema"], ["dia", "Día"], ["atardecer", "Atardecer"], ["noche", "Noche"], ["ciclo", "Ciclo (va pasando)"]])
 		_opcion(v, "Perseguidor (te alcanza si chocas)", "perseguidor", [[false, "No"], [true, "Sí"]])
 		_opcion(v, "Cantidad de objetos", "densidad", [[0.5, "Pocos"], [1.0, "Normal"], [1.5, "Muchos"]])
+		_objetos(v)
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 8)
 	v.add_child(h)
@@ -75,6 +76,64 @@ func _fila(padre: Control, clave: String, nombre: String, col: Color) -> void:
 	cp.color_changed.connect(func(_c: Color): _aplicar())
 	f.add_child(cp)
 	_selectores[clave] = cp
+
+
+## Qué se ve en la pista: el modelo de cada obstáculo y los objetos que adornan los lados.
+func _objetos(padre: Control) -> void:
+	var Imp := preload("res://scripts/importar.gd")
+	var mods: Array = Imp.listar().filter(func(a): return str(a["id"]).begins_with("g:"))
+	_texto(padre, "Objetos de la pista (tus modelos)", 20, Estilo.TINTA)
+	var obs: Dictionary = Datos.nivel.get("obstaculos", {}) if Datos.nivel.get("obstaculos", {}) is Dictionary else {}
+	for par in [["valla", "Obstáculo bajo (se salta)"], ["pared", "Obstáculo alto (se esquiva)"], ["viga", "Obstáculo por arriba (se agacha)"]]:
+		var f := HBoxContainer.new()
+		padre.add_child(f)
+		var l := Label.new()
+		l.text = par[1]
+		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		l.add_theme_font_size_override("font_size", 18)
+		f.add_child(l)
+		var ob := OptionButton.new()
+		ob.custom_minimum_size = Vector2(220, 40)
+		ob.add_item("Por defecto (cajas)", 0)
+		var actual := str(obs.get(par[0], "")) if not (obs.get(par[0], "") is Array) else str(obs[par[0]][0])
+		var sel := 0
+		for i in mods.size():
+			ob.add_item(str(mods[i].get("n", mods[i]["id"])), i + 1)
+			if str(mods[i]["id"]) == actual:
+				sel = i + 1
+		ob.selected = sel
+		ob.item_selected.connect(func(i):
+			var d: Dictionary = Datos.nivel.get("obstaculos", {}) if Datos.nivel.get("obstaculos", {}) is Dictionary else {}
+			if i == 0:
+				d.erase(par[0])
+			else:
+				d[par[0]] = mods[i - 1]["id"]
+			Datos.nivel["obstaculos"] = d
+			Datos.guardar()
+			cambiado.emit())
+		f.add_child(ob)
+	var dl := Label.new()
+	dl.text = "Adorno de los lados (elige varios; vacío = árboles del tema)"
+	dl.add_theme_font_size_override("font_size", 18)
+	padre.add_child(dl)
+	var lista := ItemList.new()
+	lista.select_mode = ItemList.SELECT_MULTI
+	lista.custom_minimum_size = Vector2(0, 170)
+	var marcados: Array = (Datos.nivel.get("decorado", []) as Array).map(func(d): return str(d["e"]))
+	for i in mods.size():
+		lista.add_item(str(mods[i].get("n", mods[i]["id"])))
+		if marcados.has(str(mods[i]["id"])):
+			lista.select(i, false)
+	var cambio := func(_i, _a = false):
+		var d: Array = []
+		for i in lista.get_selected_items():
+			var previo := (Datos.nivel.get("decorado", []) as Array).filter(func(x): return str(x["e"]) == str(mods[i]["id"]))
+			d.append(previo[0] if previo.size() > 0 else {"e": mods[i]["id"], "alto": 3.0})
+		Datos.nivel["decorado"] = d
+		Datos.guardar()
+		cambiado.emit()
+	lista.multi_selected.connect(cambio)
+	padre.add_child(lista)
 
 
 func _opcion(padre: Control, nombre: String, clave: String, ops: Array) -> void:

@@ -50,6 +50,51 @@ static func objeto(e: String, alto: float, cuadro_px: float = 0.0) -> Node3D:
 	return sprite(e, alto)
 
 
+## Caja que ocupan todas las mallas de un nodo (en el espacio del propio nodo).
+static func caja_de(n: Node, xf: Transform3D = Transform3D.IDENTITY) -> AABB:
+	var r := AABB()
+	var primero := true
+	if n is MeshInstance3D and (n as MeshInstance3D).mesh != null:
+		r = xf * (n as MeshInstance3D).get_aabb()
+		primero = false
+	for h in n.get_children():
+		var hx := xf
+		if h is Node3D:
+			hx = xf * (h as Node3D).transform
+		var b := caja_de(h, hx)
+		if b.size != Vector3.ZERO:
+			r = b if primero else r.merge(b)
+			primero = false
+	return r
+
+
+## Un modelo o dibujo ajustado a una caja (ancho × alto), apoyado en el suelo y centrado.
+## Los modelos se cargan una sola vez y se copian: así pueden salir cientos sin pesar.
+static var _protos: Dictionary = {}
+
+static func objeto_caja(e: String, ancho: float, alto: float) -> Node3D:
+	var key := e
+	if not _protos.has(key):
+		var base := objeto(e, 1.0)
+		var piv := Node3D.new()
+		piv.add_child(base)
+		var b := caja_de(piv)
+		if b.size.x > 0.001 and b.size.y > 0.001:
+			piv.position = Vector3(-(b.position.x + b.size.x / 2.0), -b.position.y, -(b.position.z + b.size.z / 2.0))
+		_protos[key] = [piv, b]
+	var par: Array = _protos[key]
+	var b2: AABB = par[1]
+	var k := 1.0
+	if b2.size.x > 0.001 and b2.size.y > 0.001:
+		k = minf(ancho / maxf(b2.size.x, b2.size.z), alto / b2.size.y)
+	var raiz := Node3D.new()
+	var copia: Node3D = (par[0] as Node3D).duplicate()
+	raiz.add_child(copia)
+	raiz.scale = Vector3.ONE * k
+	raiz.set_meta("alto", b2.size.y * k)
+	return raiz
+
+
 static func es_modelo(e: String) -> bool:
 	return e.begins_with("a:") or e.begins_with("g:")
 

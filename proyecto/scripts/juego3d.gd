@@ -43,6 +43,7 @@ var vy2 := 0.0
 var agachado2 := 0.0
 var _s_jug2: Node3D
 var _amb: Node3D
+var _n_obst := 0
 var _vel_k := 1.0
 var stats := {"recogidos": 0, "monedas": 0, "puntos": 0, "gemas": 0, "estrellas": 0, "perseguidor": 0}
 var _sol3: DirectionalLight3D
@@ -162,17 +163,28 @@ func _reconstruir() -> void:
 	_mundo3.add_child(_horizonte)
 	_horizonte.add_child(Mundo3D.colinas(tema["lejos"], 0.0, 3.0, 5.5, 22.0, -260.0, 260.0))
 	_horizonte.add_child(Mundo3D.colinas(tema["cerca"], 30.0, 0.6, 2.4, 14.0, -200.0, 200.0, 40.0))
-	# árboles automáticos a los lados
+	# decorado automático a los lados: el del mundo (modelos propios) o el árbol del tema
+	var dec: Array = nivel.get("decorado", []) if nivel.get("decorado", []) is Array else []
+	var dens := clampf(float(nivel.get("densidad", 1.0)), 0.2, 2.5)
 	var arbol: String = AUTO_ARBOL.get(str(nivel["theme"]), "arbol")
 	var z2 := 3.0
 	var i := 0
 	while z2 < fin_z + 60.0:
 		var lado := -1.0 if i % 2 == 0 else 1.0
-		var mo := Assets3D.construir(arbol, 3.0 + float(i % 3) * 0.8)
-		mo.position = Vector3(lado * (6.5 + float((i * 7) % 5)), 0, -z2)
-		mo.rotation_degrees.y = float((i * 53) % 90)
+		var mo: Node3D
+		var dist_lado := 6.5 + float((i * 7) % 5)
+		if dec.size() > 0:
+			var d: Dictionary = dec[(i * 7919 + i / 3) % dec.size()]
+			var alto := float(d.get("alto", 3.0)) * (0.85 + float((i * 37) % 30) / 100.0)
+			mo = Mundo3D.objeto_caja(str(d["e"]), alto * 1.6, alto)
+			var rng: Array = d.get("dist", [5.5, 11.0])
+			dist_lado = float(rng[0]) + (float(rng[1]) - float(rng[0])) * float((i * 13) % 10) / 10.0
+		else:
+			mo = Assets3D.construir(arbol, 3.0 + float(i % 3) * 0.8)
+		mo.position = Vector3(lado * dist_lado, 0, -z2 - float((i * 5) % 3))
+		mo.rotation_degrees.y = float((i * 53) % 360) if dec.size() > 0 else float((i * 53) % 90)
 		_mundo3.add_child(mo)
-		z2 += 7.0 / clampf(float(nivel.get("densidad", 1.0)), 0.2, 2.5)
+		z2 += (7.0 if dec.is_empty() else 3.2) / dens
 		i += 1
 	# decoración puesta por el niño
 	for it in nivel["items"]:
@@ -199,13 +211,21 @@ func _reconstruir() -> void:
 		_mundo3.add_child(o["nodo"])
 	for p in premios:
 		var nodo: Node3D
-		match p["t"]:
-			"coin":
-				nodo = Mundo3D.moneda()
-			"star":
-				nodo = Mundo3D.sprite("⭐", 1.1)
-			_:
-				nodo = Mundo3D.sprite("💎", 1.0)
+		var pm: Dictionary = nivel.get("premios", {}) if nivel.get("premios", {}) is Dictionary else {}
+		if pm.has(p["t"]) and str(pm[p["t"]]) != "":
+			var pv := Node3D.new()
+			pv.add_child(Mundo3D.objeto_caja(str(pm[p["t"]]), 0.9, 0.9))
+			pv.position.y = -0.45
+			nodo = Node3D.new()
+			nodo.add_child(pv)
+		else:
+			match p["t"]:
+				"coin":
+					nodo = Mundo3D.moneda()
+				"star":
+					nodo = Mundo3D.sprite("⭐", 1.1)
+				_:
+					nodo = Mundo3D.sprite("💎", 1.0)
 		nodo.position = Vector3((p["lane"] - 1) * ANCHO_CARRIL, 1.0, -p["z"])
 		_mundo3.add_child(nodo)
 		p["nodo"] = nodo
@@ -256,6 +276,13 @@ func _heroe2() -> String:
 
 
 func _hacer_obstaculo(tipo: String) -> Node3D:
+	var mods: Dictionary = nivel.get("obstaculos", {}) if nivel.get("obstaculos", {}) is Dictionary else {}
+	if mods.has(tipo) and str(mods[tipo]) != "":
+		var cajas := {"valla": Vector2(1.9, 0.85), "pared": Vector2(1.9, 2.5), "viga": Vector2(2.3, 3.0)}
+		var cv: Vector2 = cajas.get(tipo, Vector2(1.9, 1.5))
+		var lista: Array = mods[tipo] if mods[tipo] is Array else [mods[tipo]]
+		_n_obst += 1
+		return Mundo3D.objeto_caja(str(lista[_n_obst % lista.size()]), cv.x, cv.y)
 	var n := Node3D.new()
 	match tipo:
 		"valla":
@@ -439,7 +466,11 @@ func _actualizar(dt: float) -> void:
 				"valla":
 					choca = choca or jg[1] < 0.85
 				"pared":
-					choca = true
+					# con modelo propio, solo choca por debajo de su altura real (así se puede saltar una roca baja)
+					var an := 99.0
+					if o["nodo"] != null and (o["nodo"] as Node).has_meta("alto"):
+						an = float((o["nodo"] as Node).get_meta("alto")) * 0.9
+					choca = choca or jg[1] < an
 				"viga":
 					choca = choca or (jg[1] < 1.8 and jg[1] + jg[2] > 1.3)
 		if choca:
