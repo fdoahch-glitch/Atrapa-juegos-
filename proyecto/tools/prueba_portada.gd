@@ -31,5 +31,16 @@ func _ready() -> void:
 	ok(norm["botones"].size() == 2 and norm["titulo"] == "Mi gran juego", "portada se normaliza")
 	ed._set_etapa("mundo")
 	ok(ed._esc.visible and not pe.visible, "volver a mundo")
+	ed._set_etapa("personajes")
+	await get_tree().create_timer(0.4).timeout
+	var pp = ed._pers
+	var tarjetas: int = pp._rejilla.get_child_count()
+	ok(tarjetas > 8, "panel de personajes lista %d" % tarjetas)
+	var cat: Array = pp._catalogo()
+	Datos.reglas["jugables"] = [{"id": cat[0]["id"], "n": cat[0]["n"], "poder": "", "desc": ""}, {"id": cat[1]["id"], "n": cat[1]["n"], "poder": "escudo", "desc": ""}]
+	pp.refrescar()
+	await get_tree().create_timer(0.3).timeout
+	get_viewport().get_texture().get_image().save_png("/tmp/asis/personajes.png")
+	ok(Datos.reglas_completas(Datos.reglas)["jugables"].size() == 2, "dos personajes jugables guardados")
 	print("FALLOS: ", fallos)
 	get_tree().quit()

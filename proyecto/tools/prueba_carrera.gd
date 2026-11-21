@@ -32,6 +32,21 @@ func _ready() -> void:
 		ok(j.rivales[0]["lap"] >= 1 or j.rivales[0]["hecho"], "los rivales completan vueltas (lap %d)" % j.rivales[0]["lap"])
 		ok(j.estado != "jugar" or j._tras_ganador > 0.0, "la carrera termina o avisa (estado %s)" % j.estado)
 		j.queue_free()
+	# carrera 3D
+	var n3 := Datos.normalizar(Datos.nivel_carrera(true))
+	n3["vista3d"] = true
+	n3 = Datos.normalizar(n3)
+	ok(n3.get("vista3d", false) == true, "normalizar conserva vista3d")
+	ok(P.clase_para(n3) == load("res://scripts/juego_carrera3d.gd"), "vista3d usa el motor 3D")
+	var j3 := _jugar(n3, "", 0)
+	await get_tree().create_timer(4.2).timeout
+	Input.action_press("ui_up")
+	for i in 240:
+		j3._actualizar(1.0 / 60.0)
+	await get_tree().create_timer(0.3).timeout
+	get_viewport().get_texture().get_image().save_png("/tmp/asis/carrera3d.png")
+	ok(j3._auto != null and j3._autos_riv.size() == 3, "escena 3D creada con 3 rivales")
+	j3.queue_free()
 	# pelea
 	var np := Datos.normalizar(Datos.nivel_pelea())
 	ok(P.clase_para(np) == load("res://scripts/juego_pelea.gd"), "pelea usa el motor de lucha")
@@ -46,5 +61,6 @@ func _ready() -> void:
 		jp._actualizar(1.0 / 60.0)
 		if jp.estado != "jugar": break
 	ok(jp.estado != "jugar", "el combate termina (%s)" % jp.estado)
+	ok(jp.has_method("_golpear") and "cadena" in jp.yo, "combos listos")
 	print("FALLOS: ", fallos)
 	get_tree().quit()

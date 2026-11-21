@@ -15,6 +15,7 @@ const JuegoAventura := preload("res://scripts/juego_aventura.gd")
 const JuegoArriba := preload("res://scripts/juego_arriba.gd")
 const Tienda := preload("res://scripts/tienda.gd")
 const JuegoCarrera := preload("res://scripts/juego_carrera.gd")
+const JuegoCarrera3D := preload("res://scripts/juego_carrera3d.gd")
 const JuegoPelea := preload("res://scripts/juego_pelea.gd")
 const Rendimiento := preload("res://scripts/rendimiento.gd")
 const PortadaEd := preload("res://scripts/portada_editor.gd")
@@ -39,7 +40,9 @@ static func clase_para(n: Dictionary) -> GDScript:
 		return JuegoAventura
 	var est := str(n.get("estilo", ""))
 	if modo == "2d" and str(n.get("tipo", "")) == "arriba":
-		return JuegoCarrera if est in ["carrera", "kart"] else JuegoArriba
+		if est in ["carrera", "kart"]:
+			return JuegoCarrera3D if bool(n.get("vista3d", false)) else JuegoCarrera
+		return JuegoArriba
 	if modo == "2d" and est == "pelea":
 		return JuegoPelea
 	return {"25d": Juego25, "3d": Juego3D}.get(modo, Juego)
@@ -245,7 +248,7 @@ func _mostrar_titulo() -> void:
 	caja.add_child(b)
 	if (proy["reglas"].get("jugables", []) as Array).size() > 1:
 		var bp := Button.new()
-		bp.text = "  Elegir dinosaurio"
+		bp.text = "  Elegir personaje"
 		bp.icon = Datos.textura("🦖")
 		bp.custom_minimum_size = Vector2(260, 54)
 		bp.expand_icon = true
@@ -497,7 +500,7 @@ func _mostrar_personajes() -> void:
 	caja.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(caja)
 	var tit := Label.new()
-	tit.text = "¿Con qué dinosaurio quieres correr?"
+	tit.text = "¿Con quién quieres jugar?"
 	tit.add_theme_font_size_override("font_size", 30)
 	tit.add_theme_color_override("font_color", Color.WHITE)
 	tit.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

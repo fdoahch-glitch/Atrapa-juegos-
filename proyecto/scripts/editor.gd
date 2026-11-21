@@ -3,6 +3,7 @@ extends Control
 ## decoración), escenario, tutorial y exportación con el botón mágico.
 
 const PanelRend := preload("res://scripts/panel_rendimiento.gd")
+const PersonajesPanel := preload("res://scripts/panel_personajes.gd")
 const PortadaEd := preload("res://scripts/portada_editor.gd")
 const Estilo := preload("res://scripts/estilo.gd")
 const Escenario := preload("res://scripts/escenario.gd")
@@ -50,6 +51,7 @@ var _titulo: Label
 var _modo_txt: Label
 var _niveles_fila: HFlowContainer
 var _port: Control
+var _pers: Control
 var _herr: Control
 var _panel_bib: Control
 var _etapa := "mundo"
@@ -258,6 +260,11 @@ func _construir() -> void:
 	zona.add_child(_port)
 	_port.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_port.visible = false
+	_pers = PersonajesPanel.new()
+	zona.add_child(_pers)
+	_pers.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_pers.visible = false
+	_pers.cambio.connect(func(): _aviso("Personajes guardados"))
 	_port.cambio.connect(func(): Datos.guardar())
 	_port.aviso.connect(func(t): _aviso(t))
 	# herramientas
@@ -645,7 +652,9 @@ func _refrescar_niveles() -> void:
 	bj.custom_minimum_size = Vector2(0, 40)
 	bj.focus_mode = Control.FOCUS_NONE
 	bj.tooltip_text = "Elige qué personajes se pueden usar"
-	bj.pressed.connect(func(): _set_etapa("mundo"); _abrir_reglas())
+	bj.pressed.connect(func(): _set_etapa("personajes"))
+	if _etapa == "personajes":
+		Estilo.pintar(bj, Estilo.MORADO)
 	_niveles_fila.add_child(bj)
 	var br := Button.new()
 	br.text = " Rendimiento"
@@ -719,6 +728,11 @@ func _set_etapa(e: String) -> void:
 	_herr.visible = e == "mundo"
 	_panel_bib.visible = e == "mundo"
 	_port.visible = e == "portada"
+	_pers.visible = e == "personajes"
+	if e == "personajes":
+		_pers.refrescar()
+		_pers.move_to_front()
+		_niveles_fila.get_parent().move_child(_niveles_fila, -1)
 	if e == "portada":
 		_port.refrescar()
 	_refrescar_niveles()

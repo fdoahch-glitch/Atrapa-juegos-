@@ -275,6 +275,7 @@ func convertir(origen: Dictionary, destino: String) -> Dictionary:
 		return n
 	n.erase("estilo")
 	n.erase("vueltas")
+	n.erase("vista3d")
 	var cols := int(n.get("cols", 30))
 	var items: Array = n.get("items", [])
 	var salida: Array = []
@@ -440,6 +441,10 @@ func normalizar(n: Dictionary) -> Dictionary:
 		n.erase("estilo")
 	else:
 		n["estilo"] = est
+	if est in ["carrera", "kart"] and bool(n.get("vista3d", false)):
+		n["vista3d"] = true
+	else:
+		n.erase("vista3d")
 	if est in ["carrera", "kart"]:
 		n["vueltas"] = clampi(int(n.get("vueltas", 3 if est == "kart" else 2)), 1, 9)
 	else:

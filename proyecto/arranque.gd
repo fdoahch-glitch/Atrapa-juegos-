@@ -57,6 +57,8 @@ func _mostrar_inicio() -> void:
 		var est := str(cfg.get("estilo", ""))
 		if est in ["carrera", "kart"]:
 			n = Datos.nivel_carrera(est == "kart")
+			if bool(cfg.get("vista3d", false)):
+				n["vista3d"] = true
 		elif est == "pelea":
 			n = Datos.nivel_pelea(str(cfg.get("theme", "dia")))
 		elif modo == "3d" and tipo == "aventura":

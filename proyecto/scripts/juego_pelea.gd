@@ -19,14 +19,22 @@ var _ia_cd := 0.8
 var _teclas := {}
 var _toques := {}
 var _hit_fx: Array = []
+var dos := false
+var _msg_combo := ""
+var _msg_combo_t := 0.0
 
 
 func iniciar(n: Dictionary, forzar_tactil: bool = false, mostrar_salir: bool = false) -> void:
 	super.iniciar(n, forzar_tactil, mostrar_salir)
+	dos = int(reglas.get("jugadores", 1)) == 2
+	if dos:
+		var e2 := str(reglas.get("heroe2", ""))
+		if e2 != "":
+			rival["emoji"] = e2
 
 
 func _nuevo_luchador(x: float, emoji: String, cara: float) -> Dictionary:
-	return {"x": x, "y": suelo_y, "vx": 0.0, "vy": 0.0, "hp": VIDA, "cara": cara, "emoji": emoji, "atk": "", "atk_t": 0.0, "dado": false, "bloq": false, "aturd": 0.0, "gana": 0, "suelo": true}
+	return {"x": x, "y": suelo_y, "vx": 0.0, "vy": 0.0, "hp": VIDA, "cara": cara, "emoji": emoji, "atk": "", "atk_t": 0.0, "dado": false, "bloq": false, "aturd": 0.0, "gana": 0, "suelo": true, "cadena": 0, "cad_t": 0.0}
 
 
 func resetear() -> void:
@@ -84,7 +92,16 @@ func _input(ev: InputEvent) -> void:
 		if not ev.echo:
 			_teclas[ev.keycode] = ev.pressed
 			if ev.pressed and _estado == "pelea" and estado == "jugar":
-				if ev.keycode in [KEY_Z, KEY_J, KEY_SPACE]:
+				if dos:
+					if ev.keycode == KEY_F:
+						_atacar(yo, "puno")
+					elif ev.keycode == KEY_G:
+						_atacar(yo, "patada")
+					elif ev.keycode == KEY_K:
+						_atacar(rival, "puno")
+					elif ev.keycode == KEY_L:
+						_atacar(rival, "patada")
+				elif ev.keycode in [KEY_Z, KEY_J, KEY_SPACE]:
 					_atacar(yo, "puno")
 				elif ev.keycode in [KEY_X, KEY_K]:
 					_atacar(yo, "patada")
@@ -161,6 +178,17 @@ func _golpear(a: Dictionary, b: Dictionary) -> void:
 		return
 	a["dado"] = true
 	var dano := 8.0 if a["atk"] == "puno" else 13.0
+	var bloqueado_antes: bool = b["bloq"] and signf(a["x"] - b["x"]) == b["cara"]
+	if not bloqueado_antes:
+		a["cadena"] += 1
+		a["cad_t"] = 0.9
+		if a["cadena"] >= 3:
+			dano += 10.0 + 4.0 * (a["cadena"] - 3)
+			_msg_combo = "¡COMBO x%d!" % a["cadena"]
+			_msg_combo_t = 1.0
+			_sonido.tocar(880.0, 0.15, "triangulo")
+	else:
+		a["cadena"] = 0
 	var bloqueado: bool = b["bloq"] and signf(a["x"] - b["x"]) == b["cara"]
 	if bloqueado:
 		dano *= 0.15
@@ -230,14 +258,33 @@ func _actualizar(dt: float) -> void:
 		return
 	_tiempo_ronda -= dt
 	var d := 0.0
-	if _teclas.get(KEY_LEFT, false) or _teclas.get(KEY_A, false) or _pulsa("izq"):
+	var a_izq: bool = _teclas.get(KEY_A, false) or _pulsa("izq") or (not dos and _teclas.get(KEY_LEFT, false))
+	var a_der: bool = _teclas.get(KEY_D, false) or _pulsa("der") or (not dos and _teclas.get(KEY_RIGHT, false))
+	if a_izq:
 		d -= 1.0
-	if _teclas.get(KEY_RIGHT, false) or _teclas.get(KEY_D, false) or _pulsa("der"):
+	if a_der:
 		d += 1.0
-	var salta: bool = _teclas.get(KEY_UP, false) or _teclas.get(KEY_W, false) or _pulsa("salto")
-	var bloq: bool = _teclas.get(KEY_DOWN, false) or _teclas.get(KEY_S, false) or _pulsa("bloq")
+	var salta: bool = _teclas.get(KEY_W, false) or _pulsa("salto") or (not dos and _teclas.get(KEY_UP, false))
+	var bloq: bool = _teclas.get(KEY_S, false) or _pulsa("bloq") or (not dos and _teclas.get(KEY_DOWN, false))
 	_mover_f(yo, dt, d, salta, bloq)
-	_ia(dt)
+	if dos:
+		var d2 := 0.0
+		if _teclas.get(KEY_LEFT, false):
+			d2 -= 1.0
+		if _teclas.get(KEY_RIGHT, false):
+			d2 += 1.0
+		_mover_f(rival, dt, d2, _teclas.get(KEY_UP, false), _teclas.get(KEY_DOWN, false))
+		if rival["atk"] == "" and rival["aturd"] <= 0.0 and d2 == 0.0 and rival["suelo"]:
+			rival["cara"] = signf(float(yo["x"]) - float(rival["x"])) if yo["x"] != rival["x"] else rival["cara"]
+	else:
+		_ia(dt)
+	_msg_combo_t = maxf(0.0, _msg_combo_t - dt)
+	yo["cad_t"] = maxf(0.0, yo["cad_t"] - dt)
+	rival["cad_t"] = maxf(0.0, rival["cad_t"] - dt)
+	if yo["cad_t"] <= 0.0:
+		yo["cadena"] = 0
+	if rival["cad_t"] <= 0.0:
+		rival["cadena"] = 0
 	_golpear(yo, rival)
 	_golpear(rival, yo)
 	# no se atraviesan
@@ -305,6 +352,11 @@ func _fin_ronda() -> void:
 
 
 func _terminar_partido() -> void:
+	if dos:
+		estado = "gano"
+		var g := "1" if yo["gana"] >= 2 else "2"
+		_mostrar_fin("🏆", "¡Ganó el jugador %s!" % g, "Rondas %d - %d" % [yo["gana"], rival["gana"]])
+		return
 	if yo["gana"] >= 2:
 		estado = "gano"
 		_mostrar_fin("🏆", "¡Eres el campeón!", "Rondas %d - %d · Puntos: %d" % [yo["gana"], rival["gana"], puntos])
@@ -380,6 +432,10 @@ func _dibujar_hud(ci: CanvasItem) -> void:
 		var w2 := fuente.get_string_size(centro, HORIZONTAL_ALIGNMENT_LEFT, -1, tam).x
 		ci.draw_string_outline(fuente, Vector2((size.x - w2) / 2.0, size.y * 0.42), centro, HORIZONTAL_ALIGNMENT_LEFT, -1, tam, 14, Color(0.1, 0.08, 0.3))
 		ci.draw_string(fuente, Vector2((size.x - w2) / 2.0, size.y * 0.42), centro, HORIZONTAL_ALIGNMENT_LEFT, -1, tam, Color.WHITE)
+	if _msg_combo_t > 0.0:
+		var wc := fuente.get_string_size(_msg_combo, HORIZONTAL_ALIGNMENT_LEFT, -1, 56).x
+		ci.draw_string_outline(fuente, Vector2((size.x - wc) / 2.0, size.y * 0.3), _msg_combo, HORIZONTAL_ALIGNMENT_LEFT, -1, 56, 12, Color(0.1, 0.08, 0.3))
+		ci.draw_string(fuente, Vector2((size.x - wc) / 2.0, size.y * 0.3), _msg_combo, HORIZONTAL_ALIGNMENT_LEFT, -1, 56, Estilo.AMARILLO)
 	if tactil:
 		var nombres := {"izq": "◀", "der": "▶", "salto": "⤒", "puno": "👊", "patada": "🦵", "bloq": "🛡"}
 		for k in _botones_tactiles():
@@ -393,7 +449,9 @@ func _dibujar_hud(ci: CanvasItem) -> void:
 				var tx: String = {"izq": "◀", "der": "▶", "salto": "▲", "patada": "K"}[k]
 				ci.draw_string(fuente, r.get_center() + Vector2(-10, 10), tx, HORIZONTAL_ALIGNMENT_LEFT, -1, 30, Color.WHITE)
 	elif t < 8.0 and _estado != "ronda_fin":
-		var txt := "← → mover · ↑ saltar · ↓ bloquear · Z puñetazo · X patada"
+		var txt := "← → mover · ↑ saltar · ↓ bloquear · Z puñetazo · X patada · ¡3 golpes seguidos = combo!"
+		if dos:
+			txt = "Jugador 1: A D W S + F puño, G patada   ·   Jugador 2: flechas + K puño, L patada"
 		var w3 := fuente.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 19).x
 		ci.draw_style_box(Estilo.caja(Color(0, 0, 0, 0.5), 18), Rect2((size.x - w3) / 2.0 - 16, 92, w3 + 32, 38))
 		ci.draw_string(fuente, Vector2((size.x - w3) / 2.0, 118), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 19, Color.WHITE)

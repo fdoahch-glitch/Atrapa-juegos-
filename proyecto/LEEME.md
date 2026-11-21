@@ -78,3 +78,8 @@ Al abrir aparece la portada «Atrapa Juegos Estudio». «Empezar» pregunta plat
 - **Carreras de pista y Go-karts:** vueltas con línea de meta, rivales que corren solos, turbos (resorte), charcos de aceite (pinchos) y derrape con la barra espaciadora en karts. Los «enemigos» son los rivales.
 - **Lucha 2D:** mejor de 3 rondas contra un rival con IA. Z = puñetazo, X = patada, ↓ = bloquear. En pantalla táctil hay botones.
 - **Rendimiento / Testear (botón «Rendimiento»):** perfiles por plataforma (motor Vulkan o Compatibilidad, FSR 1/2.2, MSAA, FPS) y un verificador que busca inicio/meta que faltan, objetos tapados, fuera del mundo o inalcanzables, imágenes pesadas y calidad mal elegida, con botón *Aplicar corrección*.
+
+## Carreras 3D, lucha con combos y 2 jugadores, selección de personajes
+- **Carreras 3D y Go-karts 3D:** misma pista del editor, pero se juega con cámara detrás del auto (como Mario Kart).
+- **Lucha:** 3 golpes seguidos hacen *combo* con daño extra. Con «2 jugadores» en Reglas: jugador 1 = A D W S + F/G, jugador 2 = flechas + K/L.
+- **Etapa Personajes:** elige hasta 12 personajes (y su poder). Con 2 o más, el juego muestra «¿Con quién quieres jugar?».
