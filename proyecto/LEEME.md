@@ -67,3 +67,11 @@ KHR_mesh_quantization; estos se convirtieron antes de incluirlos. Si un .glb tuy
 
 ## Guía y ejemplos
 En la carpeta docs/ hay una guía para niños y familias (GUIA.md) y 5 juegos de ejemplo (docs/ejemplos/*.json): se abren con «Pegar nivel».
+
+## Asistente, portada y etapas
+Al abrir aparece la portada «Atrapa Juegos Estudio». «Empezar» pregunta plataforma (Windows, Linux, Android, Navegador), orientación (sólo Android), categoría y tipo de juego. El editor trabaja por etapas: **Portada → Personajes → Mundo 1, 2, 3…**
+
+- **Portada:** fondo (con conversión a WebP/PNG/JPG), título y botones propios con dibujo. Clic derecho en un botón: *Animación* (flotar, latir, balancear, rebotar, brillar) y *Acción* (jugar, elegir personaje, tienda, salir).
+- **Carreras de pista y Go-karts:** vueltas con línea de meta, rivales que corren solos, turbos (resorte), charcos de aceite (pinchos) y derrape con la barra espaciadora en karts. Los «enemigos» son los rivales.
+- **Lucha 2D:** mejor de 3 rondas contra un rival con IA. Z = puñetazo, X = patada, ↓ = bloquear. En pantalla táctil hay botones.
+- **Rendimiento / Testear (botón «Rendimiento»):** perfiles por plataforma (motor Vulkan o Compatibilidad, FSR 1/2.2, MSAA, FPS) y un verificador que busca inicio/meta que faltan, objetos tapados, fuera del mundo o inalcanzables, imágenes pesadas y calidad mal elegida, con botón *Aplicar corrección*.

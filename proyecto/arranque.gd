@@ -54,7 +54,12 @@ func _mostrar_inicio() -> void:
 		var modo := str(cfg.get("modo", "2d"))
 		var tipo := str(cfg.get("tipo", "plataformas"))
 		var n: Dictionary
-		if modo == "3d" and tipo == "aventura":
+		var est := str(cfg.get("estilo", ""))
+		if est in ["carrera", "kart"]:
+			n = Datos.nivel_carrera(est == "kart")
+		elif est == "pelea":
+			n = Datos.nivel_pelea(str(cfg.get("theme", "dia")))
+		elif modo == "3d" and tipo == "aventura":
 			n = Datos.nivel_aventura()
 		elif modo == "3d":
 			n = Datos.nivel_corredor()
@@ -62,8 +67,8 @@ func _mostrar_inicio() -> void:
 			n = Datos.nivel_arriba()
 		else:
 			n = Datos.nivel_inicial()
-		n["modo"] = modo
-		n["tipo"] = tipo
+		n["modo"] = str(n.get("modo", modo)) if est != "" else modo
+		n["tipo"] = str(n.get("tipo", tipo)) if est != "" else tipo
 		n["theme"] = str(cfg.get("theme", n.get("theme", "dia")))
 		n["hero"] = str(cfg.get("hero", n.get("hero", "🐱")))
 		n["name"] = "Mundo 1"

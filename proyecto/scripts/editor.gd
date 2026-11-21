@@ -2,6 +2,7 @@ extends Control
 ## El creador: barra superior, biblioteca (personajes, fondos, objetos,
 ## decoración), escenario, tutorial y exportación con el botón mágico.
 
+const PanelRend := preload("res://scripts/panel_rendimiento.gd")
 const PortadaEd := preload("res://scripts/portada_editor.gd")
 const Estilo := preload("res://scripts/estilo.gd")
 const Escenario := preload("res://scripts/escenario.gd")
@@ -143,7 +144,7 @@ func _construir() -> void:
 	fila.add_child(titulo)
 	_titulo = titulo
 	_modo_txt = Label.new()
-	var nombre_modo: String = {"2d": "Vista desde arriba" if str(Datos.nivel.get("tipo", "")) == "arriba" else "Plataformas 2D", "25d": "Plataformas 2.5D", "3d": "Corredor 3D" if Datos.tipo_3d() == "corredor" else "Aventura 3D"}.get(modo, "")
+	var nombre_modo: String = Datos.nombre_estilo(Datos.nivel) if Datos.nombre_estilo(Datos.nivel) != "" else {"2d": "Vista desde arriba" if str(Datos.nivel.get("tipo", "")) == "arriba" else "Plataformas 2D", "25d": "Plataformas 2.5D", "3d": "Corredor 3D" if Datos.tipo_3d() == "corredor" else "Aventura 3D"}.get(modo, "")
 	_modo_txt.text = "· %s · %s · %s" % [nombre_modo, "Celular" if Datos.nivel.get("disp", "pc") == "movil" else "PC", "Vertical" if Datos.nivel.get("orient", "horizontal") == "vertical" else "Horizontal"]
 	_modo_txt.add_theme_font_size_override("font_size", 20)
 	_modo_txt.add_theme_color_override("font_color", Color(1, 1, 1, 0.8))
@@ -402,6 +403,8 @@ func _defs(que: String) -> Array:
 			var lista := [["plat", "Plataforma"], ["coin", "Moneda"], ["star", "Estrella"], ["gem", "Gema"], ["spike", "Pinchos"], ["spring", "Resorte"], ["goal", "Meta"], ["player", "Inicio"]]
 			if modo == "2d" and str(Datos.nivel.get("tipo", "")) == "arriba":
 				lista = [["plat", "Pared"], ["coin", "Moneda"], ["star", "Estrella"], ["gem", "Gema"], ["spike", "Pinchos"], ["goal", "Meta"], ["player", "Inicio"]]
+			if str(Datos.nivel.get("estilo", "")) in ["carrera", "kart"]:
+				lista = [["plat", "Muro de pista"], ["spring", "Turbo"], ["coin", "Moneda"], ["star", "Estrella"], ["spike", "Charco de aceite"], ["goal", "Línea de meta"], ["player", "Salida"]]
 			elif modo == "3d" and Datos.tipo_3d() == "aventura":
 				lista = [["plat", "Bloque"], ["coin", "Moneda"], ["star", "Estrella"], ["gem", "Gema"], ["spike", "Pinchos"], ["goal", "Meta"], ["player", "Inicio"]]
 			elif modo == "3d":
@@ -644,6 +647,16 @@ func _refrescar_niveles() -> void:
 	bj.tooltip_text = "Elige qué personajes se pueden usar"
 	bj.pressed.connect(func(): _set_etapa("mundo"); _abrir_reglas())
 	_niveles_fila.add_child(bj)
+	var br := Button.new()
+	br.text = " Rendimiento"
+	br.icon = Datos.textura("🔧")
+	br.expand_icon = true
+	br.add_theme_constant_override("icon_max_width", 24)
+	br.custom_minimum_size = Vector2(0, 40)
+	br.focus_mode = Control.FOCUS_NONE
+	br.tooltip_text = "Calidad por plataforma y revisión de errores (Testear)"
+	br.pressed.connect(_abrir_rendimiento)
+	_niveles_fila.add_child(br)
 	var et := Label.new()
 	et.text = "Mundos:"
 	et.add_theme_color_override("font_color", Estilo.TINTA)
@@ -683,6 +696,21 @@ func _refrescar_niveles() -> void:
 	reg.tooltip_text = "Vidas, tiempo, puntos y más"
 	reg.pressed.connect(_abrir_reglas)
 	_niveles_fila.add_child(reg)
+
+
+func _abrir_rendimiento() -> void:
+	_cerrar_modal()
+	var pr := PanelRend.new()
+	add_child(pr)
+	move_child(_tut, get_child_count() - 1)
+	_modal = pr
+	pr.cerrar.connect(_cerrar_modal)
+	pr.corregido.connect(func():
+		_esc.sel = null
+		_refrescar_niveles()
+		if _port.visible:
+			_port.refrescar()
+		_esc.queue_redraw())
 
 
 func _set_etapa(e: String) -> void:

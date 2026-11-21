@@ -5,6 +5,7 @@ extends Node
 
 const Importar := preload("res://scripts/importar.gd")
 const Assets3D := preload("res://scripts/assets3d.gd")
+const Rendimiento := preload("res://scripts/rendimiento.gd")
 
 signal nivel_cambiado
 
@@ -37,7 +38,7 @@ var niveles: Array = []             # copias de todos los niveles (el actual se 
 var idx := 0                        # posición del nivel actual
 var reglas: Dictionary = {}         # reglas del juego completo
 const MAX_NIVELES := 10
-const REGLAS_BASE := {"vidas": 3, "tiempo": 0, "meta": "meta", "pts_coin": 1, "pts_gem": 3, "pts_star": 5, "pts_enemy": 2, "titulo": true, "final": "¡Ganaste el juego!", "musica": "", "mascota": "", "poder": "escudo", "tienda": false, "jugadores": 1, "heroe2": "", "plataforma": "windows", "categoria": "", "subtipo": ""}
+const REGLAS_BASE := {"vidas": 3, "tiempo": 0, "meta": "meta", "pts_coin": 1, "pts_gem": 3, "pts_star": 5, "pts_enemy": 2, "titulo": true, "final": "¡Ganaste el juego!", "musica": "", "mascota": "", "poder": "escudo", "tienda": false, "jugadores": 1, "heroe2": "", "plataforma": "windows", "categoria": "", "subtipo": "", "rend": {}}
 var historial: Array[String] = []
 var futuro: Array[String] = []
 var _actual := ""
@@ -187,6 +188,54 @@ func nivel_arriba() -> Dictionary:
 	return {"name": "Mi laberinto", "modo": "2d", "tipo": "arriba", "theme": "dia", "hero": "🐱", "cols": 30, "rows": FILAS, "items": items}
 
 
+## Circuito de ejemplo: un óvalo con isla central. kart = true añade conos y turbos extra.
+func nivel_carrera(kart: bool = false) -> Dictionary:
+	var items: Array = []
+	var add := func(o: Dictionary) -> void:
+		o["id"] = nuevo_id()
+		items.append(o)
+	for w in [[0, 0, 30, 1], [0, 13, 30, 1], [0, 1, 1, 12], [29, 1, 1, 12], [8, 4, 14, 6]]:
+		add.call({"t": "plat", "x": w[0], "y": w[1], "w": w[2], "h": w[3]})
+	if kart:
+		for w in [[14, 1, 1, 1], [18, 12, 1, 1], [4, 11, 1, 1], [25, 2, 1, 1], [3, 3, 1, 1]]:
+			add.call({"t": "plat", "x": w[0], "y": w[1], "w": w[2], "h": w[3]})
+	add.call({"t": "goal", "x": 4, "y": 6})
+	add.call({"t": "player", "x": 5, "y": 8})
+	for r in [[2, 8, "🐶"], [3, 10, "🦊"], [6, 10, "🐼"]]:
+		add.call({"t": "enemy", "x": r[0], "y": r[1], "e": r[2], "r": 3, "sp": 60, "fly": false})
+	for x in range(10, 21, 2):
+		add.call({"t": "coin", "x": x, "y": 2})
+	for x in range(10, 21, 2):
+		add.call({"t": "coin", "x": x, "y": 11})
+	for y in [3, 6, 9]:
+		add.call({"t": "coin", "x": 25, "y": y})
+	for tp in [[12, 2], [24, 5], [16, 11]] if kart else [[24, 5]]:
+		add.call({"t": "spring", "x": tp[0], "y": tp[1]})
+	add.call({"t": "spike", "x": 5, "y": 11 if not kart else 12})
+	add.call({"t": "spike", "x": 26, "y": 8})
+	return {"name": "Mi kart" if kart else "Mi circuito", "modo": "2d", "tipo": "arriba", "estilo": "kart" if kart else "carrera", "vueltas": 3 if kart else 2,
+		"theme": "desierto" if kart else "dia", "hero": "🦊" if kart else "🐱", "cols": 30, "rows": FILAS, "items": items}
+
+
+## Arena de lucha: un suelo largo, tu luchador a la izquierda y el rival a la derecha.
+func nivel_pelea(tema: String = "dia") -> Dictionary:
+	var items: Array = []
+	var add := func(o: Dictionary) -> void:
+		o["id"] = nuevo_id()
+		items.append(o)
+	add.call({"t": "plat", "x": 0, "y": 12, "w": 30, "h": 2})
+	add.call({"t": "player", "x": 9, "y": 11})
+	add.call({"t": "enemy", "x": 20, "y": 11, "e": "🦊", "r": 3, "sp": 60, "fly": false})
+	for d in [["a:arbol", 3, 11, 96], ["a:roca", 14, 11, 64], ["a:pino", 26, 11, 96], ["a:nube", 8, 2, 96], ["a:nube", 21, 3, 96]]:
+		add.call({"t": "deco", "e": d[0], "x": d[1], "y": d[2], "s": d[3]})
+	return {"name": "Mi lucha", "modo": "2d", "tipo": "plataformas", "estilo": "pelea", "theme": tema, "hero": "🐼", "cols": 30, "rows": FILAS, "items": items}
+
+
+## Texto corto del estilo de un nivel (Carreras, Go-karts, Lucha…); "" si no tiene.
+func nombre_estilo(n: Dictionary) -> String:
+	return {"carrera": "Carreras de pista", "kart": "Go-karts", "pelea": "Lucha 2D"}.get(str(n.get("estilo", "")), "")
+
+
 func nivel_inicial() -> Dictionary:
 	var items: Array = []
 	var n := 0
@@ -224,6 +273,8 @@ func convertir(origen: Dictionary, destino: String) -> Dictionary:
 	var de := tipo_de(origen)
 	if de == destino:
 		return n
+	n.erase("estilo")
+	n.erase("vueltas")
 	var cols := int(n.get("cols", 30))
 	var items: Array = n.get("items", [])
 	var salida: Array = []
@@ -382,6 +433,17 @@ func normalizar(n: Dictionary) -> Dictionary:
 	n["orient"] = "vertical" if str(n.get("orient", "horizontal")) == "vertical" else "horizontal"
 	n["tipo"] = str(n.get("tipo", "")) if ["corredor", "aventura", "plataformas", "arriba"].has(str(n.get("tipo", ""))) else ("corredor" if str(n.get("modo", "2d")) == "3d" else "plataformas")
 	n["modo"] = str(n.get("modo", "2d")) if ["2d", "25d", "3d"].has(str(n.get("modo", "2d"))) else "2d"
+	var est := str(n.get("estilo", ""))
+	if not ((est in ["carrera", "kart"] and n["tipo"] == "arriba" and n["modo"] == "2d") or (est == "pelea" and n["tipo"] == "plataformas" and n["modo"] == "2d")):
+		est = ""
+	if est == "":
+		n.erase("estilo")
+	else:
+		n["estilo"] = est
+	if est in ["carrera", "kart"]:
+		n["vueltas"] = clampi(int(n.get("vueltas", 3 if est == "kart" else 2)), 1, 9)
+	else:
+		n.erase("vueltas")
 	if not temas.has(str(n.get("theme", "dia"))):
 		n["theme"] = "dia"
 	n["theme"] = str(n.get("theme", "dia"))
@@ -463,9 +525,12 @@ func reglas_completas(r: Dictionary) -> Dictionary:
 				o[k] = bool(v)
 			elif o[k] is String:
 				o[k] = str(v)
+			elif o[k] is Dictionary:
+				pass   # se normaliza más abajo
 			else:
 				o[k] = int(v)
 	o["portada"] = portada_normal(r.get("portada", {}))
+	o["rend"] = Rendimiento.normal(r.get("rend", {}))
 	var cat: Array = []
 	if r.get("catalogo", []) is Array:
 		for it in r.get("catalogo", []):

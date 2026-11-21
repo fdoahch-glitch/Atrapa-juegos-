@@ -14,8 +14,10 @@ const CATEGORIAS := [
 	{"id": "carreras", "emoji": "🏎", "titulo": "Carreras", "txt": "Velocidad, curvas y obstáculos.", "color": Color("ef4444"), "tipos": [
 		{"id": "subway", "emoji": "🏃", "titulo": "Corredor infinito", "txt": "Tres carriles, saltos y monedas. Como Subway Surfers.", "ok": true,
 			"modo": "3d", "tipo": "corredor", "theme": "dia", "hero": "🐱"},
-		{"id": "pista", "emoji": "🏁", "titulo": "Carreras de pista", "txt": "Vueltas a un circuito contra otros. Como Mario Kart.", "ok": false},
-		{"id": "karts", "emoji": "🏎", "titulo": "Go-karts", "txt": "Karts con derrapes y atajos.", "ok": false},
+		{"id": "pista", "emoji": "🏁", "titulo": "Carreras de pista", "txt": "Vueltas a un circuito contra otros. Como Mario Kart.", "ok": true,
+			"modo": "2d", "tipo": "arriba", "estilo": "carrera", "theme": "dia", "hero": "🐱"},
+		{"id": "karts", "emoji": "🏎", "titulo": "Go-karts", "txt": "Karts con derrapes, turbos y obstáculos.", "ok": true,
+			"modo": "2d", "tipo": "arriba", "estilo": "kart", "theme": "desierto", "hero": "🦊"},
 	]},
 	{"id": "plataformas", "emoji": "🍄", "titulo": "Plataformas", "txt": "Saltar, recoger y llegar a la meta.", "color": Color("2ecc71"), "tipos": [
 		{"id": "clasico", "emoji": "🍄", "titulo": "Plataformas 2D", "txt": "El clásico: salta entre plataformas.", "ok": true,
@@ -42,7 +44,10 @@ const CATEGORIAS := [
 			"modo": "2d", "tipo": "arriba", "theme": "noche", "hero": "🧙"},
 	]},
 	{"id": "pelea", "emoji": "🥊", "titulo": "Pelea y lucha", "txt": "Combates uno contra uno.", "color": Color("dc2626"), "tipos": [
-		{"id": "pelea2d", "emoji": "🥊", "titulo": "Lucha 2D", "txt": "Dos luchadores frente a frente.", "ok": false},
+		{"id": "pelea2d", "emoji": "🥊", "titulo": "Lucha 2D", "txt": "Dos luchadores frente a frente. Mejor de 3 rondas.", "ok": true,
+			"modo": "2d", "tipo": "plataformas", "estilo": "pelea", "theme": "dia", "hero": "🐼"},
+		{"id": "pelea_nieve", "emoji": "❄", "titulo": "Lucha en la nieve", "txt": "El mismo combate, en una arena nevada.", "ok": true,
+			"modo": "2d", "tipo": "plataformas", "estilo": "pelea", "theme": "nieve", "hero": "🐰"},
 	]},
 ]
 

@@ -5,6 +5,7 @@ extends Node
 
 signal terminado(ok: bool, mensaje: String, carpeta: String)
 
+const Rendimiento := preload("res://scripts/rendimiento.gd")
 const Importar := preload("res://scripts/importar.gd")
 const CONFIG := "user://ajustes.cfg"
 
@@ -126,6 +127,12 @@ func _con_motor_propio(plataforma: String, nombre: String, nivel_json: String, p
 	f.store_string(nivel_json)
 	f.close()
 	_copiar_assets(nivel_json, salida)
+	var nj = JSON.parse_string(nivel_json)
+	if nj is Dictionary and nj.get("reglas") is Dictionary:
+		var oc := FileAccess.open(salida.path_join("override.cfg"), FileAccess.WRITE)
+		if oc != null:
+			oc.store_string(Rendimiento.override_cfg(nj["reglas"].get("rend", {})))
+			oc.close()
 	if plataforma != "windows":
 		OS.execute("chmod", ["+x", salida.path_join(exe)])
 	if FileAccess.file_exists(salida.path_join(exe)):
@@ -193,6 +200,10 @@ func _copiar_assets(nivel_json: String, salida: String) -> Array:
 		if nv.has("niveles") and nv["niveles"] is Array:
 			niveles = nv["niveles"]
 			var rg: Dictionary = nv["reglas"] if nv.get("reglas") is Dictionary else {}
+			var por: Dictionary = Datos.portada_normal(rg.get("portada", {}))
+			usados[str(por["fondo"])] = true
+			for b in por["botones"]:
+				usados[str(b["img"])] = true
 			for clave in ["musica", "heroe2", "mascota"]:
 				if str(rg.get(clave, "")) != "":
 					usados[str(rg[clave])] = true
