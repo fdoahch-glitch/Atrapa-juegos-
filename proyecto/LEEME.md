@@ -65,6 +65,9 @@ Tyrannosaurus Rex (Mini), Oviraptor, Carnotaurio y Plesiosaurio. Aún no están:
 bitácora de fósiles, persecuciones (se aproximan como enemigos más lentos) ni las skins Brachiosaurus y Clásico. Nota: Godot no lee modelos con la extensión
 KHR_mesh_quantization; estos se convirtieron antes de incluirlos. Si un .glb tuyo no carga, conviértelo igual.
 
+## Mejorar los dibujos
+Mira docs/MEJORAR_DIBUJOS.md (dónde conseguir modelos y dibujos gratis y cómo usarlos). El botón «Editar un juego HTML» de la portada abre un editor visual para archivos .html.
+
 ## Guía y ejemplos
 En la carpeta docs/ hay una guía para niños y familias (GUIA.md) y 5 juegos de ejemplo (docs/ejemplos/*.json): se abren con «Pegar nivel».
 

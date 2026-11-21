@@ -80,6 +80,23 @@ func _draw() -> void:
 	draw_rect(Rect2(0, mundo.end.y, size.x, maxf(0.0, size.y - mundo.end.y)), sombra)
 	draw_rect(Rect2(0, mundo.position.y, maxf(0.0, mundo.position.x), mundo.size.y), sombra)
 	draw_rect(Rect2(mundo.end.x, mundo.position.y, maxf(0.0, size.x - mundo.end.x), mundo.size.y), sombra)
+	_dibujar_marco_pantalla()
+
+
+## Marco de la pantalla del celular: lo que se verá de una vez, según vertical u horizontal.
+func _dibujar_marco_pantalla() -> void:
+	if str(Datos.nivel.get("disp", "pc")) != "movil":
+		return
+	var vertical: bool = str(Datos.nivel.get("orient", "horizontal")) == "vertical"
+	var ratio := 9.0 / 16.0 if vertical else 16.0 / 9.0
+	var ancho_celdas := Datos.FILAS * ratio
+	var x0 := 0.0
+	for it in Datos.nivel["items"]:
+		if it["t"] == "player":
+			x0 = clampf(float(it["x"]) + 0.5 - ancho_celdas / 2.0, 0.0, maxf(0.0, float(Datos.nivel["cols"]) - ancho_celdas))
+	var r := Rect2(origen + Vector2(x0 * Z, 0.0), Vector2(ancho_celdas * Z, Datos.FILAS * Z))
+	draw_rect(r, Color(1, 0.85, 0.2, 0.9), false, 3.0)
+	draw_string(ThemeDB.fallback_font, r.position + Vector2(8, 22), "Pantalla del celular (%s)" % ("vertical" if vertical else "horizontal"), HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(1, 0.85, 0.2))
 
 
 func _dibujar_mundo(ci: CanvasItem) -> void:

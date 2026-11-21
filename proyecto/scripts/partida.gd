@@ -75,8 +75,13 @@ func _iniciar_musica() -> void:
 	_musica.play()
 
 
+var _medida := {}
+
+
 func _process(dt: float) -> void:
 	_t += dt
+	if _juego != null and is_instance_valid(_juego):
+		Rendimiento.medir(_medida, dt)
 	if _musica and _juego and "_sonido" in _juego and _juego._sonido:
 		_musica.stream_paused = _juego._sonido.silencio
 	if _titulo:

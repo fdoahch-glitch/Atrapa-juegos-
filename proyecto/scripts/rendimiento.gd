@@ -61,6 +61,34 @@ static func override_cfg(r: Variant) -> String:
 	return "[rendering]\n\nrenderer/rendering_method=\"%s\"\n" % m
 
 
+# ------------------------------------------------------------------ medición real de FPS
+const ARCHIVO_FPS := "user://rendimiento.json"
+
+## Se llama cada cuadro mientras se juega; guarda el promedio y el mínimo de FPS cada 4 segundos.
+static func medir(m: Dictionary, dt: float) -> void:
+	if dt <= 0.0 or dt > 0.5:
+		return   # pausas o cargas: no cuentan
+	m["t"] = float(m.get("t", 0.0)) + dt
+	m["n"] = int(m.get("n", 0)) + 1
+	m["peor"] = maxf(float(m.get("peor", 0.0)), dt)
+	if float(m["t"]) >= 4.0:
+		var prom := float(m["n"]) / float(m["t"])
+		var f := FileAccess.open(ARCHIVO_FPS, FileAccess.WRITE)
+		if f != null:
+			f.store_string(JSON.stringify({"prom": prom, "min": 1.0 / maxf(float(m["peor"]), 0.001), "plataforma": OS.get_name(), "rend": str(RenderingServer.get_current_rendering_method())}))
+			f.close()
+		m["t"] = 0.0
+		m["n"] = 0
+		m["peor"] = 0.0
+
+
+static func ultima_medicion() -> Dictionary:
+	if not FileAccess.file_exists(ARCHIVO_FPS):
+		return {}
+	var d = JSON.parse_string(FileAccess.get_file_as_string(ARCHIVO_FPS))
+	return d if d is Dictionary else {}
+
+
 # ------------------------------------------------------------------ verificador
 ## Cada problema: {nivel, sev: "error"|"aviso"|"consejo", txt, sol, fix: {op, …}}
 static func _p(nivel: int, sev: String, txt: String, sol: String, fix: Dictionary) -> Dictionary:
@@ -202,6 +230,11 @@ static func analizar(p: Dictionary) -> Array:
 		res.append(_p(-1, "consejo", "FSR sólo funciona con el motor Vulkan; con «Compatibilidad» no se nota.", "Elegir Vulkan para PC.", {"op": "calidad", "perfil": plataforma}))
 	if total_obj > 1500 and plataforma != "windows":
 		res.append(_p(-1, "consejo", "Tu juego completo tiene muchos objetos (%d)." % total_obj, "Aplicar el perfil recomendado.", {"op": "calidad", "perfil": plataforma}))
+	var med := ultima_medicion()
+	if not med.is_empty() and float(med.get("prom", 60.0)) < 30.0:
+		res.append(_p(-1, "aviso", "En tu última prueba el juego iba a %.0f FPS en promedio (se siente lento)." % float(med["prom"]), "Bajar la calidad: imagen al 75 %% y sin bordes suaves.", {"op": "calidad", "perfil": "android"}))
+	elif not med.is_empty() and float(med.get("min", 60.0)) < 20.0:
+		res.append(_p(-1, "consejo", "Hubo tirones (bajó hasta %.0f FPS) en tu última prueba." % float(med["min"]), "Usar el perfil recomendado para tu plataforma.", {"op": "calidad", "perfil": plataforma}))
 	return res
 
 

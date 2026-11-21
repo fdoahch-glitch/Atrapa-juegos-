@@ -8,6 +8,7 @@ signal ayuda
 signal dinorun   # ya no se usa; se deja para no romper conexiones antiguas
 
 const Estilo := preload("res://scripts/estilo.gd")
+const EditorHtml := preload("res://scripts/editor_html.gd")
 const Categorias := preload("res://scripts/categorias.gd")
 
 var _scroll: ScrollContainer
@@ -104,6 +105,12 @@ func _mostrar_portada() -> void:
 		var bc := _boton("Continuar mi último juego", "▶", Color(1, 1, 1, 0.92), Estilo.TINTA, 330)
 		bc.pressed.connect(func(): continuar.emit())
 		pie.add_child(bc)
+	var bh := _boton("Editar un juego HTML", "🌐", Color(1, 1, 1, 0.22), Color.WHITE, 300)
+	bh.pressed.connect(func():
+		if not OS.has_feature("web") and not EditorHtml.abrir():
+			bh.text = "  No pude abrir el navegador")
+	if not OS.has_feature("web"):
+		pie.add_child(bh)
 	var ba := _boton("Ayuda", "❓", Color(1, 1, 1, 0.22), Color.WHITE, 170)
 	ba.pressed.connect(func(): ayuda.emit())
 	pie.add_child(ba)
