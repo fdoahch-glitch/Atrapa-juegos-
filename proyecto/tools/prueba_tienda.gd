@@ -7,12 +7,19 @@ func ok(c: bool, m: String) -> void:
 	if not c: fallos += 1
 func _ready() -> void:
 	DirAccess.remove_absolute(Tienda.RUTA)
-	var p := Datos.proyecto_dinorun()
+	var lista: Array = Importar_lista()
+	var cat: Array = Tienda.catalogo_desde(lista, 15)
+	for i in cat.size():
+		cat[i]["precio"] = 600 + 150 * i
+	var jug: Array = []
+	for i in 5:
+		jug.append({"id": lista[i]["id"], "n": lista[i]["n"], "poder": ["salto15", "huevos20", "vida", "inv26", "salto15"][i], "desc": ""})
+	var niv := Datos.normalizar(Datos.nivel_inicial())
+	niv["modo"] = "3d"
+	niv["tipo"] = "corredor"
+	var p := {"v": 2, "reglas": Datos.reglas_completas({"tienda": true, "catalogo": cat, "jugables": jug}), "niveles": [niv]}
 	var r := Datos.reglas_completas(p["reglas"])
-	for it in r["catalogo"]:
-		DirAccess.remove_absolute(Importar_ruta(it["id"]))
-		await preload("res://scripts/importar.gd").hacer_miniatura(get_tree(), it["id"])
-	ok(r["tienda"] and r["catalogo"].size() == 15 and r["jugables"].size() == 5, "15 mascotas y 5 dinosaurios jugables")
+	ok(r["tienda"] and r["catalogo"].size() == 15 and r["jugables"].size() == 5, "15 mascotas y 5 personajes jugables")
 	ok(Tienda.leer()["monedas"] == 0, "empieza sin monedas")
 	ok(not Tienda.comprar(r["catalogo"][0]), "sin monedas no compra")
 	Tienda.ganar(650)
@@ -50,6 +57,9 @@ func _ready() -> void:
 	DirAccess.remove_absolute(Tienda.RUTA)
 	print("FALLOS: ", fallos)
 	get_tree().quit(fallos)
+
+func Importar_lista() -> Array:
+	return preload("res://scripts/importar.gd").mascotas()
 
 func Importar_ruta(id: String) -> String:
 	return preload("res://scripts/importar.gd").ruta_dibujo(id)

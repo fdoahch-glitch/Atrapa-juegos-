@@ -15,4 +15,4 @@ Los archivos terminan en `.bib` (son .glb / .png / .ogg normales con otro nombre
 Las miniaturas se fabrican con `tools/hornear_biblioteca.tscn`.
 
 Se descartaron los modelos de armas de fuego, bombas y similares para mantener la biblioteca apta para niños.
-No hay nada de Dino Run en esta biblioteca.
+Este programa no incluye nada de Dino Run: es un proyecto aparte.

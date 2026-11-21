@@ -5,7 +5,6 @@ extends Control
 signal crear_juego(cfg: Dictionary)
 signal continuar
 signal ayuda
-signal dinorun   # ya no se usa; se deja para no romper conexiones antiguas
 
 const Estilo := preload("res://scripts/estilo.gd")
 const EditorHtml := preload("res://scripts/editor_html.gd")

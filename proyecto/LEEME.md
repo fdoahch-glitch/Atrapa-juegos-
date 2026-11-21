@@ -30,18 +30,11 @@ Sirve la carpeta exportada por HTTP (no con file://). Incluye PWA instalable.
 ## Niveles
 "Copiar código del nivel" / "Pegar nivel" son compatibles con la versión web (artefacto).
 
-## Dino Run (pack de dinosaurios)
-En la pantalla de inicio, el botón «Abrir Dino Run» instala 10 dinosaurios 3D animados en «Mis cosas»
-(T-Rex, Triceratops, Pterodáctilo, Plesiosaurio, Spinosaurio, Estegosaurio, Anquilosaurio, Paquicefalo,
-Oviraptor, Carnotauro) y abre un proyecto de 5 mundos (Jungla, Desierto, Hielo, Pantano, Valle) con
-obstáculos, huevos y 3 vidas. Todo se edita con arrastrar y soltar. Los modelos GLB con animación ahora
-se reproducen solos en bucle.
-
 ## Mascotas con poder
 En «Reglas» eliges una mascota (emoji, animalito, tus modelos o dibujos importados) y su poder:
 Escudo (te protege de 1 golpe), Doble escudo (2 golpes), Vida extra, Imán (recoge premios desde más lejos)
 o Más puntos (×1,5). Funciona en plataformas 2D, 2.5D, corredor, aventura y vista desde arriba;
-la mascota te acompaña y se exporta con el juego. Dino Run usa la tienda en vez de una mascota fija.
+la mascota te acompaña y se exporta con el juego.
 
 ## Cambiar el tipo de juego
 Botón «Tipo de juego» (arriba): convierte el nivel a Plataformas 2D, 2.5D, Vista desde arriba, Aventura 3D
@@ -50,20 +43,8 @@ monedas, estrellas, gemas, enemigos, pinchos, meta y decoración. Revisa el resu
 
 ## Tienda y 2 jugadores
 - Reglas → «Tienda de mascotas: Sí»: las monedas de cada partida se guardan y se compran mascotas con poder
-  (pantalla de título → «Tienda de mascotas»). Dino Run trae la tienda con sus 15 mascotas.
+  (pantalla de título → «Tienda de mascotas»).
 - Reglas → «Jugadores: 2» (solo Corredor 3D): Jugador 1 con A D W S, Jugador 2 con las flechas; vidas y puntos compartidos.
-
-## Dinosaurios chilenos de Dino Run (personajes jugables)
-Los 5 dinosaurios chilenos del juego original son los PERSONAJES JUGABLES: Chilesaurus (salto más alto),
-Atacamatitán (la comida vale +20%), Arackar (empiezas con 4 vidas), Stegouros (2,6 s de protección tras un golpe)
-y Gonkoken (salto alto y ágil). En la pantalla de título: «Elegir dinosaurio». Ninguno es mascota.
-
-## Tienda de mascotas de Dino Run
-Las 15 mascotas originales, con su precio y su poder, se compran con monedas: Pteranodón, Triceratops, Velociraptor,
-Dilofosaurio, Iguanodón, Estegosaurio, Parasaurolophus, Pachycephalosaurus (Mini), Anquilosaurio, Apatosaurio, Espinosaurio,
-Tyrannosaurus Rex (Mini), Oviraptor, Carnotaurio y Plesiosaurio. Aún no están: accesorios, piezas coleccionables,
-bitácora de fósiles, persecuciones (se aproximan como enemigos más lentos) ni las skins Brachiosaurus y Clásico. Nota: Godot no lee modelos con la extensión
-KHR_mesh_quantization; estos se convirtieron antes de incluirlos. Si un .glb tuyo no carga, conviértelo igual.
 
 ## Mejorar los dibujos
 Mira docs/MEJORAR_DIBUJOS.md (dónde conseguir modelos y dibujos gratis y cómo usarlos). El botón «Editar un juego HTML» de la portada abre un editor visual para archivos .html.

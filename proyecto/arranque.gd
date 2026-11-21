@@ -86,13 +86,6 @@ func _mostrar_inicio() -> void:
 	ini.continuar.connect(func():
 		Datos.cargar_guardado()
 		_abrir_editor())
-	ini.dinorun.connect(func():
-		var Imp := load("res://scripts/importar.gd")
-		var nuevos: Array = Imp.instalar_dinos()
-		for id in nuevos:
-			await Imp.hacer_miniatura(get_tree(), id)
-		Datos.establecer_proyecto(Datos.proyecto_dinorun())
-		_abrir_editor())
 	ini.ayuda.connect(func():
 		var n := Datos.nivel_inicial()
 		Datos.establecer(Datos.normalizar(n))
