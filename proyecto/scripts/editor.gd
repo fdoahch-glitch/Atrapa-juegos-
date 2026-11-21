@@ -219,7 +219,7 @@ func _construir() -> void:
 	var fila_tabs := HBoxContainer.new()
 	fila_tabs.add_theme_constant_override("separation", 6)
 	v.add_child(fila_tabs)
-	for d in [["pers", "Personajes", "🐱"], ["fondos", "Fondos", "🖼"], ["objetos", "Objetos", "🧱"], ["deco", "Decorar", "🌳"], ["mis", "Mis cosas", "📁"]]:
+	for d in [["pers", "Personajes", "🐱"], ["fondos", "Fondos", "🖼"], ["objetos", "Objetos", "🧱"], ["deco", "Decorar", "🌳"], ["lib", "Biblioteca", "🎨"], ["mis", "Mis cosas", "📁"]]:
 		var b := Button.new()
 		b.text = d[1]
 		b.icon = Datos.textura(d[2])
@@ -426,9 +426,27 @@ func _defs(que: String) -> Array:
 			r.append({"enc": "Divertidas"})
 			for d in Datos.decoraciones:
 				r.append({"id": "d" + d[1], "n": d[0], "t": "deco", "e": d[1], "s": d[2]})
+		"lib":
+			var bib := Importar.biblioteca()
+			var por_cat := func(cats: Array) -> Array:
+				return bib.filter(func(a): return str(a.get("cat", "")) in cats and (modo != "2d" or not Importar.es_audio(a["id"])))
+			var heroes: Array = por_cat.call(["Personas", "Animales", "Dinosaurios", "Monstruos"])
+			r.append({"enc": "Personajes (héroe)"})
+			for a in heroes:
+				r.append({"id": "bh" + a["id"], "n": a["n"], "t": "hero", "e": a["id"]})
+			r.append({"enc": "Enemigos"})
+			for a in por_cat.call(["Monstruos", "Animales", "Dinosaurios"]):
+				r.append({"id": "be" + a["id"], "n": a["n"], "t": "enemy", "e": a["id"], "fly": false, "sp": 60})
+			for cat in ["Plataformas", "Elementos", "Vehículos"]:
+				r.append({"enc": cat})
+				for a in por_cat.call([cat]):
+					r.append({"id": "bd" + a["id"], "n": a["n"], "t": "deco", "e": a["id"], "s": 64})
+			r.append({"enc": "Sonidos y música (toca para oírlos; se eligen en Reglas)"})
+			for a in bib.filter(func(a): return Importar.es_audio(a["id"])):
+				r.append({"id": "bs" + a["id"], "n": a["n"], "t": "audio", "e": a["id"]})
 		"mis":
 			r.append({"id": "importar", "n": "Importar…", "t": "importar"})
-			var mias := Importar.listar()
+			var mias := Importar.listar_propios()
 			var modelos_ok := modo != "2d"
 			var util := mias.filter(func(a): return not Importar.es_audio(a["id"]) and (modelos_ok or not Importar.es_modelo(a["id"])))
 			var sonidos := mias.filter(func(a): return Importar.es_audio(a["id"]))
@@ -882,7 +900,7 @@ func _abrir_reglas() -> void:
 		_regla_fila(v, "Enemigo derrotado", _regla_paso("pts_enemy", 0, 99, 1, fmt))
 	_regla_fila(v, "Pantalla de título", _regla_opciones("titulo", [[true, "Sí"], [false, "No"]]))
 	var musicas: Array = [{"id": "", "n": "Sin música"}]
-	for a in Importar.listar():
+	for a in Importar.listar_propios():
 		if Importar.es_audio(a["id"]):
 			musicas.append(a)
 	var pos_m := 0
@@ -923,9 +941,8 @@ func _abrir_reglas() -> void:
 		mascotas.append({"id": h[1], "n": h[0]})
 	mascotas.append({"id": "a:animalito", "n": "Animalito"})
 	mascotas.append({"id": "a:bichito", "n": "Bichito"})
-	for a2 in Importar.listar():
-		if not Importar.es_audio(a2["id"]):
-			mascotas.append(a2)
+	for a2 in Importar.mascotas():
+		mascotas.append(a2)
 	var pos_p := 0
 	for i in mascotas.size():
 		if mascotas[i]["id"] == str(Datos.reglas["mascota"]):
@@ -963,9 +980,8 @@ func _abrir_reglas() -> void:
 			var l: Array = []
 			for h in Datos.heroes:
 				l.append({"id": h[1], "n": h[0]})
-			for a3 in Importar.listar():
-				if not Importar.es_audio(a3["id"]):
-					l.append(a3)
+			for a3 in Importar.mascotas():
+				l.append(a3)
 			Datos.reglas["catalogo"] = preload("res://scripts/tienda.gd").catalogo_desde(l)
 		Datos.guardar()
 	_regla_fila(v, "Tienda de mascotas", _regla_opciones("tienda", [[true, "Sí"], [false, "No"]], tf))

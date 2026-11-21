@@ -46,6 +46,8 @@ func _catalogo() -> Array:
 	for h in Datos.heroes:
 		r.append({"id": h[1], "n": h[0]})
 	for a in Importar.listar():
+		if str(a.get("cat", "")) != "" and not str(a.get("cat", "")) in ["Personas", "Animales", "Dinosaurios"]:
+			continue
 		if str(a["id"]).begins_with("u:") or str(a["id"]).begins_with("g:"):
 			r.append({"id": a["id"], "n": a["n"]})
 	return r

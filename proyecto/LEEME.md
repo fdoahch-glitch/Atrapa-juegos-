@@ -83,3 +83,8 @@ Al abrir aparece la portada «Atrapa Juegos Estudio». «Empezar» pregunta plat
 - **Carreras 3D y Go-karts 3D:** misma pista del editor, pero se juega con cámara detrás del auto (como Mario Kart).
 - **Lucha:** 3 golpes seguidos hacen *combo* con daño extra. Con «2 jugadores» en Reglas: jugador 1 = A D W S + F/G, jugador 2 = flechas + K/L.
 - **Etapa Personajes:** elige hasta 12 personajes (y su poder). Con 2 o más, el juego muestra «¿Con quién quieres jugar?».
+
+## Biblioteca incluida (licencia libre)
+La pestaña **Biblioteca** del editor trae ~150 modelos 3D (personas, animales, dinosaurios, monstruos, plataformas, escenarios,
+vehículos) y ~115 sonidos, todos CC0. Se usan como héroe, enemigo, decoración o mascota, y viajan con el juego exportado.
+Créditos en `docs/CREDITOS.md`.

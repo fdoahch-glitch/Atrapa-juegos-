@@ -66,7 +66,13 @@ func textura(e: String) -> Texture2D:
 		# archivos importados por el usuario (dibujo .png, o miniatura de un .glb)
 		var f := Importar.ruta_dibujo(e)
 		if FileAccess.file_exists(f):
-			var img := Image.load_from_file(f)
+			var img: Image = null
+			if f.ends_with(".bib"):
+				img = Image.new()
+				if img.load_png_from_buffer(FileAccess.get_file_as_bytes(f)) != OK:
+					img = null
+			else:
+				img = Image.load_from_file(f)
 			if img:
 				tex = ImageTexture.create_from_image(img)
 	else:

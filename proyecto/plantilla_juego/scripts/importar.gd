@@ -8,6 +8,9 @@ const Hornear := preload("res://scripts/hornear.gd")
 const Assets3D := preload("res://scripts/assets3d.gd")
 const CARPETA := "user://mis_assets"
 const INDICE := "user://mis_assets/indice.json"
+## Biblioteca que viene con el programa (modelos, sonidos y letras de licencia libre; ver docs/CREDITOS.md).
+const BIBLIOTECA := "res://assets/biblioteca"
+const INDICE_BIB := "res://assets/biblioteca/indice.json"
 
 
 static func es_modelo(id: String) -> bool:
@@ -27,7 +30,7 @@ static func ruta_dibujo(id: String) -> String:
 	if id.begins_with("g:"):
 		var png := nombre_de(id) + ".png"
 		var junto := OS.get_executable_path().get_base_dir().path_join("assets").path_join(png)
-		for c in [junto, "/assets/" + png]:
+		for c in [junto, "/assets/" + png, BIBLIOTECA.path_join(png + ".bib")]:
 			if FileAccess.file_exists(c):
 				return c
 		return CARPETA.path_join(png)
@@ -38,14 +41,39 @@ static func ruta_dibujo(id: String) -> String:
 static func ruta_archivo(id: String) -> String:
 	var n := nombre_de(id)
 	var junto := OS.get_executable_path().get_base_dir().path_join("assets").path_join(n)
-	for c in [junto, "/assets/" + n, CARPETA.path_join(n)]:
+	# en la biblioteca los archivos llevan «.bib» para que el exportador los guarde tal cual
+	var bib := BIBLIOTECA.path_join("audio").path_join(n + ".bib") if n.get_extension() in ["ogg", "wav", "mp3"] else BIBLIOTECA.path_join(n + ".bib")
+	for c in [junto, "/assets/" + n, CARPETA.path_join(n), bib]:
 		if FileAccess.file_exists(c):
 			return c
 	return CARPETA.path_join(n)
 
 
-static func listar() -> Array:
+## Lo que el creador importó (solo lo suyo).
+static func listar_propios() -> Array:
 	var f := FileAccess.open(INDICE, FileAccess.READ)
+	if f == null:
+		return []
+	var r = JSON.parse_string(f.get_as_text())
+	return r if r is Array else []
+
+
+## Lo del creador y, después, la biblioteca incluida. Cada entrada: {id, n, cat?}.
+static func listar() -> Array:
+	return listar_propios() + biblioteca()
+
+
+## Cosas que sirven de mascota o de personaje en la tienda: lo propio y los animales de la biblioteca.
+static func mascotas() -> Array:
+	var r: Array = listar_propios().filter(func(a): return not es_audio(a["id"]))
+	for a in biblioteca():
+		if str(a.get("cat", "")) in ["Animales", "Dinosaurios"]:
+			r.append(a)
+	return r
+
+
+static func biblioteca() -> Array:
+	var f := FileAccess.open(INDICE_BIB, FileAccess.READ)
 	if f == null:
 		return []
 	var r = JSON.parse_string(f.get_as_text())
@@ -94,14 +122,14 @@ static func importar_archivo(origen: String) -> String:
 	f.store_buffer(datos)
 	f.close()
 	var id := tipo + ":" + nombre
-	var lista := listar()
+	var lista := listar_propios()
 	lista.append({"id": id, "n": nombre.get_basename().left(14)})
 	_guardar_indice(lista)
 	return id
 
 
 static func quitar(id: String) -> void:
-	var lista := listar().filter(func(a): return a["id"] != id)
+	var lista := listar_propios().filter(func(a): return a["id"] != id)
 	_guardar_indice(lista)
 	DirAccess.remove_absolute(ruta_archivo(id))
 	if id.begins_with("g:"):
@@ -115,7 +143,13 @@ static func cargar_audio(id: String) -> AudioStream:
 	var ruta := ruta_archivo(id)
 	if not FileAccess.file_exists(ruta):
 		return null
-	match ruta.get_extension().to_lower():
+	var ext := ruta.get_basename().get_extension().to_lower() if ruta.ends_with(".bib") else ruta.get_extension().to_lower()
+	if ruta.ends_with(".bib") and ext == "ogg":
+		var ob := AudioStreamOggVorbis.load_from_buffer(FileAccess.get_file_as_bytes(ruta))
+		if ob:
+			ob.loop = true
+		return ob
+	match ext:
 		"ogg":
 			var o := AudioStreamOggVorbis.load_from_file(ruta)
 			if o:
@@ -146,7 +180,10 @@ static func cargar_glb(id: String) -> Node3D:
 		return null
 	var doc := GLTFDocument.new()
 	var st := GLTFState.new()
-	if doc.append_from_file(ruta, st) != OK:
+	if ruta.ends_with(".bib"):
+		if doc.append_from_buffer(FileAccess.get_file_as_bytes(ruta), "", st) != OK:
+			return null
+	elif doc.append_from_file(ruta, st) != OK:
 		return null
 	var escena := doc.generate_scene(st)
 	return escena as Node3D
@@ -234,7 +271,7 @@ const DINOS := [
 ## Deja los dinosaurios del pack en «Mis cosas» (los copia si aún no están). Devuelve los ids nuevos.
 static func instalar_dinos() -> Array:
 	DirAccess.make_dir_recursive_absolute(CARPETA)
-	var lista := listar()
+	var lista := listar_propios()
 	var nuevos: Array = []
 	for d in DINOS:
 		var id := "g:%s.glb" % d[0]

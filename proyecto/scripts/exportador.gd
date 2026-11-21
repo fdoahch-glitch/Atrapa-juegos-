@@ -233,8 +233,9 @@ func _copiar_assets(nivel_json: String, salida: String) -> Array:
 			var mini := Importar.ruta_dibujo(id)
 			if FileAccess.file_exists(mini):
 				DirAccess.make_dir_recursive_absolute(salida.path_join("assets"))
-				_copiar_archivo(mini, salida.path_join("assets").path_join(mini.get_file()))
-				nombres.append(mini.get_file())
+				var nombre_mini := Importar.nombre_de(id) + ".png"
+				_copiar_archivo(mini, salida.path_join("assets").path_join(nombre_mini))
+				nombres.append(nombre_mini)
 	return nombres
 
 
