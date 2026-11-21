@@ -56,7 +56,7 @@ func iniciar(p: Dictionary, desde: int = 0, con_titulo: bool = true, forzar_tact
 	tactil = forzar_tactil
 	con_salir = mostrar_salir
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_tema = Datos.temas.get(str(proy["niveles"][0].get("theme", "dia")), Datos.temas["dia"])
+	_tema = Datos.tema_de(proy["niveles"][0])
 	_iniciar_musica()
 	if con_titulo and bool(proy["reglas"]["titulo"]):
 		_mostrar_titulo()

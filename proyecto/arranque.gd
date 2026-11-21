@@ -86,6 +86,7 @@ func _mostrar_inicio() -> void:
 	ini.continuar.connect(func():
 		Datos.cargar_guardado()
 		_abrir_editor())
+	ini.abierto.connect(func(): _abrir_editor())
 	ini.ayuda.connect(func():
 		var n := Datos.nivel_inicial()
 		Datos.establecer(Datos.normalizar(n))

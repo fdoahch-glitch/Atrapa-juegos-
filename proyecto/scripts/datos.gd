@@ -26,6 +26,22 @@ var temas := {
 	"nieve": {"n": "Nieve", "cielo": [Color("bfe1ff"), Color("f4fbff")], "lejos": Color("dbeaf5"), "cerca": Color("b3cfe4"), "deco": "nieve", "plat": [Color("7fa3bd"), Color.WHITE]},
 }
 
+## El tema de un nivel con sus colores propios («paleta») ya aplicados.
+## paleta: {"cielo": ["#rrggbb", "#rrggbb"], "lejos": "#..", "cerca": "#..", "plat": ["#.. tierra", "#.. pasto"]}
+func tema_de(niv: Dictionary) -> Dictionary:
+	var base: Dictionary = temas.get(str(niv.get("theme", "dia")), temas["dia"]).duplicate(true)
+	var pal = niv.get("paleta", {})
+	if pal is Dictionary and not pal.is_empty():
+		if pal.get("cielo") is Array and pal["cielo"].size() >= 2:
+			base["cielo"] = [Color(str(pal["cielo"][0])), Color(str(pal["cielo"][1]))]
+		for k in ["lejos", "cerca"]:
+			if pal.has(k):
+				base[k] = Color(str(pal[k]))
+		if pal.get("plat") is Array and pal["plat"].size() >= 2:
+			base["plat"] = [Color(str(pal["plat"][0])), Color(str(pal["plat"][1]))]
+	return base
+
+
 # [nombre, emoji]
 var heroes := [["Gato", "🐱"], ["Perro", "🐶"], ["Dino", "🦖"], ["Conejo", "🐰"], ["Zorro", "🦊"], ["Panda", "🐼"], ["Robot", "🤖"], ["Mago", "🧙"]]
 # [nombre, emoji, vuela, velocidad]
@@ -458,6 +474,21 @@ func normalizar(n: Dictionary) -> Dictionary:
 	if not temas.has(str(n.get("theme", "dia"))):
 		n["theme"] = "dia"
 	n["theme"] = str(n.get("theme", "dia"))
+	if not (n.get("paleta") is Dictionary) or (n["paleta"] as Dictionary).is_empty():
+		n.erase("paleta")
+	else:
+		var pal_ok := {}
+		for k in ["cielo", "plat"]:
+			var l = n["paleta"].get(k)
+			if l is Array and l.size() >= 2 and str(l[0]).is_valid_html_color() and str(l[1]).is_valid_html_color():
+				pal_ok[k] = [str(l[0]), str(l[1])]
+		for k in ["lejos", "cerca"]:
+			if str(n["paleta"].get(k, "")).is_valid_html_color():
+				pal_ok[k] = str(n["paleta"][k])
+		if pal_ok.is_empty():
+			n.erase("paleta")
+		else:
+			n["paleta"] = pal_ok
 	if str(n.get("hero", "")) == "":
 		n["hero"] = "🐱"
 	if not (n.get("items") is Array):
@@ -670,8 +701,9 @@ func agregar_nivel(copiar: bool = false) -> bool:
 			it["id"] = nuevo_id()
 	else:
 		n = nivel_en_blanco()
-		for k in ["name", "modo", "disp", "orient", "tipo", "theme", "hero"]:
-			n[k] = nivel.get(k, n.get(k))
+		for k in ["name", "modo", "disp", "orient", "tipo", "theme", "hero", "paleta"]:
+			if nivel.has(k) or n.has(k):
+				n[k] = nivel.get(k, n.get(k))
 		n = normalizar(n)
 	niveles.append(n)
 	idx = niveles.size() - 1

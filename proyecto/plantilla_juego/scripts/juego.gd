@@ -69,7 +69,7 @@ var _msg_t := 0.0
 func iniciar(n: Dictionary, forzar_tactil: bool = false, mostrar_salir: bool = false) -> void:
 	nivel = n.duplicate(true)
 	reglas = Datos.reglas_completas(nivel.get("reglas", {}) if nivel.get("reglas", {}) is Dictionary else {})
-	tema = Datos.temas.get(str(nivel.get("theme", "dia")), Datos.temas["dia"])
+	tema = Datos.tema_de(nivel)
 	tactil = forzar_tactil or DisplayServer.is_touchscreen_available()
 	con_salir = mostrar_salir
 	clip_contents = true

@@ -39,7 +39,7 @@ func _ready() -> void:
 
 
 func _tema() -> Dictionary:
-	var th: Dictionary = Datos.temas.get(str(Datos.nivel.get("theme", "dia")), Datos.temas["dia"])
+	var th: Dictionary = Datos.tema_de(Datos.nivel)
 	if str(Datos.nivel.get("tipo", "")) == "arriba":
 		th = th.duplicate()
 		th["arriba"] = true

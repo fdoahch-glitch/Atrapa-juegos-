@@ -5,7 +5,9 @@ extends Control
 signal crear_juego(cfg: Dictionary)
 signal continuar
 signal ayuda
+signal abierto   # se cargó un juego desde un archivo (.atrapa.json)
 
+const Paquete := preload("res://scripts/paquete.gd")
 const Estilo := preload("res://scripts/estilo.gd")
 const EditorHtml := preload("res://scripts/editor_html.gd")
 const Categorias := preload("res://scripts/categorias.gd")
@@ -110,6 +112,40 @@ func _mostrar_portada() -> void:
 			bh.text = "  No pude abrir el navegador")
 	if not OS.has_feature("web"):
 		pie.add_child(bh)
+	var pie2 := HBoxContainer.new()
+	pie2.alignment = BoxContainer.ALIGNMENT_CENTER
+	pie2.add_theme_constant_override("separation", 12)
+	caja.add_child(pie2)
+	var estado := Label.new()
+	estado.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	estado.custom_minimum_size = Vector2(620, 0)
+	estado.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	estado.add_theme_color_override("font_color", Color.WHITE)
+	var bj := _boton("Abrir un juego guardado", "📁", Color(1, 1, 1, 0.22), Color.WHITE, 330)
+	bj.pressed.connect(func():
+		DisplayServer.file_dialog_show("Abrir un juego guardado", "", "", false, DisplayServer.FILE_DIALOG_MODE_OPEN_FILE,
+			PackedStringArray(["*.json;Juegos de Atrapa Juegos"]),
+			func(ok: bool, rutas: PackedStringArray, _f: int) -> void:
+				if ok and rutas.size() > 0:
+					var r: Dictionary = Paquete.abrir_proyecto(rutas[0])
+					if r["ok"]:
+						abierto.emit()
+					else:
+						estado.text = "No pude abrirlo: " + str(r["error"])))
+	var bk := _boton("Abrir un APK (decompilar)", "📱", Color(1, 1, 1, 0.22), Color.WHITE, 330)
+	bk.pressed.connect(func():
+		DisplayServer.file_dialog_show("Elige un APK", "", "", false, DisplayServer.FILE_DIALOG_MODE_OPEN_FILE,
+			PackedStringArray(["*.apk;Apps de Android"]),
+			func(ok: bool, rutas: PackedStringArray, _f: int) -> void:
+				if ok and rutas.size() > 0:
+					var r: Dictionary = Paquete.abrir_apk(rutas[0])
+					estado.text = Paquete.resumen_apk(r) if r["ok"] else "No pude abrir el APK: " + str(r["error"])
+					if r["ok"]:
+						OS.shell_open(r["carpeta"])))
+	if not OS.has_feature("web"):
+		pie2.add_child(bj)
+		pie2.add_child(bk)
+		caja.add_child(estado)
 	var ba := _boton("Ayuda", "❓", Color(1, 1, 1, 0.22), Color.WHITE, 170)
 	ba.pressed.connect(func(): ayuda.emit())
 	pie.add_child(ba)

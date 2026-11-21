@@ -69,3 +69,15 @@ Al abrir aparece la portada «Atrapa Juegos Estudio». «Empezar» pregunta plat
 La pestaña **Biblioteca** del editor trae ~150 modelos 3D (personas, animales, dinosaurios, monstruos, plataformas, escenarios,
 vehículos) y ~115 sonidos, todos CC0. Se usan como héroe, enemigo, decoración o mascota, y viajan con el juego exportado.
 Créditos en `docs/CREDITOS.md`.
+
+## Exportar, guardar y abrir
+**Exportar** es ahora una sola ventana: ① elige dónde jugarlo (Windows, navegador o Android), ② espera, ③ «Abrir la carpeta».
+Se exportan todos los mundos. Debajo: **Guardar como archivo** (`.atrapa.json` + carpeta `assets`), **Abrir un archivo** y **Abrir un APK**.
+
+## Abrir un APK (decompilador)
+En la pantalla de inicio o en Exportar: «Abrir un APK». Extrae todo a Documentos → Mis juegos → APK-nombre y dice de qué tipo es
+(juego web con Capacitor/Cordova, Godot, Unity…), el nombre del paquete y cuántas imágenes, sonidos y modelos trae.
+Si es un juego web, su `index.html` queda listo para editarlo con «Editar un juego HTML». Las apps nativas solo permiten sacar sus recursos.
+
+## Colores del mundo
+Botón **Colores** (arriba): cielo, colinas, tierra y pasto de este mundo, con selector de color. Se guardan en el nivel (`paleta`).

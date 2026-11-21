@@ -3,6 +3,8 @@ extends Control
 ## decoración), escenario, tutorial y exportación con el botón mágico.
 
 const PanelRend := preload("res://scripts/panel_rendimiento.gd")
+const PanelExportar := preload("res://scripts/panel_exportar.gd")
+const PanelColores := preload("res://scripts/panel_colores.gd")
 const PersonajesPanel := preload("res://scripts/panel_personajes.gd")
 const PortadaEd := preload("res://scripts/portada_editor.gd")
 const Estilo := preload("res://scripts/estilo.gd")
@@ -42,8 +44,6 @@ var _tut: Control
 var _exp: Node
 var _jugando: Control
 var _modal: Control
-var _estado_exp: Label
-var _botones_exp: Array[Button] = []
 var _objetivos := {}
 var _ajustes := ConfigFile.new()
 var _construido := false
@@ -72,7 +72,6 @@ func _ready() -> void:
 	modo = str(Datos.nivel.get("modo", "2d"))
 	_exp = ExportadorScript.new()
 	add_child(_exp)
-	_exp.terminado.connect(_al_exportar)
 	_construir()
 	Datos.nivel_cambiado.connect(_refrescar)
 	_cambiar_tab("pers")
@@ -171,6 +170,10 @@ func _construir() -> void:
 	b_tipo.pressed.connect(_abrir_tipos)
 	fila.add_child(b_tipo)
 	_textos_barra.append([b_tipo, " Tipo de juego"])
+	var b_col := _boton(" Colores", "🎨", c_claro)
+	b_col.pressed.connect(_abrir_colores)
+	fila.add_child(b_col)
+	_textos_barra.append([b_col, " Colores"])
 	var b_nuevo := _boton(" Nuevo", "📄", c_claro)
 	b_nuevo.pressed.connect(_nuevo)
 	fila.add_child(b_nuevo)
@@ -1259,82 +1262,28 @@ func _cerrar_juego() -> void:
 func _abrir_exportar() -> void:
 	_tut.avisar("export")
 	_cerrar_modal()
-	_botones_exp.clear()
-	var fondo := ColorRect.new()
-	fondo.color = Color(0.08, 0.06, 0.23, 0.62)
-	add_child(fondo)
-	fondo.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_modal = fondo
+	var pe := PanelExportar.new()
+	pe.exp = _exp
+	add_child(pe)
 	move_child(_tut, get_child_count() - 1)
-	var centro := CenterContainer.new()
-	fondo.add_child(centro)
-	centro.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(580, 0)
-	panel.add_theme_stylebox_override("panel", Estilo.caja(Color.WHITE, 26, 0, Color.TRANSPARENT, 22))
-	centro.add_child(panel)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 10)
-	panel.add_child(v)
-	var t := Label.new()
-	t.text = "¡Tu juego está listo!"
-	t.add_theme_font_size_override("font_size", 30)
-	v.add_child(t)
-	var desc := Label.new()
-	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc.custom_minimum_size = Vector2(530, 0)
-	desc.add_theme_color_override("font_color", Estilo.SUAVE)
-	v.add_child(desc)
-	if _exp.disponible():
-		desc.text = "Elige dónde quieres jugarlo. El botón mágico crea los archivos por ti y los deja en la carpeta «Mis juegos» de Documentos."
-		for d in [["web", "🌐", "  Jugar en internet", "Se abre en cualquier navegador"], ["windows", "🖥", "  En la computadora", "Un programa para Windows"]]:
-			var b := Button.new()
-			b.text = "%s   —   %s" % [d[2], d[3]]
-			b.icon = Datos.textura(d[1])
-			b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-			b.custom_minimum_size = Vector2(0, 58)
-			b.focus_mode = Control.FOCUS_NONE
-			b.disabled = not _exp.tiene_godot()
-			b.pressed.connect(_lanzar_exportar.bind(d[0]))
-			v.add_child(b)
-			_botones_exp.append(b)
-		if not _exp.tiene_godot():
-			var aviso := Label.new()
-			aviso.text = "Primero hay que indicar dónde está Godot (lo hace un adulto una sola vez)."
-			aviso.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			v.add_child(aviso)
-			var bg := _boton(" Elegir Godot…", "📁", Estilo.MORADO)
-			bg.pressed.connect(func(): _exp.elegir_godot(func(): _abrir_exportar.call_deferred()))
-			v.add_child(bg)
-	else:
-		desc.text = "Desde este dispositivo no se puede crear el programa. Copia el código de tu juego y ábrelo en la computadora con el creador para exportarlo."
-	_estado_exp = Label.new()
-	_estado_exp.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_estado_exp.custom_minimum_size = Vector2(530, 0)
-	_estado_exp.add_theme_color_override("font_color", Estilo.MORADO)
-	v.add_child(_estado_exp)
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 8)
-	v.add_child(h)
-	var copiar := _boton(" Copiar mi nivel (avanzado)", "📋")
-	copiar.pressed.connect(func():
-		DisplayServer.clipboard_set(Datos.a_json())
-		_estado_exp.text = "¡Código copiado!")
-	h.add_child(copiar)
-	var pegar := _boton(" Pegar nivel", "📁")
-	pegar.pressed.connect(func():
-		if Datos.desde_json(DisplayServer.clipboard_get()):
-			_esc.sel = null
-			_estado_exp.text = "¡Nivel pegado!"
-		else:
-			_estado_exp.text = "No encontré un nivel copiado.")
-	h.add_child(pegar)
-	var sp := Control.new()
-	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	h.add_child(sp)
-	var cerrar := _boton("Cerrar")
-	cerrar.pressed.connect(_cerrar_modal)
-	h.add_child(cerrar)
+	_modal = pe
+	pe.cerrar.connect(func():
+		_cerrar_modal()
+		_esc.sel = null
+		_refrescar_niveles()
+		_esc.queue_redraw())
+
+
+func _abrir_colores() -> void:
+	_cerrar_modal()
+	var pc := PanelColores.new()
+	add_child(pc)
+	move_child(_tut, get_child_count() - 1)
+	_modal = pc
+	pc.cerrar.connect(_cerrar_modal)
+	pc.cambiado.connect(func():
+		_esc.queue_redraw()
+		_refrescar_niveles())
 
 
 func _cerrar_modal() -> void:
@@ -1344,23 +1293,6 @@ func _cerrar_modal() -> void:
 	if _modal:
 		_modal.queue_free()
 		_modal = null
-
-
-func _lanzar_exportar(plataforma: String) -> void:
-	_estado_exp.text = "Preparando tu juego… puede tardar un ratito ⏳"
-	for b in _botones_exp:
-		b.disabled = true
-	_exp.exportar(plataforma, str(Datos.nivel["name"]), Datos.a_json())
-
-
-func _al_exportar(ok: bool, mensaje: String, carpeta: String) -> void:
-	if _estado_exp == null or not is_instance_valid(_estado_exp):
-		return
-	_estado_exp.text = mensaje
-	for b in _botones_exp:
-		b.disabled = false
-	if ok and carpeta != "":
-		OS.shell_open(carpeta)
 
 
 # ------------------------------------------------------------------ tutorial y teclado

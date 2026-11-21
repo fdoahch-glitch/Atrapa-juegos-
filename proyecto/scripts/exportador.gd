@@ -7,6 +7,7 @@ signal terminado(ok: bool, mensaje: String, carpeta: String)
 
 const Rendimiento := preload("res://scripts/rendimiento.gd")
 const Importar := preload("res://scripts/importar.gd")
+const Paquete := preload("res://scripts/paquete.gd")
 const CONFIG := "user://ajustes.cfg"
 
 var godot_ruta := ""
@@ -194,49 +195,10 @@ func _web_propio(nombre: String, nivel_json: String, plantilla: String, salida: 
 ## Devuelve los nombres de archivo copiados.
 func _copiar_assets(nivel_json: String, salida: String) -> Array:
 	var nv = JSON.parse_string(nivel_json)
-	var usados := {}
-	var niveles: Array = []
+	var proy: Dictionary = {}
 	if nv is Dictionary:
-		if nv.has("niveles") and nv["niveles"] is Array:
-			niveles = nv["niveles"]
-			var rg: Dictionary = nv["reglas"] if nv.get("reglas") is Dictionary else {}
-			var por: Dictionary = Datos.portada_normal(rg.get("portada", {}))
-			usados[str(por["fondo"])] = true
-			for b in por["botones"]:
-				usados[str(b["img"])] = true
-			for clave in ["musica", "heroe2", "mascota"]:
-				if str(rg.get(clave, "")) != "":
-					usados[str(rg[clave])] = true
-			for lista in ["catalogo", "jugables"]:
-				for ci in (rg.get(lista, []) if rg.get(lista, []) is Array else []):
-					if ci is Dictionary:
-						usados[str(ci.get("id", ""))] = true
-		else:
-			niveles = [nv]
-	for n in niveles:
-		if not n is Dictionary:
-			continue
-		var ids: Array = [str(n.get("hero", "")), str(n.get("fondo", ""))]
-		for it in n.get("items", []):
-			ids.append(str(it.get("e", "")))
-		for id in ids:
-			if id.begins_with("u:") or id.begins_with("g:") or id.begins_with("m:"):
-				usados[id] = true
-	var nombres: Array = []
-	for id in usados:
-		var origen := Importar.ruta_archivo(id)
-		if FileAccess.file_exists(origen):
-			DirAccess.make_dir_recursive_absolute(salida.path_join("assets"))
-			_copiar_archivo(origen, salida.path_join("assets").path_join(Importar.nombre_de(id)))
-			nombres.append(Importar.nombre_de(id))
-		if id.begins_with("g:"):  # la miniatura del modelo (tienda, selección de personaje)
-			var mini := Importar.ruta_dibujo(id)
-			if FileAccess.file_exists(mini):
-				DirAccess.make_dir_recursive_absolute(salida.path_join("assets"))
-				var nombre_mini := Importar.nombre_de(id) + ".png"
-				_copiar_archivo(mini, salida.path_join("assets").path_join(nombre_mini))
-				nombres.append(nombre_mini)
-	return nombres
+		proy = nv if nv.has("niveles") else {"reglas": {}, "niveles": [nv]}
+	return Paquete.copiar_assets(proy, salida)
 
 
 func _copiar_archivo(de: String, a: String) -> void:
