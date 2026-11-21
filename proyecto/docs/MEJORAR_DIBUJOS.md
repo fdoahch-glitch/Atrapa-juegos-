@@ -27,3 +27,4 @@ Para que tu juego se vea mucho mejor, **cambia los personajes por modelos o dibu
 - 3D: modelos de menos de 20 000 triángulos para celulares; texturas de 1024×1024 o menos.
 - Mantén el mismo estilo en todo el juego (no mezcles dibujos realistas con caricaturas).
 - En PC elige **Rendimiento → Vulkan + FSR 2.2**; en Android deja la imagen al 75 %.
+- Los dibujos de fábrica se hornean a 256 px con 3 luces y contorno oscuro; los humanoides tienen cuello.

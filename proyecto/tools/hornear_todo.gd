@@ -16,8 +16,8 @@ func _ready() -> void:
 			es_enemigo = es_enemigo or e[0] == id
 		var yaw := 55.0 if es_pers else (-55.0 if es_enemigo else 22.0)
 		var m := Assets3D.construir(id)
-		var img: Image = await Hornear.foto(get_tree(), m, 384, yaw)
-		var spr := Hornear.a_sprite(img, 128)
+		var img: Image = await Hornear.foto(get_tree(), m, 768, yaw)
+		var spr := Hornear.a_sprite(img, 256)
 		spr.save_png("res://assets/modelos2d/%s.png" % id)
 		n += 1
 	print("modelos horneados: ", n)

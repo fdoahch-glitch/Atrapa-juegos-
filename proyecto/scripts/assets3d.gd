@@ -170,6 +170,7 @@ static func _humanoide(r: Node3D, cuerpo: Color, piel: Color, pantalon: Color, a
 		var av := _pivote(r, "brazo_i" if lado < 0 else "brazo_d", Vector3(lado * 0.31, 0.5 + alto_cuerpo - 0.12, 0))
 		f(av, "capsula", Vector3(0.14, 0.46, 0.14), cuerpo, Vector3(0, -0.2, 0))
 		f(av, "esfera", Vector3(0.14, 0.14, 0.14), piel, Vector3(0, -0.45, 0))
+	f(r, "capsula", Vector3(0.16, 0.3, 0.16), piel, Vector3(0, 0.5 + alto_cuerpo + 0.06, 0))   # cuello
 	f(r, "esfera", Vector3(0.42, 0.42, 0.42), piel, Vector3(0, 0.5 + alto_cuerpo + 0.28, 0))
 	for lado in [-1, 1]:
 		f(r, "esfera", Vector3(0.07, 0.09, 0.05), Color("1f1b2e"), Vector3(lado * 0.1, 0.5 + alto_cuerpo + 0.3, 0.19))

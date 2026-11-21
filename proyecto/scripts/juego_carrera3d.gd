@@ -11,6 +11,9 @@ var _auto: Node3D
 var _autos_riv: Array = []
 var _monedas: Array = []
 var _construido := false
+var _alto := 0.0
+var _vy := 0.0
+var _turbo_ant := 0.0
 
 
 func iniciar(n: Dictionary, forzar_tactil: bool = false, mostrar_salir: bool = false) -> void:
@@ -122,7 +125,16 @@ func _process(delta: float) -> void:
 	if _auto == null:
 		return
 	var c := _centro() / float(T)
-	_auto.position = Vector3(c.x, 0.0, c.y)
+	# saltito al pisar un turbo
+	if _turbo > 1.1 and _turbo_ant < 0.6 and _alto <= 0.001:
+		_vy = 3.4
+	_turbo_ant = _turbo
+	if _alto > 0.0 or _vy > 0.0:
+		_vy -= 11.0 * delta
+		_alto = maxf(0.0, _alto + _vy * delta)
+		if _alto == 0.0:
+			_vy = 0.0
+	_auto.position = Vector3(c.x, _alto, c.y)
 	_auto.rotation = Vector3(0.0, -ang, 0.0)
 	_auto.visible = not (inv > 0.0 and int(t * 14.0) % 2 == 1)
 	for i in _autos_riv.size():

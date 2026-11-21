@@ -21,14 +21,25 @@ static func foto(arbol: SceneTree, modelo: Node3D, lado: int = 256, yaw: float =
 	env.background_mode = Environment.BG_CLEAR_COLOR
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(1, 1, 1)
-	env.ambient_light_energy = 0.7
+	env.ambient_light_energy = 0.55
 	var we := WorldEnvironment.new()
 	we.environment = env
 	raiz.add_child(we)
 	var sol := DirectionalLight3D.new()
 	sol.rotation_degrees = Vector3(-45, -35, 0)
-	sol.light_energy = 1.0
+	sol.light_energy = 1.05
 	raiz.add_child(sol)
+	# luz de relleno suave por el otro lado y luz de contorno por detrás: da volumen y brillo
+	var relleno := DirectionalLight3D.new()
+	relleno.rotation_degrees = Vector3(-20, 140, 0)
+	relleno.light_energy = 0.35
+	relleno.light_color = Color(0.85, 0.9, 1.0)
+	raiz.add_child(relleno)
+	var borde := DirectionalLight3D.new()
+	borde.rotation_degrees = Vector3(-30, 200, 0)
+	borde.light_energy = 0.3
+	borde.light_color = Color(1.0, 0.95, 0.85)
+	raiz.add_child(borde)
 	var pivote := Node3D.new()
 	pivote.rotation_degrees.y = yaw
 	pivote.add_child(modelo)
