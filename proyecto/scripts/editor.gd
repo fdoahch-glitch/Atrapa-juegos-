@@ -886,6 +886,15 @@ func _abrir_reglas() -> void:
 	scroll.add_child(v)
 	_regla_fila(v, "Vidas", _regla_paso("vidas", 1, 9, 1, func(x): return str(x)))
 	_regla_fila(v, "Tiempo por nivel", _regla_paso("tiempo", 0, 900, 15, func(x): return "Sin límite" if x == 0 else "%d:%02d" % [x / 60, x % 60]))
+	var dl := Label.new()
+	dl.text = "Dificultad"
+	dl.add_theme_color_override("font_color", Estilo.TINTA)
+	v.add_child(dl)
+	v.add_child(_regla_opciones("dificultad", [["facil", "Fácil"], ["normal", "Normal"], ["dificil", "Difícil"], ["extrema", "Extrema"]]))
+	_regla_fila(v, "El jugador elige la dificultad", _regla_opciones("elegir_dificultad", [[false, "No"], [true, "Sí"]]))
+	_regla_fila(v, "Misiones del día", _regla_opciones("misiones", [[false, "No"], [true, "Sí"]]))
+	_regla_fila(v, "Revivir al perder (monedas)", _regla_paso("revivir", 0, 500, 10, func(x): return "No" if x == 0 else str(x)))
+	_regla_fila(v, "Modo prueba (todo desbloqueado)", _regla_opciones("modo_prueba", [[false, "No"], [true, "Sí"]]))
 	var ganar := Label.new()
 	ganar.text = "Para ganar el nivel"
 	ganar.add_theme_color_override("font_color", Estilo.TINTA)

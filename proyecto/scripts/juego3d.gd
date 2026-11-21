@@ -9,6 +9,8 @@ const CELDA_M := 5.0       # metros por celda del editor
 const ANCHO_CARRIL := 2.2
 const VEL0 := 11.0
 const VEL_MAX := 18.0
+const Ambiente := preload("res://scripts/ambiente3d.gd")
+const Progreso := preload("res://scripts/progreso.gd")
 const G3 := 34.0
 const SALTO3 := 12.0
 const AUTO_ARBOL := {"dia": "arbol", "atardecer": "arbol", "noche": "pino", "bosque": "pino", "desierto": "cactus", "mar": "arbusto", "espacio": "cristal", "nieve": "pino"}
@@ -40,18 +42,29 @@ var py2 := 0.0
 var vy2 := 0.0
 var agachado2 := 0.0
 var _s_jug2: Node3D
+var _amb: Node3D
+var _vel_k := 1.0
+var stats := {"recogidos": 0, "monedas": 0, "puntos": 0, "gemas": 0, "estrellas": 0, "perseguidor": 0}
+var _sol3: DirectionalLight3D
+var _we3: WorldEnvironment
+var _joy_ult := Vector2.ZERO
 
 
 func iniciar(n: Dictionary, forzar_tactil: bool = false, mostrar_salir: bool = false) -> void:
 	super.iniciar(n, forzar_tactil, mostrar_salir)
 	var v := Mundo3D.visor(self)
 	_raiz = v[1]
-	_raiz.add_child(Mundo3D.entorno(tema, str(nivel.get("fondo", ""))))
-	_raiz.add_child(Mundo3D.sol())
+	_we3 = Mundo3D.entorno(tema, str(nivel.get("fondo", "")))
+	_raiz.add_child(_we3)
+	_sol3 = Mundo3D.sol()
+	_raiz.add_child(_sol3)
 	_cam3 = Camera3D.new()
 	_cam3.fov = 68.0
 	_cam3.far = 400.0
 	_raiz.add_child(_cam3)
+	_amb = Ambiente.new()
+	_raiz.add_child(_amb)
+	_amb.config(nivel, reglas, _we3, _sol3, _cam3)
 	_reconstruir()
 
 
@@ -78,7 +91,13 @@ func resetear() -> void:
 	vy2 = 0.0
 	agachado2 = 0.0
 	j2 = int(reglas.get("jugadores", 1)) == 2
-	rapidez = VEL0
+	var dif: Dictionary = Progreso.DIFICULTADES[Progreso.dificultad(reglas)]
+	_vel_k = float(dif["vel"])
+	vidas = clampi(vidas + int(dif["vidas"]), 1, 12)
+	stats = {"recogidos": 0, "monedas": 0, "puntos": 0, "gemas": 0, "estrellas": 0, "perseguidor": 0}
+	if _amb:
+		_amb.reiniciar()
+	rapidez = VEL0 * _vel_k
 	obst = []
 	premios = []
 	fin_z = float(nivel["cols"]) * CELDA_M
@@ -153,7 +172,7 @@ func _reconstruir() -> void:
 		mo.position = Vector3(lado * (6.5 + float((i * 7) % 5)), 0, -z2)
 		mo.rotation_degrees.y = float((i * 53) % 90)
 		_mundo3.add_child(mo)
-		z2 += 7.0
+		z2 += 7.0 / clampf(float(nivel.get("densidad", 1.0)), 0.2, 2.5)
 		i += 1
 	# decoración puesta por el niño
 	for it in nivel["items"]:
@@ -207,6 +226,7 @@ func _reconstruir() -> void:
 	else:
 		_s_jug.rotation_degrees.y = 180.0
 	_mundo3.add_child(_s_jug)
+	_amb.vestir(_s_jug)
 	_s_jug2 = null
 	if int(reglas.get("jugadores", 1)) == 2:
 		_s_jug2 = Mundo3D.objeto(_heroe2(), 1.7)
@@ -261,6 +281,33 @@ func _input(ev: InputEvent) -> void:
 	if estado != "jugar":
 		if ev is InputEventKey and ev.pressed and ev.keycode == KEY_ESCAPE and con_salir:
 			salir.emit()
+		return
+	# mando (gamepad): cruceta o palanca para moverse, A salta, B/abajo se agacha
+	if ev is InputEventJoypadButton and ev.pressed:
+		match ev.button_index:
+			JOY_BUTTON_DPAD_LEFT:
+				_cambiar_carril(-1)
+			JOY_BUTTON_DPAD_RIGHT:
+				_cambiar_carril(1)
+			JOY_BUTTON_A, JOY_BUTTON_DPAD_UP:
+				_saltar()
+			JOY_BUTTON_B, JOY_BUTTON_DPAD_DOWN:
+				_agachar()
+		return
+	if ev is InputEventJoypadMotion:
+		var ax := ev as InputEventJoypadMotion
+		var val := ax.axis_value
+		if ax.axis == JOY_AXIS_LEFT_X:
+			if absf(val) > 0.6 and absf(_joy_ult.x) <= 0.6:
+				_cambiar_carril(1 if val > 0.0 else -1)
+			_joy_ult.x = val
+		elif ax.axis == JOY_AXIS_LEFT_Y:
+			if absf(val) > 0.6 and absf(_joy_ult.y) <= 0.6:
+				if val < 0.0:
+					_saltar()
+				else:
+					_agachar()
+			_joy_ult.y = val
 		return
 	if ev is InputEventKey and ev.pressed and not ev.echo:
 		if int(reglas.get("jugadores", 1)) == 2:
@@ -353,8 +400,13 @@ func _actualizar(dt: float) -> void:
 	if estado != "jugar":
 		return
 	inv = maxf(0.0, inv - dt)
-	rapidez = minf(VEL_MAX, VEL0 + dist * 0.012)
+	rapidez = minf(VEL_MAX * _vel_k, VEL0 * _vel_k + dist * 0.012 * _vel_k)
 	dist += rapidez * dt
+	if _amb:
+		_amb.tick(dt, dist, px)
+		if _amb.sobrevivio:
+			_amb.sobrevivio = false
+			stats["perseguidor"] = 1
 	px += ((carril - 1) * ANCHO_CARRIL - px) * minf(1.0, dt * 14.0)
 	agachado = maxf(0.0, agachado - dt)
 	if py > 0.0 or vy > 0.0:
@@ -405,6 +457,11 @@ func _actualizar(dt: float) -> void:
 			continue
 		p["got"] = true
 		recogidos += 1
+		stats["recogidos"] += 1
+		match str(p["t"]):
+			"coin": stats["monedas"] += 1
+			"gem": stats["gemas"] += 1
+			"star": stats["estrellas"] += 1
 		puntos += _vale(p["t"])
 		_sonido.tocar(880.0 if p["t"] == "coin" else 1200.0, 0.1)
 	if estado == "jugar" and dist >= fin_z:
@@ -418,6 +475,18 @@ func _actualizar(dt: float) -> void:
 			_mostrar_fin("🎉", "¡Llegaste a la meta!", "Puntos: %d · Recogiste %d de %d" % [puntos, recogidos, total])
 
 
+## Vuelve a la carrera después de perder (lo paga el jugador con monedas, ver Partida).
+func revivir() -> void:
+	if _fin:
+		_fin.queue_free()
+		_fin = null
+	estado = "jugar"
+	vidas = 1
+	inv = 3.0
+	if _amb:
+		_amb.acercamiento = 0.0
+
+
 func _herir() -> void:
 	if inv > 0.0 or estado != "jugar":
 		return
@@ -425,13 +494,17 @@ func _herir() -> void:
 		return
 	vidas -= 1
 	_sonido.tocar(150.0, 0.3, "sierra")
+	for jid in Input.get_connected_joypads():
+		Input.start_joy_vibration(jid, 0.5, 0.8, 0.25)
+	if _amb and _amb.golpe() and vidas > 0:
+		vidas = 0
 	if vidas <= 0:
 		estado = "perdio"
 		_mostrar_fin("😵", "¡Ups! Se acabaron las vidas", "Recorriste %d de %d metros" % [int(dist), int(fin_z)])
 	else:
 		inv = _inv_golpe
 		dist = maxf(0.0, dist - 0.0)
-		rapidez = VEL0
+		rapidez = VEL0 * _vel_k
 
 
 func _sincronizar() -> void:

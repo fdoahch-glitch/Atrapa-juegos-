@@ -81,3 +81,10 @@ Si es un juego web, su `index.html` queda listo para editarlo con «Editar un ju
 
 ## Colores del mundo
 Botón **Colores** (arriba): cielo, colinas, tierra y pasto de este mundo, con selector de color. Se guardan en el nivel (`paleta`).
+
+## Ambiente, misiones y progreso (nuevo)
+- **Colores → Ambiente** (mundos 3D): clima (lluvia, tormenta con rayos, nieve, ventisca, erupción, cambia solo), hora del día (día, atardecer, noche o ciclo que va pasando), perseguidor (un T-Rex te alcanza si chocas) y cantidad de objetos.
+- **Reglas**: dificultad (Fácil/Normal/Difícil/Extrema, y si el jugador la elige), misiones del día, revivir al perder pagando monedas, modo prueba (todo desbloqueado).
+- **Rendimiento**: brillo suave (bloom) y sombras para el 3D.
+- En el juego: botones Misiones, Bitácora (fichas que se abren con fósiles), Vestuario (skins y accesorios con monedas) y Récords; mando (cruceta/palanca, A salta, B agacha) con vibración al chocar.
+- Todo se guarda en el aparato del jugador (`user://progreso.json`). En el JSON del juego: `coleccion`, `skins`, `accesorios`, `misiones_lista`.

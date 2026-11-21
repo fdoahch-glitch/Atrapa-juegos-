@@ -6,6 +6,7 @@ extends Control
 signal salir
 
 const Estilo := preload("res://scripts/estilo.gd")
+const Progreso_ := preload("res://scripts/progreso.gd")
 const Importar := preload("res://scripts/importar.gd")
 const Dibujo := preload("res://scripts/dibujo.gd")
 const Juego := preload("res://scripts/juego.gd")
@@ -268,6 +269,25 @@ func _mostrar_titulo() -> void:
 		bt.pressed.connect(_mostrar_tienda)
 		bt.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		caja.add_child(bt)
+	var rr: Dictionary = proy["reglas"]
+	if bool(rr.get("elegir_dificultad", false)):
+		var bd := Button.new()
+		bd.text = "  Dificultad: " + str(Progreso_.DIFICULTADES[Progreso_.dificultad(rr)]["n"])
+		bd.custom_minimum_size = Vector2(260, 54)
+		bd.add_theme_font_size_override("font_size", 22)
+		Estilo.pintar(bd, Color(1, 1, 1, 0.3), Color.WHITE)
+		bd.pressed.connect(func():
+			Progreso_.ciclar_dificultad()
+			_mostrar_titulo())
+		bd.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		caja.add_child(bd)
+	if bool(rr.get("misiones", false)):
+		_boton_info(caja, "Misiones del día", "🎯", _mostrar_misiones)
+	if (rr.get("coleccion", []) as Array).size() > 0:
+		_boton_info(caja, "Bitácora", "📖", _mostrar_bitacora)
+	if (rr.get("skins", []) as Array).size() + (rr.get("accesorios", []) as Array).size() > 0:
+		_boton_info(caja, "Vestuario", "🎩", _mostrar_vestuario)
+	_boton_info(caja, "Récords", "🏆", _mostrar_records)
 	if con_salir:
 		var e := Button.new()
 		e.text = "  Editar"
@@ -291,6 +311,8 @@ func _empezar(i: int) -> void:
 	var pj := Tienda.personaje(proy["reglas"])
 	if not pj.is_empty():
 		n["hero"] = str(pj["id"])
+	if bool(proy["reglas"].get("modo_prueba", false)):
+		Progreso_.modo_prueba(proy["reglas"])
 	Rendimiento.aplicar(get_viewport(), proy["reglas"].get("rend", {}))
 	var j: Control = clase_para(n).new()
 	add_child(j)
@@ -313,6 +335,22 @@ func _al_terminar(gano: bool, icono: String, titulo: String, sub: String, j: Con
 		if ganadas > 0:
 			sub += "  ·  +%d monedas" % ganadas
 	var botones: Array = []
+	var r: Dictionary = proy["reglas"]
+	if "stats" in j:
+		var hechas: Array = Progreso_.cerrar_carrera(r, j.stats.merged({"puntos": j.puntos}, true), j.t)
+		if hechas.size() > 0:
+			sub += "\nMisión cumplida: " + "\n".join(hechas)
+	var pos := Progreso_.anotar_record(str(proy["niveles"][0].get("name", "Juego")), j.puntos) if j.puntos > 0 else 0
+	if pos == 1 and j.puntos > 0:
+		sub += "\n🏅 ¡Nuevo récord!"
+	if not gano and int(r.get("revivir", 0)) > 0 and j.has_method("revivir"):
+		var costo := int(r["revivir"])
+		if int(Tienda.leer()["monedas"]) >= costo:
+			botones.append(["Revivir (%d monedas)" % costo, "❤", func():
+				if Progreso_.gastar(costo):
+					_panel.queue_free()
+					_panel = null
+					j.revivir(), true])
 	if gano:
 		puntos_acum = j.puntos
 		if idx < cant - 1:
@@ -557,3 +595,91 @@ func _mostrar_personajes() -> void:
 	Estilo.pintar(volver, Estilo.AMARILLO, Color("4a3300"))
 	volver.pressed.connect(func(): _mostrar_titulo())
 	caja.add_child(volver)
+
+
+# ------------------------------------------------------------------ misiones, bitácora, vestuario, récords
+func _boton_info(caja: Control, txt: String, ic: String, f: Callable) -> void:
+	var b := Button.new()
+	b.text = "  " + txt
+	b.icon = Datos.textura(ic)
+	b.custom_minimum_size = Vector2(260, 54)
+	b.expand_icon = true
+	b.add_theme_constant_override("icon_max_width", 32)
+	b.add_theme_font_size_override("font_size", 22)
+	Estilo.pintar(b, Color(1, 1, 1, 0.3), Color.WHITE)
+	b.pressed.connect(f)
+	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	caja.add_child(b)
+
+
+func _hoja(titulo: String, lineas: Array, extra: Array = []) -> void:
+	var botones: Array = []
+	for e in extra:
+		botones.append(e)
+	botones.append(["Volver", "↩", _mostrar_titulo, true])
+	_mostrar_panel("📖", titulo, "\n".join(lineas), botones)
+
+
+func _mostrar_misiones() -> void:
+	var hechas: Array = Progreso_.hechas_hoy()
+	var l: Array = []
+	for m in Progreso_.misiones_hoy(proy["reglas"]):
+		l.append(("✅ " if hechas.has(m["txt"]) else "⬜ ") + "%s  (+%d)" % [m["txt"], int(m["premio"])])
+	_hoja("Misiones de hoy", l)
+
+
+func _mostrar_bitacora() -> void:
+	var d: Dictionary = Progreso_.leer()
+	var l: Array = ["Fósiles: %d   ·   Minutos jugados: %d" % [int(d["fosiles"]), int(float(d["minutos"]))], ""]
+	for f in proy["reglas"].get("coleccion", []):
+		if Progreso_.ficha_abierta(f):
+			l.append("🦖 %s — %s" % [f["n"], f["sub"]])
+			for x in f["lineas"]:
+				l.append("    " + str(x))
+		else:
+			var falta := "🔒 %s — necesitas %d fósiles" % ["???", int(f["req"])]
+			if int(f["min"]) > 0:
+				falta += " y %d min" % int(f["min"])
+			l.append(falta)
+	_hoja("Bitácora", l)
+
+
+func _mostrar_records() -> void:
+	var d: Dictionary = Progreso_.leer()
+	var l: Array = []
+	var i := 1
+	for r in d["rank"]:
+		l.append("%d.  %d puntos   (%s)" % [i, int(r["p"]), str(r["f"])])
+		i += 1
+	if l.is_empty():
+		l.append("Aún no hay récords. ¡A jugar!")
+	_hoja("Récords", l)
+
+
+func _mostrar_vestuario() -> void:
+	var rr: Dictionary = proy["reglas"]
+	var d: Dictionary = Progreso_.leer()
+	var botones: Array = []
+	for s in rr.get("skins", []):
+		var mio: bool = (d["skins"] as Array).has(s["id"])
+		var puesto := str(d["skin"]) == str(s["id"])
+		var txt := "%s%s" % [s["n"], " ✔" if puesto else ("" if mio else " (%d)" % int(s["precio"]))]
+		botones.append([txt, "🎨", func():
+			if mio:
+				Progreso_.poner_skin(str(s["id"]))
+			else:
+				Progreso_.comprar_extra("skins", s)
+			_mostrar_vestuario(), puesto])
+	for a in rr.get("accesorios", []):
+		var tengo: bool = (d["accesorios"] as Array).has(a["id"])
+		var pu: bool = (d["puestos"] as Array).has(a["id"])
+		var txt2 := "%s%s" % [a["n"], " ✔" if pu else ("" if tengo else " (%d)" % int(a["precio"]))]
+		botones.append([txt2, str(a["emoji"]), func():
+			if tengo:
+				Progreso_.alternar_accesorio(str(a["id"]))
+			else:
+				Progreso_.comprar_extra("accesorios", a)
+				Progreso_.alternar_accesorio(str(a["id"]))
+			_mostrar_vestuario(), pu])
+	botones.append(["Volver", "↩", _mostrar_titulo, false])
+	_mostrar_panel("🎩", "Vestuario", "Monedas: %d" % int(Tienda.leer()["monedas"]), botones)

@@ -40,6 +40,8 @@ func _ready() -> void:
 	_fila(v, "Escalado de imagen", "escalado", Rend.ESCALADOS, r["escalado"])
 	_fila(v, "Calidad de imagen", "escala", [[1.0, "100 % (nítida)"], [0.85, "85 %"], [0.75, "75 % (más rápida)"], [0.6, "60 %"], [0.5, "50 % (muy rápida)"]], r["escala"])
 	_fila(v, "Bordes suaves (MSAA)", "msaa", [[0, "Apagado"], [2, "2×"], [4, "4×"], [8, "8×"]], r["msaa"])
+	_fila(v, "Brillo suave (bloom, 3D)", "bloom", [[false, "Apagado"], [true, "Encendido"]], r["bloom"])
+	_fila(v, "Sombras (3D)", "sombras", [[false, "Apagadas"], [true, "Encendidas"]], r["sombras"])
 	_fila(v, "Límite de FPS", "fps", [[30, "30 (ahorra batería)"], [60, "60"], [120, "120"], [0, "Sin límite"]], r["fps"])
 	var rec := Button.new()
 	rec.text = "  Usar lo recomendado para %s" % perf["nombre"]

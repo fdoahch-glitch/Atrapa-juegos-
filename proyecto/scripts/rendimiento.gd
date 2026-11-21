@@ -36,6 +36,8 @@ static func normal(r: Variant) -> Dictionary:
 		"escala": clampf(float(d.get("escala", base["escala"])), 0.5, 1.0),
 		"msaa": int(d.get("msaa", base["msaa"])) if [0, 2, 4, 8].has(int(d.get("msaa", base["msaa"]))) else 0,
 		"fps": int(d.get("fps", base["fps"])) if [30, 60, 120, 0].has(int(d.get("fps", base["fps"]))) else 60,
+		"bloom": bool(d.get("bloom", false)),
+		"sombras": bool(d.get("sombras", false)),
 	}
 
 

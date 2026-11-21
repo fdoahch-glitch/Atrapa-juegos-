@@ -31,6 +31,12 @@ func _ready() -> void:
 	_fila(v, "cerca", "Colinas cercanas", t["cerca"])
 	_fila(v, "tierra", "Tierra (plataformas y pista)", t["plat"][0])
 	_fila(v, "pasto", "Pasto o superficie", t["plat"][1])
+	if str(Datos.nivel.get("tipo", "")) in ["carrera", "corredor", "3d"] or bool(Datos.nivel.get("vista3d", false)):
+		_texto(v, "Ambiente (mundos 3D)", 20, Estilo.TINTA)
+		_opcion(v, "Clima", "clima", [["", "Despejado"], ["lluvia", "Lluvia"], ["tormenta", "Tormenta con rayos"], ["nieve", "Nieve"], ["ventisca", "Ventisca"], ["erupcion", "Erupción volcánica"], ["variable", "Cambia solo"]])
+		_opcion(v, "Hora del día", "hora", [["", "Según el tema"], ["dia", "Día"], ["atardecer", "Atardecer"], ["noche", "Noche"], ["ciclo", "Ciclo (va pasando)"]])
+		_opcion(v, "Perseguidor (te alcanza si chocas)", "perseguidor", [[false, "No"], [true, "Sí"]])
+		_opcion(v, "Cantidad de objetos", "densidad", [[0.5, "Pocos"], [1.0, "Normal"], [1.5, "Muchos"]])
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 8)
 	v.add_child(h)
@@ -69,6 +75,30 @@ func _fila(padre: Control, clave: String, nombre: String, col: Color) -> void:
 	cp.color_changed.connect(func(_c: Color): _aplicar())
 	f.add_child(cp)
 	_selectores[clave] = cp
+
+
+func _opcion(padre: Control, nombre: String, clave: String, ops: Array) -> void:
+	var f := HBoxContainer.new()
+	padre.add_child(f)
+	var l := Label.new()
+	l.text = nombre
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	l.add_theme_font_size_override("font_size", 18)
+	f.add_child(l)
+	var ob := OptionButton.new()
+	ob.custom_minimum_size = Vector2(190, 40)
+	var sel := 0
+	var actual = Datos.nivel.get(clave, ops[0][0] if clave != "densidad" else 1.0)
+	for i in ops.size():
+		ob.add_item(str(ops[i][1]), i)
+		if str(ops[i][0]) == str(actual):
+			sel = i
+	ob.selected = sel
+	ob.item_selected.connect(func(i):
+		Datos.nivel[clave] = ops[i][0]
+		Datos.guardar()
+		cambiado.emit())
+	f.add_child(ob)
 
 
 func _aplicar() -> void:

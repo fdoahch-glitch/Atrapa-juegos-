@@ -54,7 +54,7 @@ var niveles: Array = []             # copias de todos los niveles (el actual se 
 var idx := 0                        # posición del nivel actual
 var reglas: Dictionary = {}         # reglas del juego completo
 const MAX_NIVELES := 10
-const REGLAS_BASE := {"vidas": 3, "tiempo": 0, "meta": "meta", "pts_coin": 1, "pts_gem": 3, "pts_star": 5, "pts_enemy": 2, "titulo": true, "final": "¡Ganaste el juego!", "musica": "", "mascota": "", "poder": "escudo", "tienda": false, "jugadores": 1, "heroe2": "", "plataforma": "windows", "categoria": "", "subtipo": "", "rend": {}}
+const REGLAS_BASE := {"vidas": 3, "tiempo": 0, "meta": "meta", "pts_coin": 1, "pts_gem": 3, "pts_star": 5, "pts_enemy": 2, "titulo": true, "final": "¡Ganaste el juego!", "musica": "", "mascota": "", "poder": "escudo", "tienda": false, "jugadores": 1, "heroe2": "", "plataforma": "windows", "categoria": "", "subtipo": "", "rend": {}, "dificultad": "normal", "elegir_dificultad": false, "misiones": false, "revivir": 0, "modo_prueba": false}
 var historial: Array[String] = []
 var futuro: Array[String] = []
 var _actual := ""
@@ -489,6 +489,20 @@ func normalizar(n: Dictionary) -> Dictionary:
 			n.erase("paleta")
 		else:
 			n["paleta"] = pal_ok
+	if not ["", "ninguno", "lluvia", "tormenta", "nieve", "ventisca", "erupcion", "variable"].has(str(n.get("clima", ""))):
+		n["clima"] = ""
+	if str(n.get("clima", "")) in ["", "ninguno"]:
+		n.erase("clima")
+	if not ["", "dia", "atardecer", "noche", "ciclo"].has(str(n.get("hora", ""))) or str(n.get("hora", "")) == "":
+		n.erase("hora")
+	if bool(n.get("perseguidor", false)):
+		n["perseguidor"] = true
+	else:
+		n.erase("perseguidor")
+	if n.has("densidad"):
+		n["densidad"] = clampf(float(n["densidad"]), 0.2, 2.5)
+		if is_equal_approx(float(n["densidad"]), 1.0):
+			n.erase("densidad")
 	if str(n.get("hero", "")) == "":
 		n["hero"] = "🐱"
 	if not (n.get("items") is Array):
@@ -585,6 +599,31 @@ func reglas_completas(r: Dictionary) -> Dictionary:
 			if it is Dictionary and it.has("id"):
 				jug.append({"id": str(it["id"]), "n": str(it.get("n", "Personaje")), "poder": str(it.get("poder", "")), "desc": str(it.get("desc", ""))})
 	o["jugables"] = jug
+	if not ["facil", "normal", "dificil", "extrema"].has(str(o["dificultad"])):
+		o["dificultad"] = "normal"
+	o["revivir"] = clampi(int(o["revivir"]), 0, 9999)
+	# fichas de colección, skins y accesorios (opcionales)
+	var col: Array = []
+	for it in (r.get("coleccion", []) if r.get("coleccion", []) is Array else []):
+		if it is Dictionary and str(it.get("n", "")) != "":
+			col.append({"n": str(it["n"]), "sub": str(it.get("sub", "")), "lineas": (it.get("lineas", []) if it.get("lineas", []) is Array else []).map(func(x): return str(x)),
+				"req": clampi(int(it.get("req", 0)), 0, 9999), "min": clampi(int(it.get("min", 0)), 0, 999), "img": str(it.get("img", ""))})
+	o["coleccion"] = col
+	var skins: Array = []
+	for it in (r.get("skins", []) if r.get("skins", []) is Array else []):
+		if it is Dictionary and str(it.get("color", "")).is_valid_html_color():
+			skins.append({"id": str(it.get("id", it.get("n", "skin"))), "n": str(it.get("n", "Skin")), "color": str(it["color"]), "precio": clampi(int(it.get("precio", 0)), 0, 99999)})
+	o["skins"] = skins
+	var accs: Array = []
+	for it in (r.get("accesorios", []) if r.get("accesorios", []) is Array else []):
+		if it is Dictionary and str(it.get("n", "")) != "":
+			accs.append({"id": str(it.get("id", it.get("n", "acc"))), "n": str(it["n"]), "emoji": str(it.get("emoji", "🎩")), "lugar": str(it.get("lugar", "cabeza")), "precio": clampi(int(it.get("precio", 0)), 0, 99999)})
+	o["accesorios"] = accs
+	var mis: Array = []
+	for it in (r.get("misiones_lista", []) if r.get("misiones_lista", []) is Array else []):
+		if it is Dictionary and str(it.get("txt", "")) != "":
+			mis.append({"txt": str(it["txt"]), "tipo": str(it.get("tipo", "recogidos")), "valor": clampi(int(it.get("valor", 1)), 1, 99999), "premio": clampi(int(it.get("premio", 20)), 0, 9999)})
+	o["misiones_lista"] = mis
 	o["jugadores"] = 2 if int(o["jugadores"]) == 2 else 1
 	if not preload("res://scripts/tienda.gd").EFECTOS.has(str(o["poder"])):
 		o["poder"] = "escudo"
@@ -701,7 +740,7 @@ func agregar_nivel(copiar: bool = false) -> bool:
 			it["id"] = nuevo_id()
 	else:
 		n = nivel_en_blanco()
-		for k in ["name", "modo", "disp", "orient", "tipo", "theme", "hero", "paleta"]:
+		for k in ["name", "modo", "disp", "orient", "tipo", "theme", "hero", "paleta", "clima", "hora", "perseguidor", "densidad"]:
 			if nivel.has(k) or n.has(k):
 				n[k] = nivel.get(k, n.get(k))
 		n = normalizar(n)
