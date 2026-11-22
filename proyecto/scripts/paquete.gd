@@ -88,6 +88,56 @@ static func guardar_proyecto(carpeta: String, nombre: String) -> Dictionary:
 	return {"ok": true, "archivo": archivo, "assets": n}
 
 
+## Los juegos guardados que hay a mano: junto al programa (carpeta «juegos»), en Documentos y en Descargas.
+## Cada juego es una carpeta con su «.atrapa.json» y sus «assets».
+static func buscar_proyectos() -> Array:
+	var raices: Array = []
+	var exe := OS.get_executable_path().get_base_dir()
+	raices.append(exe.path_join("juegos"))
+	raices.append(exe)
+	raices.append(OS.get_system_dir(OS.SYSTEM_DIR_DOCUMENTS).path_join("Atrapa Juegos"))
+	raices.append(OS.get_system_dir(OS.SYSTEM_DIR_DOCUMENTS))
+	raices.append(OS.get_system_dir(OS.SYSTEM_DIR_DOWNLOADS))
+	raices.append("user://juegos")
+	var vistos := {}
+	var r: Array = []
+	for raiz in raices:
+		var carpetas: Array = [raiz]
+		var d := DirAccess.open(raiz)
+		if d == null:
+			continue
+		for sub in d.get_directories():
+			if not sub.begins_with("."):
+				carpetas.append(raiz.path_join(sub))
+				# un nivel más: «Descargas/Dino-Run-motor-/…» o «juegos/Dino Run/…»
+				var d2 := DirAccess.open(raiz.path_join(sub))
+				if d2 != null and raiz != OS.get_system_dir(OS.SYSTEM_DIR_DOWNLOADS) and raiz != OS.get_system_dir(OS.SYSTEM_DIR_DOCUMENTS):
+					for sub2 in d2.get_directories():
+						if not sub2.begins_with(".") and sub2 != "assets":
+							carpetas.append(raiz.path_join(sub).path_join(sub2))
+		for c in carpetas:
+			var dc := DirAccess.open(c)
+			if dc == null:
+				continue
+			for f in dc.get_files():
+				if f.ends_with(".atrapa.json"):
+					var ruta: String = c.path_join(f)
+					var real := ProjectSettings.globalize_path(ruta) if ruta.begins_with("user://") else ruta
+					if vistos.has(real):
+						continue
+					vistos[real] = true
+					var nombre := f.trim_suffix(".atrapa.json").replace("-", " ").replace("_", " ").capitalize()
+					var niv := 0
+					var dat = JSON.parse_string(FileAccess.get_file_as_string(ruta))
+					if dat is Dictionary:
+						var rg = dat.get("reglas", {})
+						if rg is Dictionary and str(rg.get("titulo_juego", "")) != "":
+							nombre = str(rg["titulo_juego"])
+						niv = (dat.get("niveles", []) as Array).size() if dat.get("niveles", []) is Array else 0
+					r.append({"nombre": nombre, "ruta": ruta, "mundos": niv})
+	return r
+
+
 static func abrir_proyecto(ruta: String) -> Dictionary:
 	var texto := FileAccess.get_file_as_string(ruta)
 	if texto == "":

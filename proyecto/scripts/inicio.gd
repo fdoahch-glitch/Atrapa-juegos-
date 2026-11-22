@@ -82,7 +82,7 @@ func _mostrar_portada() -> void:
 	logo.custom_minimum_size = Vector2(120, 120)
 	logo.pivot_offset = Vector2(60, 60)
 	caja.add_child(logo)
-	var tw := create_tween().set_loops()
+	var tw := logo.create_tween().set_loops()
 	tw.tween_property(logo, "scale", Vector2(1.1, 1.1), 0.9).set_trans(Tween.TRANS_SINE)
 	tw.tween_property(logo, "scale", Vector2(0.95, 0.95), 0.9).set_trans(Tween.TRANS_SINE)
 	var t1 := _etiqueta(caja, "Atrapa Juegos", 76)
@@ -122,16 +122,7 @@ func _mostrar_portada() -> void:
 	estado.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	estado.add_theme_color_override("font_color", Color.WHITE)
 	var bj := _boton("Abrir un juego guardado", "📁", Color(1, 1, 1, 0.22), Color.WHITE, 330)
-	bj.pressed.connect(func():
-		DisplayServer.file_dialog_show("Abrir un juego guardado", "", "", false, DisplayServer.FILE_DIALOG_MODE_OPEN_FILE,
-			PackedStringArray(["*.json;Juegos de Atrapa Juegos"]),
-			func(ok: bool, rutas: PackedStringArray, _f: int) -> void:
-				if ok and rutas.size() > 0:
-					var r: Dictionary = Paquete.abrir_proyecto(rutas[0])
-					if r["ok"]:
-						abierto.emit()
-					else:
-						estado.text = "No pude abrirlo: " + str(r["error"])))
+	bj.pressed.connect(_mostrar_guardados)
 	var bk := _boton("Abrir un APK (decompilar)", "📱", Color(1, 1, 1, 0.22), Color.WHITE, 330)
 	bk.pressed.connect(func():
 		DisplayServer.file_dialog_show("Elige un APK", "", "", false, DisplayServer.FILE_DIALOG_MODE_OPEN_FILE,
@@ -150,6 +141,46 @@ func _mostrar_portada() -> void:
 	ba.pressed.connect(func(): ayuda.emit())
 	pie.add_child(ba)
 	_etiqueta(caja, "Hecho con el motor Godot (código libre)", 14, Color(1, 1, 1, 0.6))
+
+
+## Lista de juegos guardados (Dino Run y los tuyos) con un botón para buscar otro archivo.
+func _mostrar_guardados() -> void:
+	_en_portada = false
+	var caja := _nueva_pantalla()
+	_etiqueta(caja, "Juegos guardados", 42)
+	var estado := _etiqueta(caja, "", 18, Color(1, 0.9, 0.5))
+	var lista := Paquete.buscar_proyectos()
+	if lista.is_empty():
+		_etiqueta(caja, "No encontré juegos guardados todavía.\nPon la carpeta de un juego (por ejemplo Dino Run) dentro de la carpeta «juegos» que está junto al programa, o búscalo con el botón de abajo.", 20, Color(1, 1, 1, 0.9))
+	for j in lista:
+		var b := _boton("%s   (%d mundos)" % [j["nombre"], int(j["mundos"])], "🦖" if "ino" in str(j["nombre"]) else "🎮", Color(1, 1, 1, 0.92), Estilo.TINTA, 460, 24)
+		b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		b.pressed.connect(func():
+			estado.text = "Abriendo…"
+			await get_tree().process_frame
+			var r: Dictionary = Paquete.abrir_proyecto(str(j["ruta"]))
+			if r["ok"]:
+				abierto.emit()
+			else:
+				estado.text = "No pude abrirlo: " + str(r["error"]))
+		caja.add_child(b)
+	var otro := _boton("Buscar otro archivo…", "📂", Color(1, 1, 1, 0.22), Color.WHITE, 330)
+	otro.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	otro.pressed.connect(func():
+		DisplayServer.file_dialog_show("Abrir un juego guardado", "", "", false, DisplayServer.FILE_DIALOG_MODE_OPEN_FILE,
+			PackedStringArray(["*.json;Juegos de Atrapa Juegos"]),
+			func(ok: bool, rutas: PackedStringArray, _f: int) -> void:
+				if ok and rutas.size() > 0:
+					var r: Dictionary = Paquete.abrir_proyecto(rutas[0])
+					if r["ok"]:
+						abierto.emit()
+					else:
+						estado.text = "No pude abrirlo: " + str(r["error"])))
+	caja.add_child(otro)
+	var v := _boton("Volver", "↩", Color(1, 1, 1, 0.22), Color.WHITE, 190)
+	v.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	v.pressed.connect(_mostrar_portada)
+	caja.add_child(v)
 
 
 ## Una pantalla de elección: título, tarjetas y botón «Volver».
