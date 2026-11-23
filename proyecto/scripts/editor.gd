@@ -3,6 +3,7 @@ extends Control
 ## decoración), escenario, tutorial y exportación con el botón mágico.
 
 const PanelRend := preload("res://scripts/panel_rendimiento.gd")
+const Guia := preload("res://scripts/guia.gd")
 const PanelExportar := preload("res://scripts/panel_exportar.gd")
 const PanelColores := preload("res://scripts/panel_colores.gd")
 const Categorias := preload("res://scripts/categorias.gd")
@@ -184,6 +185,10 @@ func _construir() -> void:
 	b_guia.pressed.connect(_abrir_guia)
 	fila.add_child(b_guia)
 	_textos_barra.append([b_guia, " Guía"])
+	_b_ahora = _boton(" Ahora…", "💡", Color("ffd23f"))
+	_b_ahora.tooltip_text = "Lo que podrías hacer ahora"
+	_b_ahora.pressed.connect(_abrir_ahora)
+	fila.add_child(_b_ahora)
 	var b_elem := _boton(" Elementos", "🌍", c_claro)
 	b_elem.tooltip_text = "Lista de todo lo que tiene este mundo: reemplazar, activar o desactivar"
 	b_elem.pressed.connect(_abrir_elementos)
@@ -445,7 +450,7 @@ func _defs(que: String) -> Array:
 		"objetos":
 			var lista := [["plat", "Plataforma"], ["coin", "Moneda"], ["star", "Estrella"], ["gem", "Gema"], ["spike", "Pinchos"], ["spring", "Resorte"], ["goal", "Meta"], ["player", "Inicio"]]
 			if modo == "2d" and str(Datos.nivel.get("tipo", "")) != "arriba" and str(Datos.nivel.get("estilo", "")) == "":
-				lista += [["llave", "Llave"], ["puerta", "Puerta"], ["boton", "Botón"], ["platmov", "Plataforma móvil"], ["puente", "Puente que se cae"], ["pendulo", "Péndulo"], ["caja", "Caja empujable"]]
+				lista += [["llave", "Llave"], ["puerta", "Puerta"], ["boton", "Botón"], ["platmov", "Plataforma móvil"], ["puente", "Puente que se cae"], ["pendulo", "Péndulo"], ["rueda", "Rueda que rueda"], ["pelota", "Pelota que rebota"], ["cuerda", "Cuerda que se mece"], ["caja", "Caja empujable"]]
 			if modo == "2d" and str(Datos.nivel.get("tipo", "")) == "arriba":
 				lista = [["plat", "Pared"], ["coin", "Moneda"], ["star", "Estrella"], ["gem", "Gema"], ["spike", "Pinchos"], ["goal", "Meta"], ["player", "Inicio"]]
 			if str(Datos.nivel.get("estilo", "")) in ["carrera", "kart"]:
@@ -873,6 +878,61 @@ func _abrir_rendimiento() -> void:
 		_esc.queue_redraw())
 
 
+var _b_ahora: Button = null
+var _ahora: Dictionary = {}
+
+
+func _actualizar_ahora() -> void:
+	if _b_ahora == null:
+		return
+	_ahora = Guia.ahora(Datos.proyecto())
+	_b_ahora.text = " " + str(_ahora["titulo"])
+
+
+func _abrir_ahora() -> void:
+	_actualizar_ahora()
+	_cerrar_modal()
+	var fondo := ColorRect.new()
+	fondo.color = Color(0.08, 0.06, 0.23, 0.62)
+	add_child(fondo)
+	fondo.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_modal = fondo
+	move_child(_tut, get_child_count() - 1)
+	var centro := CenterContainer.new()
+	fondo.add_child(centro)
+	centro.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(minf(560.0, size.x - 24.0), 0)
+	panel.add_theme_stylebox_override("panel", Estilo.caja(Color.WHITE, 26, 0, Color.TRANSPARENT, 22))
+	centro.add_child(panel)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 10)
+	panel.add_child(v)
+	for par in [["💡 " + str(_ahora["titulo"]), 26, Estilo.TINTA], [str(_ahora["texto"]), 18, Estilo.TINTA], ["En esta sección:\n" + Guia.tutorial(_etapa, tab, str(Datos.reglas.get("plataforma", "windows"))), 16, Estilo.SUAVE]]:
+		var l := Label.new()
+		l.text = par[0]
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.custom_minimum_size = Vector2(300, 0)
+		l.add_theme_font_size_override("font_size", par[1])
+		l.add_theme_color_override("font_color", par[2])
+		v.add_child(l)
+	if str(_ahora["abre"]) != "":
+		var hz := Button.new()
+		hz.text = str(_ahora["boton"])
+		hz.custom_minimum_size = Vector2(0, 50)
+		Estilo.pintar(hz, Estilo.TURQUESA)
+		var ab: String = _ahora["abre"]
+		hz.pressed.connect(func():
+			_cerrar_modal()
+			_ir_paso(ab))
+		v.add_child(hz)
+	var cz := Button.new()
+	cz.text = "Cerrar"
+	cz.custom_minimum_size = Vector2(0, 44)
+	cz.pressed.connect(_cerrar_modal)
+	v.add_child(cz)
+
+
 func _set_etapa(e: String) -> void:
 	_etapa = e
 	_esc.visible = e == "mundo"
@@ -888,6 +948,7 @@ func _set_etapa(e: String) -> void:
 		_port.refrescar()
 	_refrescar_niveles()
 	_vista_mini()
+	_actualizar_ahora()
 
 
 func _ir_nivel(i: int) -> void:
@@ -1218,6 +1279,7 @@ func _refrescar() -> void:
 	_marcar_fichas()
 	_refrescar_chip()
 	_refrescar_props()
+	_actualizar_ahora()
 	_refrescar_niveles()
 	_vista_mini()
 
@@ -1282,7 +1344,7 @@ func _refrescar_props() -> void:
 		_props_caja.visible = false
 		return
 	_props_caja.visible = true
-	var nombres := {"plat": "Plataforma", "coin": "Moneda", "star": "Estrella", "gem": "Gema", "spike": "Pinchos", "spring": "Resorte", "goal": "Meta", "llave": "Llave", "puerta": "Puerta", "boton": "Botón", "platmov": "Plataforma móvil", "puente": "Puente que se cae", "pendulo": "Péndulo", "caja": "Caja", "enemy": "Enemigo", "deco": "Decoración", "player": "Inicio"}
+	var nombres := {"plat": "Plataforma", "coin": "Moneda", "star": "Estrella", "gem": "Gema", "spike": "Pinchos", "spring": "Resorte", "goal": "Meta", "llave": "Llave", "puerta": "Puerta", "boton": "Botón", "platmov": "Plataforma móvil", "puente": "Puente que se cae", "pendulo": "Péndulo", "rueda": "Rueda", "pelota": "Pelota", "cuerda": "Cuerda", "caja": "Caja", "enemy": "Enemigo", "deco": "Decoración", "player": "Inicio"}
 	var l := Label.new()
 	l.text = nombres.get(s["t"], "")
 	l.add_theme_font_size_override("font_size", 20)
@@ -1311,6 +1373,8 @@ func _refrescar_props() -> void:
 	if s["t"] in ["enemy", "platmov", "pendulo"]:
 		_props_fila.add_child(_grupo("Recorrido", str(s["r"]), _ajustar.bind("r", -1), _ajustar.bind("r", 1)))
 		_props_fila.add_child(_grupo("Rapidez", str(int(s["sp"]) / 10), _ajustar.bind("sp", -1), _ajustar.bind("sp", 1)))
+	if s["t"] in ["rueda", "pelota", "cuerda"]:
+		_props_fila.add_child(_grupo("Tamaño" if s["t"] != "cuerda" else "Largo", str(s["r"]), _ajustar.bind("r", -1), _ajustar.bind("r", 1)))
 	if s["t"] == "enemy" and modo == "2d" and str(Datos.nivel.get("tipo", "")) != "arriba":
 		var oc := OptionButton.new()
 		oc.custom_minimum_size = Vector2(150, 40)
@@ -1368,7 +1432,7 @@ func _refrescar_props() -> void:
 			Datos.olvidar_texturas_pal()
 			Datos.confirmar())
 		_props_fila.add_child(op)
-	if not ["plat", "platmov", "puente", "pendulo", "player", "goal", "pared", "viga", "valla", "puerta", "boton", "caja"].has(str(s["t"])):
+	if not ["plat", "platmov", "puente", "pendulo", "rueda", "pelota", "cuerda", "player", "goal", "pared", "viga", "valla", "puerta", "boton", "caja"].has(str(s["t"])):
 		var oa := OptionButton.new()
 		oa.custom_minimum_size = Vector2(140, 40)
 		oa.focus_mode = Control.FOCUS_NONE

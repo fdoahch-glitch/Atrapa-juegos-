@@ -146,3 +146,10 @@ Cada tipo del asistente crea una demo que funciona desde el primer toque y que p
 - **Puente que se cae** (se rompe poco después de pisarlo y vuelve a aparecer), **Péndulo** (bola con pinchos que balancea) en la pestaña Objetos de las plataformas 2D.
 - **Zoom de cámara** en 🎬 Efectos: acerca la vista y la cámara sigue al héroe también hacia arriba y abajo.
 - Los animales de la biblioteca (vaca, perro, lobo, águila, etc.) ahora se mueven.
+
+## Física real de Godot, «Analizar mi juego» y guía en vivo
+- **Plataformas 2D con física real**: el héroe es un `CharacterBody2D` y el suelo fijo son `StaticBody2D` dentro de un mundo físico propio (a 120 pasos por segundo). Se conserva el «feeling» (coyote, salto con memoria, doble salto, planeo, dash). Plataformas móviles, puentes, puertas y cajas siguen con el cálculo propio.
+- **Objetos nuevos**: *Rueda que rueda*, *Pelota que rebota* (`RigidBody2D`, se empujan caminando) y *Cuerda que se mece* (cadena de cuerpos con `PinJoint2D`; el héroe la empuja, aún no se agarra).
+- **Analizar mi juego** (panel Rendimiento): prueba cada mundo unos segundos, mide FPS, dibujos y memoria de imágenes, estima el rendimiento en la plataforma elegida y propone mejoras de velocidad y de apariencia con botón «Aplicar».
+- **💡 Ahora…** (barra superior): mira cómo va el proyecto y sugiere el siguiente paso con palabras simples, más un mini tutorial de la sección y consejos por plataforma.
+- Pruebas nuevas: `prueba_fisica`, `prueba_analizar`, `prueba_guia`.

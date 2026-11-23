@@ -9,6 +9,22 @@ static func _rnd(i: float) -> float:
 	return s - floor(s)
 
 
+## Objetos con física real (rueda y pelota): círculo con marcas que giran para que se note el rodar.
+static func fisico(ci: CanvasItem, tipo: String, c: Vector2, rad: float, rot: float) -> void:
+	var col := Color("f97316") if tipo == "pelota" else Color("6b7280")
+	var borde := Color("7c2d12") if tipo == "pelota" else Color("1f2937")
+	ci.draw_circle(c, rad, col)
+	ci.draw_arc(c, rad - 1.5, 0.0, TAU, 32, borde, 3.0)
+	if tipo == "rueda":
+		for k in 6:
+			var a := rot + TAU * float(k) / 6.0
+			ci.draw_line(c, c + Vector2(cos(a), sin(a)) * (rad - 3.0), Color("d1d5db"), 4.0)
+		ci.draw_circle(c, rad * 0.22, borde)
+	else:
+		ci.draw_arc(c, rad * 0.62, rot, rot + PI, 16, Color("fff1d6"), 3.0)
+		ci.draw_line(c + Vector2(cos(rot), sin(rot)) * rad, c - Vector2(cos(rot), sin(rot)) * rad, borde, 2.0)
+
+
 static func emoji(ci: CanvasItem, e: String, c: Vector2, tam: float, voltear: bool = false, esc_y: float = 1.0) -> void:
 	var tex: Texture2D = Datos.textura(e)
 	if tex == null:
@@ -205,6 +221,19 @@ static func _objeto(ci: CanvasItem, it0: Dictionary, th: Dictionary, t: float, e
 					ci.draw_rect(Rect2(x + k * T + 2 + tz, cy, T - 4, T * 0.4), Color("a16207"))
 					ci.draw_rect(Rect2(x + k * T + 2 + tz, cy, T - 4, T * 0.4), Color("422006"), false, 2.0)
 				ci.draw_line(Vector2(x, cy + 2), Vector2(x + wp, cy + 2), Color("fde68a"), 2.0)
+		"rueda", "pelota":
+			fisico(ci, str(it["t"]), Vector2(float(it.get("px", x + T * float(it.get("r", 1)) / 2.0)), float(it.get("py", y + T * float(it.get("r", 1)) / 2.0))), float(it.get("r", 1)) * T / 2.0, float(it.get("rot", 0.0)))
+		"cuerda":
+			var pts: Array = it.get("pts", [])
+			if pts.is_empty():
+				var n0 := maxi(2, int(it.get("r", 4)) * 2)
+				for k in range(n0 + 1):
+					pts.append(Vector2(x + T / 2.0, y + k * T * 0.5))
+			for k in range(pts.size() - 1):
+				ci.draw_line(pts[k], pts[k + 1], Color("78350f"), 6.0)
+				ci.draw_line(pts[k], pts[k + 1], Color("d6a35c"), 2.5)
+			ci.draw_circle(pts[0], 6.0, Color("374151"))
+			ci.draw_circle(pts[pts.size() - 1], 7.0, Color("a16207"))
 		"pendulo":
 			var ax: float = x + T / 2.0
 			var ay: float = y

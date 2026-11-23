@@ -1377,7 +1377,7 @@ func cargar_guardado() -> void:
 
 
 # ---------------------------------------------------------------- objetos
-const CAPAS := {"deco": 0, "plat": 1, "platmov": 1, "puente": 1, "pendulo": 2, "caja": 2, "puerta": 2, "boton": 2, "llave": 3, "spike": 2, "spring": 2, "valla": 2, "pared": 2, "viga": 2, "coin": 3, "star": 3, "gem": 3, "goal": 3, "enemy": 3, "player": 4}
+const CAPAS := {"deco": 0, "plat": 1, "platmov": 1, "puente": 1, "pendulo": 2, "rueda": 2, "pelota": 2, "cuerda": 2, "caja": 2, "puerta": 2, "boton": 2, "llave": 3, "spike": 2, "spring": 2, "valla": 2, "pared": 2, "viga": 2, "coin": 3, "star": 3, "gem": 3, "goal": 3, "enemy": 3, "player": 4}
 
 # Modo 3D (corredor): la pista se ve desde arriba; el corredor avanza hacia la derecha.
 # Tres carriles: arriba = izquierda, centro, abajo = derecha.
@@ -1468,6 +1468,12 @@ func colocar(def: Dictionary, cx: int, cy: int) -> Dictionary:
 		"pendulo":
 			o["r"] = 3
 			o["sp"] = 60
+		"rueda":
+			o["r"] = 2
+		"pelota":
+			o["r"] = 1
+		"cuerda":
+			o["r"] = 4
 		"platmov":
 			o["w"] = mini(3, nivel["cols"] - cx)
 			o["h"] = 1

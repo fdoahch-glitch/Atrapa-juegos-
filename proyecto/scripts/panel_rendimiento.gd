@@ -6,10 +6,14 @@ signal corregido
 
 const Estilo := preload("res://scripts/estilo.gd")
 const Rend := preload("res://scripts/rendimiento.gd")
+const Analisis := preload("res://scripts/analisis.gd")
 
 var _lista: VBoxContainer
 var _resumen: Label
 var _ops := {}
+var _res_an: Label
+var _lista_an: VBoxContainer
+var _med_an: Array = []
 
 
 func _ready() -> void:
@@ -94,6 +98,22 @@ func _ready() -> void:
 	_lista = VBoxContainer.new()
 	_lista.add_theme_constant_override("separation", 8)
 	v.add_child(_lista)
+	v.add_child(HSeparator.new())
+	_titulo(v, "Analizar mi juego")
+	_texto(v, "Pruebo cada mundo de verdad unos segundos y mido cuántos cuadros por segundo da y cuánto dibuja. Luego te propongo mejoras de velocidad y de apariencia, cada una con su botón.", 17, Estilo.SUAVE)
+	var ba := Button.new()
+	ba.text = "  Analizar mi juego"
+	ba.icon = Datos.textura("🔎")
+	ba.expand_icon = true
+	ba.add_theme_constant_override("icon_max_width", 26)
+	ba.custom_minimum_size = Vector2(0, 52)
+	Estilo.pintar(ba, Estilo.AMARILLO, Color("4a3300"))
+	ba.pressed.connect(_analizar_juego.bind(ba))
+	v.add_child(ba)
+	_res_an = _texto(v, "", 19, Estilo.TINTA)
+	_lista_an = VBoxContainer.new()
+	_lista_an.add_theme_constant_override("separation", 8)
+	v.add_child(_lista_an)
 	var c := Button.new()
 	c.text = "  Cerrar"
 	c.icon = null
@@ -208,3 +228,85 @@ func _testear() -> void:
 				b.disabled = true)
 		h.add_child(b)
 		_lista.add_child(caja)
+
+
+func _analizar_juego(boton: Button) -> void:
+	for c in _lista_an.get_children():
+		c.queue_free()
+	boton.disabled = true
+	_res_an.text = "Probando tus mundos…"
+	_med_an = await Analisis.medir(self, Datos.proyecto(), 1.5, func(i, n): _res_an.text = "Probando el mundo %d de %d…" % [i + 1, n])
+	boton.disabled = false
+	_mostrar_an()
+
+
+func _mostrar_an() -> void:
+	for c in _lista_an.get_children():
+		c.queue_free()
+	var res: Array = Analisis.mejoras(Datos.proyecto(), _med_an)
+	var plat := str(Datos.reglas.get("plataforma", "windows"))
+	var resumen := ""
+	if not _med_an.is_empty():
+		var fps := 0.0
+		var dib := 0
+		for m in _med_an:
+			fps += float(m["fps"])
+			dib = maxi(dib, int(m["dibujos"]))
+		fps /= float(_med_an.size())
+		var est := fps / float(Analisis.FACTOR.get(plat, 1.0))
+		resumen = "Medido en este equipo: %.0f FPS en promedio, hasta %d dibujos por cuadro. Estimado en tu plataforma: ~%.0f FPS.\n" % [fps, dib, est]
+	if res.is_empty():
+		_res_an.text = resumen + "¡Muy bien! No veo mejoras que proponer."
+		return
+	_res_an.text = resumen + "Te propongo %d mejoras:" % res.size()
+	var todo := Button.new()
+	todo.text = "  Aplicar todas las mejoras posibles"
+	todo.custom_minimum_size = Vector2(0, 46)
+	Estilo.pintar(todo, Estilo.TURQUESA)
+	todo.pressed.connect(func():
+		var n := 0
+		for k in 30:
+			var lista: Array = Analisis.mejoras(Datos.proyecto(), _med_an)
+			var hecho := false
+			for p in lista:
+				if str(p["fix"]["op"]) != "info" and Analisis.aplicar(p):
+					n += 1
+					hecho = true
+					break
+			if not hecho:
+				break
+		corregido.emit()
+		_mostrar_an()
+		_res_an.text = "Apliqué %d mejoras. " % n + _res_an.text)
+	_lista_an.add_child(todo)
+	for cat in ["rendimiento", "visual"]:
+		var grupo: Array = res.filter(func(p): return p["cat"] == cat)
+		if grupo.is_empty():
+			continue
+		_texto(_lista_an, "⚡ Para que vaya más rápido" if cat == "rendimiento" else "🎨 Para que se vea mejor", 20, Estilo.TINTA)
+		for p in grupo:
+			var caja := PanelContainer.new()
+			var col: Color = {"error": Color("ffe3e3"), "aviso": Color("fff4d6"), "consejo": Color("e3f2ff")}[p["sev"]]
+			caja.add_theme_stylebox_override("panel", Estilo.caja(col, 14, 0, Color.TRANSPARENT, 10))
+			var h := HBoxContainer.new()
+			h.add_theme_constant_override("separation", 10)
+			caja.add_child(h)
+			var tv := VBoxContainer.new()
+			tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			h.add_child(tv)
+			_texto(tv, str(p["txt"]), 17, Estilo.TINTA)
+			_texto(tv, "Mejora: " + str(p["sol"]), 15, Estilo.SUAVE)
+			if str(p["fix"]["op"]) != "info":
+				var b := Button.new()
+				b.text = "Aplicar"
+				b.custom_minimum_size = Vector2(130, 44)
+				Estilo.pintar(b, Estilo.MORADO)
+				b.pressed.connect(func():
+					if Analisis.aplicar(p):
+						corregido.emit()
+						_mostrar_an()
+					else:
+						b.text = "No pude"
+						b.disabled = true)
+				h.add_child(b)
+			_lista_an.add_child(caja)

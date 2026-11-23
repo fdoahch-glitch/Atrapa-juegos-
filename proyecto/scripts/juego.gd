@@ -277,6 +277,14 @@ var moviles: Array = []
 var puentes: Array = []
 var pendulos: Array = []
 var cajas: Array = []
+# Física real de Godot: el terreno fijo, el héroe y los objetos que ruedan viven en su propio mundo.
+var _pw: SubViewport = null
+var _pw_h: CharacterBody2D = null
+var _pw_ok := false          # el mundo ya dio su primer paso (antes de eso se usa el cálculo propio)
+var _pw_espera := false
+var _pw_gen := 0
+var _pw_rig: Array = []      # ruedas y pelotas: {"it", "body"}
+var _pw_cuerdas: Array = []  # cuerdas: {"it", "segs": [RigidBody2D]}
 var _n_llaves := 0
 var _llaves_disp := 0
 var _n_mon := 0
@@ -533,6 +541,7 @@ func resetear() -> void:
 	puentes = []
 	pendulos = []
 	cajas = []
+	_pw_borrar()
 	_n_llaves = 0
 	_llaves_disp = 0
 	_n_mon = 0
@@ -590,6 +599,8 @@ func resetear() -> void:
 				pendulos.append({"it": c, "ax": (float(it["x"]) + 0.5) * T, "ay": float(it["y"]) * T, "largo": float(it.get("r", 3)) * T, "sp": float(it.get("sp", 60)) / 60.0, "ang": 0.0, "bx": 0.0, "by": 0.0})
 			"caja":
 				cajas.append({"it": c, "r": Rect2(float(it["x"]) * T, float(it["y"]) * T, T, T), "vy": 0.0})
+			"rueda", "pelota", "cuerda":
+				_pw_rig.append({"it": c, "t": str(it["t"])})
 			"player":
 				pl = it
 	var pw := PW * T
@@ -604,6 +615,142 @@ func resetear() -> void:
 	escala = _escala()
 	cam = maxf(0.0, inicio.x - size.x / escala / 2.0)
 	camy = 0.0
+	_pw_construir()
+
+
+# ------------------------------------------------------------------ física real de Godot
+func _pw_borrar() -> void:
+	_pw_gen += 1
+	_pw_ok = false
+	_pw_espera = false
+	if _pw != null:
+		_pw.queue_free()
+		_pw = null
+	_pw_h = null
+	_pw_rig = []
+	_pw_cuerdas = []
+
+
+func _pw_cuerpo(forma: Shape2D, tipo: int, capa: int, masc: int, p: Vector2) -> PhysicsBody2D:
+	var b: PhysicsBody2D
+	if tipo == 0:
+		b = StaticBody2D.new()
+	elif tipo == 1:
+		b = CharacterBody2D.new()
+	else:
+		b = RigidBody2D.new()
+	var cs := CollisionShape2D.new()
+	cs.shape = forma
+	b.add_child(cs)
+	b.collision_layer = capa
+	b.collision_mask = masc
+	b.position = p
+	_pw.add_child(b)
+	return b
+
+
+## Crea el mundo físico del nivel: suelo fijo, héroe y objetos que ruedan, se mecen o rebotan.
+func _pw_construir() -> void:
+	var pend := _pw_rig
+	_pw_rig = []
+	_pw = SubViewport.new()
+	_pw.world_2d = World2D.new()
+	_pw.size = Vector2i(2, 2)
+	_pw.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	add_child(_pw)
+	for p in plats:
+		var r: Rect2 = p
+		var f := RectangleShape2D.new()
+		f.size = r.size
+		_pw_cuerpo(f, 0, 1, 0, r.get_center())
+	var hf := RectangleShape2D.new()
+	hf.size = Vector2(PW * T, PH * T)
+	_pw_h = _pw_cuerpo(hf, 1, 2, 1, pos + hf.size / 2.0) as CharacterBody2D
+	var gesc := GRAV / 980.0
+	for o in pend:
+		var it: Dictionary = o["it"]
+		var cx := (float(it["x"]) + 0.5) * T
+		var cy := (float(it["y"]) + 0.5) * T
+		match str(o["t"]):
+			"rueda", "pelota":
+				var d := maxf(0.5, float(it.get("r", 1 if o["t"] == "pelota" else 2))) * T
+				var cf := CircleShape2D.new()
+				cf.radius = d / 2.0
+				var rb := _pw_cuerpo(cf, 2, 1, 1, Vector2(float(it["x"]) * T + d / 2.0, float(it["y"]) * T + d / 2.0)) as RigidBody2D
+				var mat := PhysicsMaterial.new()
+				mat.friction = 1.0
+				mat.bounce = 0.75 if o["t"] == "pelota" else 0.1
+				rb.physics_material_override = mat
+				rb.mass = 0.6 if o["t"] == "pelota" else 3.0
+				rb.gravity_scale = gesc
+				rb.continuous_cd = RigidBody2D.CCD_MODE_CAST_SHAPE
+				_pw_rig.append({"it": it, "t": o["t"], "body": rb, "d": d})
+			"cuerda":
+				var n := maxi(3, int(it.get("r", 4)) * 2)
+				var anc := _pw_cuerpo(CircleShape2D.new(), 0, 0, 0, Vector2(cx, float(it["y"]) * T))
+				var prev: PhysicsBody2D = anc
+				var segs: Array = []
+				for k in range(1, n + 1):
+					var sf := CircleShape2D.new()
+					sf.radius = 6.0
+					var sg := _pw_cuerpo(sf, 2, 4, 1, Vector2(cx, float(it["y"]) * T + k * T * 0.5)) as RigidBody2D
+					sg.mass = 0.25
+					sg.gravity_scale = gesc
+					sg.linear_damp = 0.4
+					sg.angular_damp = 1.0
+					var j := PinJoint2D.new()
+					j.position = Vector2(cx, float(it["y"]) * T + (k - 0.5) * T * 0.5)
+					j.softness = 0.0
+					_pw.add_child(j)
+					j.node_a = j.get_path_to(prev)
+					j.node_b = j.get_path_to(sg)
+					segs.append(sg)
+					prev = sg
+				_pw_cuerdas.append({"it": it, "segs": segs})
+
+
+func _pw_vigilar() -> void:
+	if _pw == null or _pw_ok or _pw_espera or not is_inside_tree():
+		return
+	_pw_espera = true
+	var gen := _pw_gen
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	if gen == _pw_gen and is_inside_tree():
+		_pw_ok = true
+		_pw_espera = false
+
+
+## Mueve al héroe con la física de Godot. Devuelve el choque (o null).
+func _pw_mover(m: Vector2) -> KinematicCollision2D:
+	var mitad := Vector2(PW * T, PH * T) / 2.0
+	_pw_h.position = pos + mitad
+	var c := _pw_h.move_and_collide(m, false, 0.04)
+	pos = _pw_h.position - mitad
+	return c
+
+
+## Las ruedas, pelotas y cuerdas se actualizan solas con el motor; aquí solo se leen para dibujarlas y empujarlas.
+func _pw_tick() -> void:
+	_pw.process_mode = Node.PROCESS_MODE_DISABLED if (_menu_pausa != null or estado != "jugar") else Node.PROCESS_MODE_INHERIT
+	for o in _pw_rig:
+		var b: RigidBody2D = o["body"]
+		o["it"]["px"] = b.position.x
+		o["it"]["py"] = b.position.y
+		o["it"]["rot"] = b.rotation
+		if b.position.y > Datos.FILAS * T + T * 4:
+			b.position = Vector2(float(o["it"]["x"]) * T + float(o["d"]) / 2.0, float(o["it"]["y"]) * T)
+			b.linear_velocity = Vector2.ZERO
+	var caja := _caja().grow(6.0)
+	for cu in _pw_cuerdas:
+		var pts: Array = []
+		pts.append(Vector2((float(cu["it"]["x"]) + 0.5) * T, float(cu["it"]["y"]) * T))
+		for sg in cu["segs"]:
+			var rb: RigidBody2D = sg
+			pts.append(rb.position)
+			if caja.has_point(rb.position):
+				rb.apply_central_impulse(Vector2(vel.x * 0.02, 0.0))
+		cu["it"]["pts"] = pts
 
 
 # ------------------------------------------------------------------ entrada
@@ -689,6 +836,9 @@ var _acum := 0.0
 func _avanzar(delta: float) -> void:
 	if _menu_pausa != null:
 		return
+	_pw_vigilar()
+	if _pw != null and _pw_ok:
+		_pw_tick()
 	_acum += minf(delta, 0.1)
 	var n := 0
 	while _acum >= PASO and n < 12:
@@ -791,7 +941,17 @@ func _actualizar(dt: float) -> void:
 	if _planeo:
 		vel.y = 110.0
 	# --- movimiento horizontal
-	pos.x += vel.x * dt
+	if _pw_ok and _pw_h != null:
+		var cx := _pw_mover(Vector2(vel.x * dt, 0.0))
+		if cx != null:
+			var ob := cx.get_collider()
+			if ob is RigidBody2D:
+				(ob as RigidBody2D).apply_central_impulse(Vector2(vel.x * (ob as RigidBody2D).mass * 0.4, 0.0))
+				vel.x *= 0.55
+			else:
+				vel.x = 0.0
+	else:
+		pos.x += vel.x * dt
 	_empujar_cajas()
 	for p in _todas_plats():
 		if _caja().intersects(p):
@@ -804,9 +964,19 @@ func _actualizar(dt: float) -> void:
 			vel.x = 0.0
 	pos.x = clampf(pos.x, 0.0, ancho - pw)
 	# --- movimiento vertical
-	pos.y += vel.y * dt
 	suelo = false
 	var rebote_v := 0.0
+	if _pw_ok and _pw_h != null:
+		var vy0 := vel.y
+		var cy := _pw_mover(Vector2(0.0, vel.y * dt))
+		if cy != null:
+			if cy.get_normal().y < -0.5:
+				suelo = true
+				if vy0 > 260.0 and float(_fis.get("rebote", 0.0)) > 0.0:
+					rebote_v = -vy0 * float(_fis["rebote"])
+			vel.y = 0.0
+	else:
+		pos.y += vel.y * dt
 	for p in _todas_plats():
 		if _caja().intersects(p):
 			if vel.y >= 0.0:
@@ -1325,6 +1495,10 @@ func _dibujar_mundo(ci: CanvasItem) -> void:
 		Dibujo.objeto(ci, pe["it"], tema, t)
 	for cj in cajas:
 		Dibujo.objeto(ci, cj["it"], tema, t)
+	for o in _pw_rig:
+		Dibujo.objeto(ci, o["it"], tema, t)
+	for cu in _pw_cuerdas:
+		Dibujo.objeto(ci, cu["it"], tema, t)
 	for d in puertas:
 		Dibujo.objeto(ci, d, tema, t)
 	if meta != null and not _meta_oculta:
