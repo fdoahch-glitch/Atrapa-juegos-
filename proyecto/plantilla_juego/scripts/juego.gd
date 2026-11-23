@@ -79,6 +79,18 @@ func iniciar(n: Dictionary, forzar_tactil: bool = false, mostrar_salir: bool = f
 	_mundo = Capa.new()
 	_mundo.al_dibujar = _dibujar_mundo
 	add_child(_mundo)
+	var fl: int = ["", "bn", "sepia", "retro", "vineta", "frio", "calido"].find(str(nivel.get("filtro", "")))
+	if fl > 0:
+		_filtro = ColorRect.new()
+		_filtro.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var sh := Shader.new()
+		sh.code = FILTRO_SHADER
+		var mt := ShaderMaterial.new()
+		mt.shader = sh
+		mt.set_shader_parameter("modo", fl)
+		_filtro.material = mt
+		add_child(_filtro)
+		_filtro.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_hud = Capa.new()
 	_hud.al_dibujar = _dibujar_hud
 	add_child(_hud)
@@ -91,6 +103,15 @@ func iniciar(n: Dictionary, forzar_tactil: bool = false, mostrar_salir: bool = f
 	_btn_sonido.focus_mode = Control.FOCUS_NONE
 	_btn_sonido.pressed.connect(_alternar_sonido)
 	add_child(_btn_sonido)
+	_btn_pausa = Button.new()
+	_btn_pausa.icon = Datos.textura("⏸")
+	_btn_pausa.custom_minimum_size = Vector2(52, 44)
+	_btn_pausa.expand_icon = true
+	_btn_pausa.add_theme_constant_override("icon_max_width", 28)
+	_btn_pausa.position = Vector2(70, 58)
+	_btn_pausa.focus_mode = Control.FOCUS_NONE
+	_btn_pausa.pressed.connect(_pausar)
+	add_child(_btn_pausa)
 	if mostrar_salir:
 		var b := Button.new()
 		b.text = "  Editar"
@@ -104,6 +125,86 @@ func iniciar(n: Dictionary, forzar_tactil: bool = false, mostrar_salir: bool = f
 		b.pressed.connect(func(): salir.emit())
 		add_child(b)
 	resetear()
+
+
+## Menú de pausa: continuar, sonido, volumen, créditos y salir.
+func _pausar() -> void:
+	if _menu_pausa != null:
+		_menu_pausa.queue_free()
+		_menu_pausa = null
+		return
+	if estado != "jugar":
+		return
+	var idi := str(reglas.get("idioma", "es"))
+	var fondo := ColorRect.new()
+	fondo.color = Color(0.08, 0.06, 0.23, 0.72)
+	add_child(fondo)
+	fondo.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_menu_pausa = fondo
+	var centro := CenterContainer.new()
+	fondo.add_child(centro)
+	centro.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 12)
+	centro.add_child(v)
+	var l := Label.new()
+	l.text = "Pausa"
+	l.add_theme_font_size_override("font_size", 44)
+	l.add_theme_color_override("font_color", Color.WHITE)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(l)
+	var mk := func(txt: String, ico: String, fn: Callable, amarillo: bool = false) -> Button:
+		var b := Button.new()
+		b.text = "  " + txt
+		b.icon = Datos.textura(ico)
+		b.expand_icon = true
+		b.add_theme_constant_override("icon_max_width", 30)
+		b.custom_minimum_size = Vector2(280, 56)
+		b.add_theme_font_size_override("font_size", 24)
+		Estilo.pintar(b, Estilo.AMARILLO if amarillo else Color(1, 1, 1, 0.28), Color("4a3300") if amarillo else Color.WHITE)
+		b.pressed.connect(fn)
+		v.add_child(b)
+		return b
+	var cont: Button = mk.call("Continuar", "▶", _pausar, true)
+	var vol := Label.new()
+	vol.add_theme_font_size_override("font_size", 22)
+	vol.add_theme_color_override("font_color", Color.WHITE)
+	vol.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var pv := func():
+		vol.text = "Volumen: %d%%" % roundi(clampf(db_to_linear(AudioServer.get_bus_volume_db(0)), 0.0, 1.0) * 100.0)
+	var cambiar_vol := func(d: float):
+		var lin := clampf(db_to_linear(AudioServer.get_bus_volume_db(0)) + d, 0.0, 1.0)
+		AudioServer.set_bus_volume_db(0, linear_to_db(maxf(lin, 0.001)))
+		pv.call()
+	pv.call()
+	v.add_child(vol)
+	var hb := HBoxContainer.new()
+	hb.alignment = BoxContainer.ALIGNMENT_CENTER
+	hb.add_theme_constant_override("separation", 10)
+	v.add_child(hb)
+	for par in [["➖", -0.1], ["➕", 0.1]]:
+		var b2 := Button.new()
+		b2.icon = Datos.textura(par[0])
+		b2.expand_icon = true
+		b2.custom_minimum_size = Vector2(80, 50)
+		b2.pressed.connect(func(): cambiar_vol.call(par[1]))
+		hb.add_child(b2)
+	mk.call("Sonido", "🔊", _alternar_sonido)
+	if str(reglas.get("creditos", "")) != "":
+		var cr := Label.new()
+		cr.text = "Créditos: " + str(reglas["creditos"])
+		cr.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		cr.custom_minimum_size = Vector2(300, 0)
+		cr.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		cr.add_theme_color_override("font_color", Color(1, 1, 1, 0.85))
+		v.add_child(cr)
+	mk.call("Salir", "🚪", func():
+		if con_salir or campana:
+			salir.emit()
+		elif not OS.has_feature("web") and not OS.has_feature("android"):
+			get_tree().quit())
+	Datos.traducir_arbol(fondo, idi)
+	cont.grab_focus()
 
 
 func _alternar_sonido() -> void:
@@ -149,6 +250,52 @@ const TRIO := [["a:caballero", "Caballero", {"espada": true}, 0.9, 0.9], ["a:mag
 var _trio := false
 var _hero_i := 0
 var _k_vel := 1.0
+const Imp := preload("res://scripts/importar.gd")
+var _sfx_map: Dictionary = {}
+var _fx_map: Dictionary = {}
+var _parts: Array = []
+var _part_t := 0.0
+var llaves: Array = []
+var puertas: Array = []
+var botones: Array = []
+var moviles: Array = []
+var cajas: Array = []
+var _n_llaves := 0
+var _llaves_disp := 0
+var _n_mon := 0
+var _n_ene := 0
+var _eventos: Array = []
+var _meta_oculta := false
+var _temblor := 0.0
+var _boton_hecho := false
+var _luz_tex: GradientTexture2D
+var _filtro: ColorRect
+var _menu_pausa: Control
+var _btn_pausa: Button
+const PART := {
+	"chispas": {"col": [Color("ffe066"), Color("fff4b0")], "v": 170.0, "vida": 0.55, "g": 420.0, "t": 4.0},
+	"estrellas": {"col": [Color("ffd23f"), Color("ff9ff3")], "v": 150.0, "vida": 0.7, "g": 200.0, "t": 5.0},
+	"polvo": {"col": [Color(0.82, 0.76, 0.66, 0.8)], "v": 70.0, "vida": 0.5, "g": -30.0, "t": 6.0},
+	"humo": {"col": [Color(0.62, 0.62, 0.68, 0.55)], "v": 25.0, "vida": 1.4, "g": -60.0, "t": 8.0},
+	"fuego": {"col": [Color("ff7a1a"), Color("ffd23f")], "v": 35.0, "vida": 0.8, "g": -120.0, "t": 6.0},
+	"nieve": {"col": [Color.WHITE], "v": 20.0, "vida": 2.0, "g": 60.0, "t": 3.0},
+	"explosion": {"col": [Color("ff5a36"), Color("ffd23f"), Color.WHITE], "v": 260.0, "vida": 0.6, "g": 200.0, "t": 6.0}}
+const FILTRO_SHADER := """shader_type canvas_item;
+uniform int modo = 0;
+uniform sampler2D tex : hint_screen_texture, filter_linear_mipmap;
+void fragment() {
+	vec2 uv = SCREEN_UV;
+	vec4 c = texture(tex, uv);
+	float g = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+	if (modo == 1) { c.rgb = vec3(g); }
+	else if (modo == 2) { c.rgb = vec3(g * 1.1, g * 0.95, g * 0.75); }
+	else if (modo == 3) { vec2 px = vec2(200.0, 112.0); c = texture(tex, floor(uv * px) / px); c.rgb = floor(c.rgb * 6.0) / 6.0; }
+	else if (modo == 4) { float d = distance(uv, vec2(0.5)); c.rgb *= 1.0 - smoothstep(0.3, 0.85, d) * 0.8; }
+	else if (modo == 5) { c.rgb *= vec3(0.85, 0.95, 1.15); }
+	else if (modo == 6) { c.rgb *= vec3(1.15, 1.0, 0.82); }
+	COLOR = c;
+}
+"""
 var _lento := 1.0
 var _inv_golpe := 1.6
 var _mult := {}
@@ -197,6 +344,8 @@ func _poner_fisica() -> void:
 	_fis = Datos.fis_normal(reglas.get("fis", {}))
 	_mec = Datos.mec_normal(reglas.get("mec", {}))
 	_k_salto *= float(_fis["salto"])
+	_sfx_map = Datos.sfx_normal(reglas.get("sonidos", {}))
+	_fx_map = Datos.fx_normal(reglas.get("fx", {}))
 	_k_vel = 1.0
 	_trio = bool(nivel.get("trio", false))
 	if _trio:
@@ -295,7 +444,7 @@ func _faltan() -> int:
 
 
 func _decir(txt: String) -> void:
-	_msg = txt
+	_msg = Datos.traducir(txt, str(reglas.get("idioma", "es")))
 	_msg_t = 2.5
 
 
@@ -308,7 +457,7 @@ func _reglas_tick(dt: float) -> void:
 	if tiempo_rest <= 0.0:
 		tiempo_rest = 0.0
 		estado = "perdio"
-		_sonido.tocar(150.0, 0.3, "sierra")
+		_sfx("perder")
 		_mostrar_fin("⏰", "¡Se acabó el tiempo!", "Recogiste %d de %d premios" % [recogidos, total])
 
 
@@ -349,6 +498,24 @@ func resetear() -> void:
 	meta = null
 	enemigos = []
 	decos = []
+	llaves = []
+	puertas = []
+	botones = []
+	moviles = []
+	cajas = []
+	_n_llaves = 0
+	_llaves_disp = 0
+	_n_mon = 0
+	_n_ene = 0
+	_boton_hecho = false
+	_parts = []
+	_temblor = 0.0
+	_eventos = []
+	for ev in nivel.get("eventos", []):
+		var e2: Dictionary = (ev as Dictionary).duplicate()
+		e2["hecho"] = false
+		_eventos.append(e2)
+	_meta_oculta = _eventos.any(func(e): return e["haz"] == "meta")
 	_aplicar_reglas()
 	var pl: Dictionary = {"x": 1, "y": Datos.FILAS - 3}
 	for it in nivel["items"]:
@@ -373,6 +540,21 @@ func resetear() -> void:
 					"r": float(it.get("r", 3)), "sp": float(it.get("sp", 60))})
 			"deco":
 				decos.append(c)
+			"llave":
+				c["got"] = false
+				llaves.append(c)
+			"puerta":
+				c["abierta"] = false
+				puertas.append(c)
+			"boton":
+				c["on"] = false
+				botones.append(c)
+			"platmov":
+				var wm := int(it.get("w", 3))
+				moviles.append({"it": c, "px": float(it["x"]) * T, "x0": float(it["x"]) * T, "dir": 1.0, "r": float(it.get("r", 3)) * T, "sp": float(it.get("sp", 60)),
+					"rect": Rect2(float(it["x"]) * T, float(it["y"]) * T, wm * T, T * 0.4), "dx": 0.0})
+			"caja":
+				cajas.append({"it": c, "r": Rect2(float(it["x"]) * T, float(it["y"]) * T, T, T), "vy": 0.0})
 			"player":
 				pl = it
 	var pw := PW * T
@@ -394,13 +576,16 @@ func _input(ev: InputEvent) -> void:
 		if ev.keycode in [KEY_UP, KEY_W, KEY_SPACE]:
 			salto_pulsado = true
 		elif ev.keycode == KEY_ESCAPE:
-			if con_salir:
-				salir.emit()
-			elif not OS.has_feature("web") and not OS.has_feature("android"):
-				get_tree().quit()
+			_pausar()
+		elif ev.keycode == KEY_P:
+			_pausar()
 	elif ev is InputEventScreenTouch:
 		if ev.pressed:
 			var z := _zona(ev.position - global_position)
+			if _trio:
+				for i in TRIO.size():
+					if Rect2(12 + i * 62, 110, 56, 56).has_point(ev.position - global_position):
+						_cambiar_heroe(i)
 			if z != "":
 				dedos[ev.index] = z
 				if z == "salto":
@@ -420,13 +605,34 @@ func _input(ev: InputEvent) -> void:
 func _zona(p: Vector2) -> String:
 	if not tactil:
 		return ""
-	for z in ["izq", "der", "salto"]:
-		if _rect_zona(z).grow(18.0).has_point(p):
+	var todas: Array = ["izq", "der", "salto"]
+	for e in _zonas_extra():
+		todas.append(e[0])
+	for z in todas:
+		if _rect_zona(z).grow(10.0).has_point(p):
 			return z
 	return ""
 
 
+## Botones táctiles de las mecánicas que están encendidas.
+func _zonas_extra() -> Array:
+	var r: Array = []
+	if _mecanica("dash"):
+		r.append(["dash", "⚡"])
+	if _mecanica("disparar"):
+		r.append(["disp", "🔥"])
+	if _mecanica("espada"):
+		r.append(["esp", "🗡"])
+	if _mecanica("conjurar"):
+		r.append(["conj", "🧱"])
+	return r
+
+
 func _rect_zona(z: String) -> Rect2:
+	var ex := _zonas_extra()
+	for i in ex.size():
+		if ex[i][0] == z:
+			return Rect2(size.x - 160.0 - 86.0 * (i + 1), size.y - 118.0, 76, 76)
 	match z:
 		"izq":
 			return Rect2(24, size.y - 130, 100, 100)
@@ -445,6 +651,8 @@ var _acum := 0.0
 
 
 func _avanzar(delta: float) -> void:
+	if _menu_pausa != null:
+		return
 	_acum += minf(delta, 0.1)
 	var n := 0
 	while _acum >= PASO and n < 12:
@@ -459,7 +667,10 @@ func _process(delta: float) -> void:
 	_avanzar(delta)
 	escala = maxf(0.1, size.y / (Datos.FILAS * T))
 	_mundo.scale = Vector2(escala, escala)
-	_mundo.position = Vector2(-cam * escala, 0.0)
+	var sac := Vector2.ZERO
+	if _temblor > 0.0 and bool(reglas.get("cam_temblor", true)):
+		sac = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * _temblor * 22.0
+	_mundo.position = Vector2(-cam * escala, 0.0) + sac
 	queue_redraw()
 	_mundo.queue_redraw()
 	_hud.queue_redraw()
@@ -477,12 +688,15 @@ func _actualizar(dt: float) -> void:
 	var ancho := float(nivel["cols"]) * T
 	var vista := size.x / escala
 	var objetivo := (ancho - vista) / 2.0 if ancho <= vista else clampf(pos.x + pw / 2.0 - vista / 2.0, 0.0, ancho - vista)
-	cam += (objetivo - cam) * minf(1.0, dt * 8.0)
+	cam += (objetivo - cam) * minf(1.0, dt * 8.0 * float(reglas.get("cam_suave", 100)) / 100.0)
+	_temblor = maxf(0.0, _temblor - dt)
+	_parts_tick(dt)
 	for r in resortes:
 		r["sq"] = maxf(0.0, float(r["sq"]) - dt * 4.0)
 	if estado != "jugar":
 		return
 	inv = maxf(0.0, inv - dt)
+	_objetos_vivos(dt)
 	var izq := Input.is_key_pressed(KEY_LEFT) or Input.is_key_pressed(KEY_A) or _pulsado("izq")
 	var der := Input.is_key_pressed(KEY_RIGHT) or Input.is_key_pressed(KEY_D) or _pulsado("der") or bool(nivel.get("autocorrer", false))
 	var sost := Input.is_key_pressed(KEY_UP) or Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_SPACE) or _pulsado("salto")
@@ -492,7 +706,7 @@ func _actualizar(dt: float) -> void:
 		vmax *= 1.6
 	_dash = maxf(0.0, _dash - dt)
 	_dash_cd = maxf(0.0, _dash_cd - dt)
-	if _mecanica("dash") and _dash_cd <= 0.0 and (Input.is_key_pressed(KEY_X) or Input.is_key_pressed(KEY_K)):
+	if _mecanica("dash") and _dash_cd <= 0.0 and (Input.is_key_pressed(KEY_X) or Input.is_key_pressed(KEY_K) or _pulsado("dash")):
 		_dash = 0.16
 		_dash_cd = 0.8
 		vel.x = cara * 720.0
@@ -518,12 +732,13 @@ func _actualizar(dt: float) -> void:
 		buffer = 0.0
 		coyote = 0.0
 		suelo = false
-		_sonido.tocar(520.0, 0.12)
+		_sfx("saltar")
+		_emitir(str(_fx_map.get("saltar", "")), Vector2(pos.x + PW * T / 2.0, pos.y + PH * T), 6)
 	elif buffer > 0.0 and _mecanica("doble_salto") and _aire < 1 and not suelo:
 		vel.y = -SALTO * _k_salto * 0.92
 		buffer = 0.0
 		_aire += 1
-		_sonido.tocar(640.0, 0.12)
+		_sfx("saltar")
 	var g := GRAV * float(_fis.get("grav", 1.0))
 	if not sost and vel.y < -280.0:
 		vel.y += g * 1.2 * dt
@@ -533,6 +748,7 @@ func _actualizar(dt: float) -> void:
 		vel.y = 110.0
 	# --- movimiento horizontal
 	pos.x += vel.x * dt
+	_empujar_cajas()
 	for p in _todas_plats():
 		if _caja().intersects(p):
 			if vel.x > 0.0:
@@ -576,7 +792,10 @@ func _actualizar(dt: float) -> void:
 			c["got"] = true
 			recogidos += 1
 			puntos += _vale(c["t"])
-			_sonido.tocar(880.0 if c["t"] == "coin" else 1200.0, 0.1)
+			if c["t"] == "coin":
+				_n_mon += 1
+			_sfx("recoger")
+			_emitir(str(_fx_map.get("recoger", "")), Vector2(float(c["x"]) * T + T / 2.0, float(c["y"]) * T + T / 2.0), 8)
 	# --- enemigos
 	for e in enemigos:
 		if e["muerto"]:
@@ -584,7 +803,11 @@ func _actualizar(dt: float) -> void:
 			continue
 		var ia := str(e["it"].get("ia", "patrulla"))
 		var cerca: bool = absf(pos.x / T - e["x"]) < 6.0 and absf(pos.y / T - float(e["it"]["y"])) < 3.0
-		if ia == "persigue" and cerca:
+		var alerta: float = maxf(0.0, float(e.get("alerta", 0.0)) - dt)
+		if ia == "vigila" and absf(pos.y / T - float(e["it"]["y"])) < 2.0 and absf(pos.x / T - e["x"]) < 7.0 and (pos.x / T - e["x"]) * e["dir"] > 0.0:
+			alerta = 2.0
+		e["alerta"] = alerta
+		if (ia == "persigue" and cerca) or (ia == "vigila" and alerta > 0.0):
 			e["dir"] = 1.0 if pos.x / T > e["x"] else -1.0
 			e["x"] = clampf(e["x"] + e["dir"] * maxf(e["sp"], 40.0) * 1.3 * _lento / T * dt, 0.0, ancho / T - 1.0)
 		elif ia == "quieto" or ia == "dispara":
@@ -609,16 +832,19 @@ func _actualizar(dt: float) -> void:
 				e["muerto"] = true
 				vel.y = -540.0
 				puntos += _vale("enemy")
-				_sonido.tocar(300.0, 0.15)
+				_n_ene += 1
+				_sfx("pisar")
+				_temblor = 0.12
+				_emitir(str(_fx_map.get("pisar", "")), Vector2(e["x"] * T + T / 2.0, float(e["it"]["y"]) * T + T / 2.0), 14)
 			else:
 				_herir()
 	# --- meta y caída
-	if meta != null and estado == "jugar" and _caja().intersects(Rect2(meta["x"] * T + 4, meta["y"] * T, T - 8, T)):
+	if meta != null and not _meta_oculta and estado == "jugar" and _caja().intersects(Rect2(meta["x"] * T + 4, meta["y"] * T, T - 8, T)):
 		if _faltan() > 0:
 			_decir("Te faltan %d premios para abrir la meta" % _faltan())
 		else:
 			estado = "gano"
-			_sonido.tocar(1000.0, 0.4, "triangulo")
+			_sfx("ganar")
 			_mostrar_fin("🎉", "¡Nivel completado!", "Puntos: %d · Recogiste %d de %d" % [puntos, recogidos, total])
 	if pos.y > Datos.FILAS * T + T * 2:
 		_caida()
@@ -641,9 +867,12 @@ func _herir() -> void:
 	if _absorber():
 		return
 	vidas -= 1
-	_sonido.tocar(150.0, 0.3, "sierra")
+	_sfx("golpe")
+	_temblor = 0.35
+	_emitir(str(_fx_map.get("golpe", "")), Vector2(pos.x + PW * T / 2.0, pos.y + PH * T / 2.0), 12)
 	if vidas <= 0:
 		estado = "perdio"
+		_sfx("perder")
 		_mostrar_fin("😵", "¡Ups! Se acabaron las vidas", "Recogiste %d de %d premios" % [recogidos, total])
 	else:
 		inv = _inv_golpe
@@ -652,6 +881,9 @@ func _herir() -> void:
 
 
 func _mostrar_fin(icono: String, titulo: String, sub: String) -> void:
+	if not campana:
+		titulo = Datos.traducir(titulo, str(reglas.get("idioma", "es")))
+		sub = Datos.traducir(sub, str(reglas.get("idioma", "es")))
 	if campana:
 		nivel_terminado.emit(estado == "gano", icono, titulo, sub)
 		return
@@ -701,12 +933,211 @@ func _draw() -> void:
 
 ## Plataformas fijas y bloques creados por el mago.
 func _todas_plats() -> Array:
-	if _bloques.is_empty():
+	if _bloques.is_empty() and puertas.is_empty() and moviles.is_empty() and cajas.is_empty():
 		return plats
+	var r: Array = _estaticas(null)
+	for cj in cajas:
+		r.append(cj["r"])
+	return r
+
+
+## Suelo fijo: plataformas, bloques del mago, puertas cerradas y plataformas móviles (sin una caja dada).
+func _estaticas(excepto: Variant) -> Array:
 	var r: Array = plats.duplicate()
 	for b in _bloques:
 		r.append(b["r"])
+	for d in puertas:
+		if not d["abierta"]:
+			r.append(Rect2(float(d["x"]) * T + 6, float(d["y"]) * T, T - 12, T * 2))
+	for m in moviles:
+		r.append(m["rect"])
+	for cj in cajas:
+		if cj != excepto:
+			r.append(cj["r"])
 	return r
+
+
+# ------------------------------------------------------------------ sonido, partículas y eventos
+func _sfx(ev: String) -> void:
+	var id := str(_sfx_map.get(ev, ""))
+	if id == "" or _sonido == null:
+		return
+	if id.begins_with("m:"):
+		if _sonido.silencio:
+			return
+		var st := Imp.cargar_audio(id)
+		if st != null:
+			var p := AudioStreamPlayer.new()
+			p.stream = st
+			add_child(p)
+			p.finished.connect(p.queue_free)
+			p.play()
+		return
+	var d: Array = Datos.SFX_PRE.get(id, [])
+	if d.size() == 3:
+		_sonido.tocar(float(d[0]), float(d[1]), str(d[2]))
+
+
+func _emitir(tipo: String, p: Vector2, n: int = 8) -> void:
+	if tipo == "" or not PART.has(tipo) or _parts.size() > 500:
+		return
+	var cfg: Dictionary = PART[tipo]
+	for i in n:
+		var a := randf() * TAU
+		var v := float(cfg["v"]) * randf_range(0.3, 1.0)
+		var vy := sin(a) * v
+		if float(cfg["g"]) < 0.0:
+			vy = -absf(vy) - 10.0
+		var cols: Array = cfg["col"]
+		_parts.append({"x": p.x + randf_range(-6, 6), "y": p.y + randf_range(-6, 6), "vx": cos(a) * v, "vy": vy, "vida": float(cfg["vida"]) * randf_range(0.6, 1.0), "max": float(cfg["vida"]), "g": float(cfg["g"]), "t": float(cfg["t"]), "c": cols[randi() % cols.size()]})
+
+
+func _parts_tick(dt: float) -> void:
+	_part_t -= dt
+	if _part_t <= 0.0:
+		_part_t = 0.07
+		for d in decos:
+			if d.has("fx"):
+				_emitir(str(d["fx"]), Vector2(float(d["x"]) * T + T / 2.0, float(d["y"]) * T + T / 2.0), 1)
+	for q in _parts:
+		q["vida"] -= dt
+		q["vy"] += q["g"] * dt
+		q["x"] += q["vx"] * dt
+		q["y"] += q["vy"] * dt
+	_parts = _parts.filter(func(q): return q["vida"] > 0.0)
+	if estado == "jugar":
+		_eventos_tick()
+
+
+func _eventos_tick() -> void:
+	for ev in _eventos:
+		if ev["hecho"]:
+			continue
+		var ok := false
+		match str(ev["si"]):
+			"monedas": ok = _n_mon >= int(ev["n"])
+			"enemigos": ok = _n_ene >= int(ev["n"])
+			"puntos": ok = puntos >= int(ev["n"])
+			"tiempo": ok = t >= float(ev["n"])
+			"llave": ok = _n_llaves >= int(ev["n"])
+			"boton": ok = _boton_hecho
+		if ok:
+			ev["hecho"] = true
+			_hacer_evento(ev)
+
+
+func _hacer_evento(ev: Dictionary) -> void:
+	match str(ev["haz"]):
+		"mensaje": _decir(str(ev["txt"]) if str(ev["txt"]) != "" else "¡Algo pasó!")
+		"puertas": _abrir_puertas()
+		"meta":
+			_meta_oculta = false
+			_decir("¡Apareció la meta!")
+		"vida": vidas = mini(12, vidas + maxi(1, int(ev["v"])))
+		"puntos": puntos += int(ev["v"])
+		"efecto": _emitir("explosion", Vector2(pos.x + PW * T / 2.0, pos.y), 20)
+		"ganar":
+			estado = "gano"
+			_sfx("ganar")
+			_mostrar_fin("🎉", "¡Nivel completado!", "Puntos: %d" % puntos)
+		"perder":
+			estado = "perdio"
+			_sfx("perder")
+			_mostrar_fin("😵", "¡Perdiste!", "Puntos: %d" % puntos)
+	_sfx("recoger")
+
+
+func _abrir_puertas() -> void:
+	var alguna := false
+	for d in puertas:
+		if not d["abierta"]:
+			d["abierta"] = true
+			alguna = true
+	if alguna:
+		_decir("¡Se abrieron las puertas!")
+		_sonido.tocar(400.0, 0.25, "triangulo")
+
+
+## Llaves, puertas, botones, plataformas móviles y cajas que se empujan.
+func _objetos_vivos(dt: float) -> void:
+	var g := GRAV * float(_fis.get("grav", 1.0))
+	# plataformas móviles: se mueven y llevan al jugador
+	for m in moviles:
+		var antes: float = m["px"]
+		m["px"] += m["dir"] * m["sp"] * dt
+		if m["px"] > m["x0"] + m["r"]:
+			m["dir"] = -1.0
+		if m["px"] < m["x0"] - m["r"]:
+			m["dir"] = 1.0
+		m["dx"] = m["px"] - antes
+		var rr: Rect2 = m["rect"]
+		var encima: bool = suelo and absf(pos.y + PH * T - rr.position.y) < 6.0 and pos.x + PW * T > rr.position.x and pos.x < rr.end.x
+		rr.position.x = m["px"]
+		m["rect"] = rr
+		m["it"]["x"] = m["px"] / T
+		if encima:
+			pos.x += m["dx"]
+	# cajas: caen y se empujan
+	for cj in cajas:
+		cj["vy"] = minf(cj["vy"] + g * dt, 900.0)
+		var r: Rect2 = cj["r"]
+		r.position.y += cj["vy"] * dt
+		for p in _estaticas(cj):
+			if r.intersects(p):
+				r.position.y = p.position.y - r.size.y
+				cj["vy"] = 0.0
+		cj["r"] = r
+		cj["it"]["x"] = r.position.x / T
+		cj["it"]["y"] = r.position.y / T
+	# llaves
+	for l in llaves:
+		if not l["got"] and _caja().intersects(Rect2(float(l["x"]) * T + 8, float(l["y"]) * T + 8, T - 16, T - 16)):
+			l["got"] = true
+			_n_llaves += 1
+			_llaves_disp += 1
+			_sfx("recoger")
+			_decir("¡Tienes una llave!")
+	# puertas
+	for d in puertas:
+		if not d["abierta"] and _caja().grow(3.0).intersects(Rect2(float(d["x"]) * T + 6, float(d["y"]) * T, T - 12, T * 2)):
+			if _llaves_disp > 0:
+				_llaves_disp -= 1
+				d["abierta"] = true
+				_decir("¡Puerta abierta!")
+				_sonido.tocar(400.0, 0.25, "triangulo")
+			elif _msg_t <= 0.0:
+				_decir("Necesitas una llave")
+	# botones
+	for b in botones:
+		var rb := Rect2(float(b["x"]) * T + 6, float(b["y"]) * T + T - 12, T - 12, 14)
+		var pisado := _caja().intersects(rb)
+		for cj in cajas:
+			if (cj["r"] as Rect2).intersects(rb):
+				pisado = true
+		if pisado and not b["on"]:
+			b["on"] = true
+			_boton_hecho = true
+			_abrir_puertas()
+		elif not pisado and b["on"]:
+			b["on"] = false
+
+
+## Empuja las cajas con las que choca el jugador al caminar.
+func _empujar_cajas() -> void:
+	if absf(vel.x) < 1.0:
+		return
+	for cj in cajas:
+		var r: Rect2 = cj["r"]
+		if _caja().intersects(r) and pos.y + PH * T > r.position.y + 8.0:
+			var sol := (pos.x + PW * T - r.position.x) if vel.x > 0.0 else -(r.end.x - pos.x)
+			var nuevo := r
+			nuevo.position.x += sol
+			var libre := nuevo.position.x >= 0.0 and nuevo.end.x <= float(nivel["cols"]) * T
+			for p in _estaticas(cj):
+				if nuevo.intersects(p):
+					libre = false
+			if libre:
+				cj["r"] = nuevo
 
 
 ## Disparar, espada, crear bloques, cambiar de héroe y mover las bolitas.
@@ -721,11 +1152,11 @@ func _acciones(dt: float) -> void:
 				_cambiar_heroe(k)
 				_sonido.tocar(600.0 + k * 150.0, 0.1, "triangulo")
 	var centro := Vector2(pos.x + PW * T / 2.0, pos.y + PH * T / 2.0)
-	if _mecanica("disparar") and _disp_cd <= 0.0 and (Input.is_key_pressed(KEY_F) or Input.is_key_pressed(KEY_J)):
+	if _mecanica("disparar") and _disp_cd <= 0.0 and (Input.is_key_pressed(KEY_F) or Input.is_key_pressed(KEY_J) or _pulsado("disp")):
 		_disp_cd = 0.35
 		bolas.append({"x": centro.x, "y": centro.y, "d": cara})
-		_sonido.tocar(700.0, 0.06, "cuadrada")
-	if _mecanica("espada") and _esp_cd <= 0.0 and Input.is_key_pressed(KEY_H):
+		_sfx("disparar")
+	if _mecanica("espada") and _esp_cd <= 0.0 and (Input.is_key_pressed(KEY_H) or _pulsado("esp")):
 		_esp_cd = 0.45
 		_esp_t = 0.18
 		var zona := Rect2(centro.x - (0.0 if cara > 0.0 else T * 1.5), centro.y - T * 0.6, T * 1.5, T * 1.2)
@@ -733,8 +1164,10 @@ func _acciones(dt: float) -> void:
 			if not e["muerto"] and zona.intersects(Rect2(e["x"] * T, float(e["it"]["y"]) * T, T, T)):
 				e["muerto"] = true
 				puntos += _vale("enemy")
+				_n_ene += 1
+				_emitir(str(_fx_map.get("pisar", "")), Vector2(e["x"] * T + T / 2.0, float(e["it"]["y"]) * T + T / 2.0), 10)
 		_sonido.tocar(380.0, 0.1, "sierra")
-	if _mecanica("conjurar") and _conj_cd <= 0.0 and Input.is_key_pressed(KEY_G):
+	if _mecanica("conjurar") and _conj_cd <= 0.0 and (Input.is_key_pressed(KEY_G) or _pulsado("conj")):
 		_conj_cd = 0.6
 		var bx := floorf((centro.x + cara * T * 1.1) / T)
 		var by := floorf((pos.y + PH * T - 2.0) / T)
@@ -756,7 +1189,9 @@ func _acciones(dt: float) -> void:
 				e["muerto"] = true
 				b["x"] = -9999.0
 				puntos += _vale("enemy")
-				_sonido.tocar(300.0, 0.15)
+				_n_ene += 1
+				_sfx("pisar")
+				_emitir(str(_fx_map.get("pisar", "")), Vector2(e["x"] * T + T / 2.0, float(e["it"]["y"]) * T + T / 2.0), 10)
 	bolas = bolas.filter(func(b): return b["x"] > -500.0 and b["x"] < float(nivel["cols"]) * T + 500.0)
 	# bolitas de enemigos
 	for b in bolas_e:
@@ -780,6 +1215,11 @@ func _dibujar_mundo(ci: CanvasItem) -> void:
 	for b in bolas_e:
 		ci.draw_circle(Vector2(b["x"], b["y"]), 8.0, Color("7a1fff"))
 		ci.draw_circle(Vector2(b["x"], b["y"]), 4.0, Color("d9b8ff"))
+	for q in _parts:
+		var k: float = clampf(q["vida"] / q["max"], 0.0, 1.0)
+		var cc: Color = q["c"]
+		cc.a *= k
+		ci.draw_circle(Vector2(q["x"], q["y"]), float(q["t"]) * (0.5 + k * 0.5), cc)
 	if _esp_t > 0.0:
 		var cx := pos.x + PW * T / 2.0 + cara * T * 0.9
 		ci.draw_arc(Vector2(cx, pos.y + PH * T / 2.0), T * 0.7, -1.2 if cara > 0.0 else 1.94, 1.2 if cara > 0.0 else 4.34, 14, Color(1, 1, 1, 0.9), 6.0)
@@ -794,7 +1234,18 @@ func _dibujar_mundo(ci: CanvasItem) -> void:
 	for c in recogibles:
 		if not c["got"]:
 			Dibujo.objeto(ci, c, tema, t)
-	if meta != null:
+	for l in llaves:
+		if not l["got"]:
+			Dibujo.objeto(ci, l, tema, t)
+	for b in botones:
+		Dibujo.objeto(ci, b, tema, t)
+	for m in moviles:
+		Dibujo.objeto(ci, m["it"], tema, t)
+	for cj in cajas:
+		Dibujo.objeto(ci, cj["it"], tema, t)
+	for d in puertas:
+		Dibujo.objeto(ci, d, tema, t)
+	if meta != null and not _meta_oculta:
 		Dibujo.objeto(ci, meta, tema, t)
 	for e in enemigos:
 		if not e["muerto"] or e["sqt"] < 0.5:
@@ -809,6 +1260,32 @@ func _dibujar_mundo(ci: CanvasItem) -> void:
 		Dibujo.objeto(ci, {"t": "player", "x": c2.x, "y": c2.y}, tema, t, {"e": nivel["hero"], "cara": cara})
 
 
+## Cueva oscura: todo se oscurece menos un círculo de luz alrededor del héroe.
+func _dibujar_oscuridad(ci: CanvasItem) -> void:
+	var osc := float(nivel.get("oscuridad", 0.0))
+	if osc <= 0.0:
+		return
+	if _luz_tex == null:
+		var gr := Gradient.new()
+		gr.offsets = PackedFloat32Array([0.0, 0.5, 1.0])
+		gr.colors = PackedColorArray([Color(0, 0, 0, 0), Color(0, 0, 0, 0.15), Color(0, 0, 0, 1)])
+		_luz_tex = GradientTexture2D.new()
+		_luz_tex.gradient = gr
+		_luz_tex.fill = GradientTexture2D.FILL_RADIAL
+		_luz_tex.fill_from = Vector2(0.5, 0.5)
+		_luz_tex.fill_to = Vector2(1.0, 0.5)
+		_luz_tex.width = 256
+		_luz_tex.height = 256
+	var c := Vector2((pos.x + PW * T / 2.0 - cam) * escala, (pos.y + PH * T / 2.0) * escala)
+	var R := 4.5 * T * escala
+	var col := Color(0, 0, 0, osc)
+	ci.draw_texture_rect(_luz_tex, Rect2(c - Vector2(R, R), Vector2(R, R) * 2.0), false, col)
+	ci.draw_rect(Rect2(0, 0, size.x, maxf(0.0, c.y - R)), col)
+	ci.draw_rect(Rect2(0, c.y + R, size.x, maxf(0.0, size.y - c.y - R)), col)
+	ci.draw_rect(Rect2(0, c.y - R, maxf(0.0, c.x - R), R * 2.0), col)
+	ci.draw_rect(Rect2(c.x + R, c.y - R, maxf(0.0, size.x - c.x - R), R * 2.0), col)
+
+
 func _dibujar_hud(ci: CanvasItem) -> void:
 	_hud_extra(ci)
 	var fuente := ThemeDB.fallback_font
@@ -819,9 +1296,13 @@ func _dibujar_hud(ci: CanvasItem) -> void:
 		Dibujo.emoji(ci, "❤", Vector2(130 + i * 30, 30), 26.0)
 	if _escudos > 0:
 		Dibujo.emoji(ci, "🛡", Vector2(130 + maxi(0, vidas) * 30 + 6, 30), 24.0)
+	if _llaves_disp > 0:
+		Dibujo.emoji(ci, "🔑", Vector2(size.x - 30, 80), 28.0)
+		ci.draw_string(fuente, Vector2(size.x - 50, 108), "x%d" % _llaves_disp, HORIZONTAL_ALIGNMENT_RIGHT, -1, 18, Color.WHITE)
+	_dibujar_oscuridad(ci)
 	if _trio:
 		for i in TRIO.size():
-			var rc := Rect2(12 + i * 62, 56, 56, 56)
+			var rc := Rect2(12 + i * 62, 110, 56, 56)
 			ci.draw_style_box(Estilo.caja(Color(1, 0.85, 0.2, 0.9) if i == _hero_i else Color(0, 0, 0, 0.45), 14), rc)
 			Dibujo.emoji(ci, str(TRIO[i][0]), rc.get_center() + Vector2(0, -2), 44.0)
 			ci.draw_string(fuente, rc.position + Vector2(5, 14), str(i + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.WHITE)
@@ -842,3 +1323,8 @@ func _dibujar_hud(ci: CanvasItem) -> void:
 				_:
 					tri = PackedVector2Array([c + Vector2(0, -k), c + Vector2(-k, k * 0.7), c + Vector2(k, k * 0.7)])
 			ci.draw_colored_polygon(tri, Color.WHITE)
+		for e in _zonas_extra():
+			var r2 := _rect_zona(e[0])
+			ci.draw_circle(r2.get_center(), r2.size.x / 2.0, Color(1, 1, 1, 0.5 if _pulsado(e[0]) else 0.28))
+			ci.draw_arc(r2.get_center(), r2.size.x / 2.0, 0.0, TAU, 28, Color(1, 1, 1, 0.8), 3.0)
+			Dibujo.emoji(ci, str(e[1]), r2.get_center(), 40.0)

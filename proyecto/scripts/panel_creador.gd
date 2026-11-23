@@ -4,6 +4,7 @@ extends ColorRect
 
 signal cerrar
 signal guardado(id: String)
+signal animar
 
 const Estilo := preload("res://scripts/estilo.gd")
 const Assets := preload("res://scripts/assets3d.gd")
@@ -105,6 +106,11 @@ func _ready() -> void:
 			_en_mano = par[1]
 			_pintar())
 		f2.add_child(b)
+	var anim := Button.new()
+	anim.text = " Animar una imagen (hoja de cuadros)"
+	anim.custom_minimum_size = Vector2(0, 46)
+	anim.pressed.connect(func(): animar.emit())
+	v.add_child(anim)
 	_t(v, "4. Ponle nombre y guárdalo", 18, Estilo.TINTA)
 	_nombre = LineEdit.new()
 	_nombre.placeholder_text = "Mi personaje"

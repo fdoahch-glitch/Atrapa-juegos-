@@ -159,7 +159,7 @@ func _dibujar_mundo(ci: CanvasItem) -> void:
 		ci.draw_dashed_line(Vector2(r.end.x, r.position.y), r.end, col, 3.0 * px, 8.0 * px)
 		ci.draw_dashed_line(r.end, Vector2(r.position.x, r.end.y), col, 3.0 * px, 8.0 * px)
 		ci.draw_dashed_line(Vector2(r.position.x, r.end.y), r.position, col, 3.0 * px, 8.0 * px)
-		if sel["t"] == "plat":
+		if sel["t"] == "plat" or sel["t"] == "platmov":
 			ci.draw_circle(r.end, 11.0 * px, Color.WHITE)
 			ci.draw_arc(r.end, 11.0 * px, 0.0, TAU, 20, col, 3.0 * px)
 		if sel["t"] == "enemy" and not vert:
@@ -204,7 +204,7 @@ func _dibujar_fantasma(ci: CanvasItem) -> void:
 	it = _m(it)
 	var extra := {}
 	match d["t"]:
-		"plat":
+		"plat", "platmov":
 			it["w"] = 3
 			it["h"] = 1
 		"enemy":
@@ -266,6 +266,10 @@ func _bajar(p: Vector2) -> void:
 		agregado.emit(str(it["t"]))
 		seleccionado.emit(sel)
 		return
+	if herramienta == "pintar":
+		_drag = {"modo": "pintar_bloques", "ultimo": Vector2i(-1, -1)}
+		_pintar_celda(cx, cy)
+		return
 	if herramienta == "borrar":
 		var h = Datos.objeto_en(c)
 		if h != null and h["t"] != "player":
@@ -275,7 +279,7 @@ func _bajar(p: Vector2) -> void:
 		_drag = {"modo": "borrar"}
 		seleccionado.emit(null)
 		return
-	if sel != null and sel["t"] == "plat" and c.distance_to(Datos.caja_de(sel).end) < 0.55:
+	if sel != null and (sel["t"] == "plat" or sel["t"] == "platmov") and c.distance_to(Datos.caja_de(sel).end) < 0.55:
 		_drag = {"modo": "estirar", "it": sel}
 		return
 	var h2 = Datos.objeto_en(c)
@@ -304,6 +308,8 @@ func _mover(p: Vector2) -> void:
 			if _drag["movido"]:
 				it["w"] = clampi(cx - _drag["ox"] + 1, 1, cols - it["x"])
 				it["h"] = clampi(cy - _drag["oy"] + 1, 1, Datos.FILAS - it["y"])
+		"pintar_bloques":
+			_pintar_celda(cx, cy)
 		"pintar":
 			var cel := Vector2i(cx, cy)
 			var ant: Vector2i = _drag["ultimo"]
@@ -325,8 +331,8 @@ func _mover(p: Vector2) -> void:
 		"mover":
 			var it2: Dictionary = _drag["it"]
 			var b := Datos.caja_de(it2)
-			var ancho := int(it2["w"]) if it2["t"] == "plat" else 1
-			var alto := int(it2["h"]) if it2["t"] == "plat" else 1
+			var ancho := int(it2["w"]) if (it2["t"] == "plat" or it2["t"] == "platmov") else 1
+			var alto := int(it2["h"]) if (it2["t"] == "plat" or it2["t"] == "platmov") else 1
 			var nx := clampi(roundi(c.x - _drag["dx"]), 0, cols - ancho)
 			var ny := clampi(roundi(c.y - _drag["dy"]), 0, Datos.FILAS - alto)
 			if Datos.es_corredor() and Datos.TIPOS_PISTA.has(str(it2["t"])):
@@ -349,7 +355,26 @@ func _mover(p: Vector2) -> void:
 			origen = _drag["origen"] + (p - _drag["inicio"])
 
 
+## Pincel de bloques: pinta una celda de plataforma si está libre.
+func _pintar_celda(cx: int, cy: int) -> void:
+	if cx < 0 or cy < 0 or cx >= int(Datos.nivel["cols"]) or cy >= Datos.FILAS:
+		return
+	var u: Vector2i = _drag.get("ultimo", Vector2i(-1, -1))
+	if u == Vector2i(cx, cy):
+		return
+	_drag["ultimo"] = Vector2i(cx, cy)
+	for o in Datos.nivel["items"]:
+		if o["t"] == "plat" and Rect2(o["x"], o["y"], o["w"], o["h"]).has_point(Vector2(cx + 0.5, cy + 0.5)):
+			return
+	var it := Datos.colocar({"t": "plat"}, cx, cy)
+	it["w"] = 1
+	it["h"] = 1
+	_cambiado = true
+
+
 func _subir() -> void:
+	if not _drag.is_empty() and _drag.get("modo", "") == "pintar_bloques":
+		Datos.unir_bloques()
 	if not _drag.is_empty() and (_cambiado or _drag["modo"] == "dibujar"):
 		Datos.confirmar()
 		cambio.emit()

@@ -11,6 +11,9 @@ const PanelMini := preload("res://scripts/panel_mini.gd")
 const PanelJuego := preload("res://scripts/panel_juego.gd")
 const PanelPista := preload("res://scripts/panel_pista.gd")
 const PanelCreador := preload("res://scripts/panel_creador.gd")
+const PanelHoja := preload("res://scripts/panel_hoja.gd")
+const PanelEfectos := preload("res://scripts/panel_efectos.gd")
+const PanelEventos := preload("res://scripts/panel_eventos.gd")
 const Recetas := preload("res://scripts/recetas.gd")
 const PersonajesPanel := preload("res://scripts/panel_personajes.gd")
 const PortadaEd := preload("res://scripts/portada_editor.gd")
@@ -39,6 +42,7 @@ var _btn_undo: Button
 var _btn_redo: Button
 var _t_mover: Button
 var _t_borrar: Button
+var _t_pintar: Button
 var _largo: OptionButton
 var _chip_caja: CenterContainer
 var _chip_txt: Label
@@ -303,6 +307,10 @@ func _construir() -> void:
 	_t_mover = _boton(" Mover", "✋")
 	_t_mover.pressed.connect(func(): _usar_herramienta("mover"))
 	herr.add_child(_t_mover)
+	_t_pintar = _boton(" Pintar", "🖌")
+	_t_pintar.tooltip_text = "Pinta bloques arrastrando, como un tilemap"
+	_t_pintar.pressed.connect(func(): _usar_herramienta("pintar"))
+	herr.add_child(_t_pintar)
 	_t_borrar = _boton(" Borrar", "🧽")
 	_t_borrar.pressed.connect(func(): _usar_herramienta("borrar"))
 	herr.add_child(_t_borrar)
@@ -436,6 +444,8 @@ func _defs(que: String) -> Array:
 					r.append({"id": "f" + a["id"], "n": a["n"], "t": "fondo_img", "e": a["id"]})
 		"objetos":
 			var lista := [["plat", "Plataforma"], ["coin", "Moneda"], ["star", "Estrella"], ["gem", "Gema"], ["spike", "Pinchos"], ["spring", "Resorte"], ["goal", "Meta"], ["player", "Inicio"]]
+			if modo == "2d" and str(Datos.nivel.get("tipo", "")) != "arriba" and str(Datos.nivel.get("estilo", "")) == "":
+				lista += [["llave", "Llave"], ["puerta", "Puerta"], ["boton", "Botón"], ["platmov", "Plataforma móvil"], ["caja", "Caja empujable"]]
 			if modo == "2d" and str(Datos.nivel.get("tipo", "")) == "arriba":
 				lista = [["plat", "Pared"], ["coin", "Moneda"], ["star", "Estrella"], ["gem", "Gema"], ["spike", "Pinchos"], ["goal", "Meta"], ["player", "Inicio"]]
 			if str(Datos.nivel.get("estilo", "")) in ["carrera", "kart"]:
@@ -647,13 +657,14 @@ func _incorporar(ruta: String) -> int:
 # ------------------------------------------------------------------ barra de herramientas
 func _usar_herramienta(h: String) -> void:
 	_esc.herramienta = h
-	if h == "borrar":
+	if h == "borrar" or h == "pintar":
 		_esc.stamp = {}
 		_esc.sel = null
 		_refrescar_chip()
 		_marcar_fichas()
 	_marcar(_t_mover, h == "mover")
 	_marcar(_t_borrar, h == "borrar")
+	_marcar(_t_pintar, h == "pintar")
 	if _construido:
 		_refrescar_props()
 
@@ -761,6 +772,12 @@ func _refrescar_niveles() -> void:
 		be.tooltip_text = ex[2]
 		be.pressed.connect(_ir_paso.bind(ex[3]))
 		_niveles_fila.add_child(be)
+	for tb2 in [[" Eventos", "⚡", "Si pasa esto, haz aquello", "eventos"], [" Efectos", "🎬", "Sonidos, partículas, cámara, luces y filtros", "efectos"]]:
+		var be2 := _boton(tb2[0], tb2[1])
+		be2.custom_minimum_size.y = 40
+		be2.tooltip_text = tb2[2]
+		be2.pressed.connect(_ir_paso.bind(tb2[3]))
+		_niveles_fila.add_child(be2)
 	var crear := _boton(" Crear personaje", "🧑")
 	crear.custom_minimum_size.y = 40
 	crear.tooltip_text = "Arma un personaje: cuerpo, color y accesorio"
@@ -1237,12 +1254,12 @@ func _refrescar_props() -> void:
 		_props_caja.visible = false
 		return
 	_props_caja.visible = true
-	var nombres := {"plat": "Plataforma", "coin": "Moneda", "star": "Estrella", "gem": "Gema", "spike": "Pinchos", "spring": "Resorte", "goal": "Meta", "enemy": "Enemigo", "deco": "Decoración", "player": "Inicio"}
+	var nombres := {"plat": "Plataforma", "coin": "Moneda", "star": "Estrella", "gem": "Gema", "spike": "Pinchos", "spring": "Resorte", "goal": "Meta", "llave": "Llave", "puerta": "Puerta", "boton": "Botón", "platmov": "Plataforma móvil", "caja": "Caja", "enemy": "Enemigo", "deco": "Decoración", "player": "Inicio"}
 	var l := Label.new()
 	l.text = nombres.get(s["t"], "")
 	l.add_theme_font_size_override("font_size", 20)
 	_props_fila.add_child(l)
-	if s["t"] == "plat":
+	if s["t"] == "plat" or s["t"] == "platmov":
 		_props_fila.add_child(_grupo("Ancho", str(s["w"]), _ajustar.bind("w", -1), _ajustar.bind("w", 1)))
 		_props_fila.add_child(_grupo("Alto", str(s["h"]), _ajustar.bind("h", -1), _ajustar.bind("h", 1)))
 	if s["t"] == "plat" and modo == "3d":
@@ -1263,7 +1280,7 @@ func _refrescar_props() -> void:
 			dl.focus_exited.connect(Datos.confirmar)
 			dl.text_submitted.connect(func(_t): Datos.confirmar(); dl.release_focus())
 			_props_fila.add_child(dl)
-	if s["t"] == "enemy":
+	if s["t"] == "enemy" or s["t"] == "platmov":
 		_props_fila.add_child(_grupo("Recorrido", str(s["r"]), _ajustar.bind("r", -1), _ajustar.bind("r", 1)))
 		_props_fila.add_child(_grupo("Rapidez", str(int(s["sp"]) / 10), _ajustar.bind("sp", -1), _ajustar.bind("sp", 1)))
 	if s["t"] == "enemy" and modo == "2d" and str(Datos.nivel.get("tipo", "")) != "arriba":
@@ -1280,7 +1297,25 @@ func _refrescar_props() -> void:
 			s["ia"] = Datos.COMPORTAMIENTOS[k][0]
 			Datos.confirmar())
 		_props_fila.add_child(oc)
-	if not ["plat", "player", "goal", "pared", "viga", "valla"].has(str(s["t"])):
+	if s["t"] == "deco":
+		var of := OptionButton.new()
+		of.custom_minimum_size = Vector2(150, 40)
+		of.focus_mode = Control.FOCUS_NONE
+		of.tooltip_text = "Partículas que salen de la decoración"
+		var fxs := str(s.get("fx", ""))
+		for k in Datos.PART_TIPOS.size():
+			of.add_item("Part: " + str(Datos.PART_TIPOS[k][1]), k)
+			if Datos.PART_TIPOS[k][0] == fxs:
+				of.selected = k
+		of.item_selected.connect(func(k):
+			var v: String = Datos.PART_TIPOS[k][0]
+			if v == "":
+				s.erase("fx")
+			else:
+				s["fx"] = v
+			Datos.confirmar())
+		_props_fila.add_child(of)
+	if not ["plat", "platmov", "player", "goal", "pared", "viga", "valla", "puerta", "boton", "caja"].has(str(s["t"])):
 		var oa := OptionButton.new()
 		oa.custom_minimum_size = Vector2(140, 40)
 		oa.focus_mode = Control.FOCUS_NONE
@@ -1532,6 +1567,10 @@ func _ir_paso(abre: String) -> void:
 			_abrir_reglas()
 		"mecanicas", "fisica":
 			_abrir_juego(abre)
+		"hoja":
+			_abrir_modal_simple(PanelHoja.new())
+		"eventos", "efectos":
+			_abrir_modal_simple(PanelEventos.new() if abre == "eventos" else PanelEfectos.new())
 		"trazado":
 			_set_etapa("mundo")
 			_abrir_pista()
@@ -1553,6 +1592,14 @@ func _abrir_juego(que: String) -> void:
 	move_child(_tut, get_child_count() - 1)
 	_modal = pj
 	pj.cerrar.connect(_cerrar_modal)
+
+
+func _abrir_modal_simple(p: Control) -> void:
+	_cerrar_modal()
+	add_child(p)
+	move_child(_tut, get_child_count() - 1)
+	_modal = p
+	p.cerrar.connect(_cerrar_modal)
 
 
 func _abrir_pista() -> void:
@@ -1577,6 +1624,7 @@ func _abrir_creador() -> void:
 	pc.guardado.connect(func(_id):
 		if _etapa == "mundo":
 			_cambiar_tab("mis"))
+	pc.animar.connect(func(): _abrir_modal_simple(PanelHoja.new()))
 
 
 func _abrir_elementos() -> void:

@@ -99,6 +99,35 @@ static func _nombre_libre(base: String) -> String:
 	return n
 
 
+const HOJAS := "user://mis_assets/hojas.json"
+static var _hojas: Dictionary = {}
+static var _hojas_ok := false
+
+
+## Hoja de animación de una imagen propia: {c: columnas, f: filas, fps}. Vacío si no es una hoja.
+static func hoja(id: String) -> Dictionary:
+	if not _hojas_ok:
+		_hojas_ok = true
+		if FileAccess.file_exists(HOJAS):
+			var r = JSON.parse_string(FileAccess.get_file_as_string(HOJAS))
+			if r is Dictionary:
+				_hojas = r
+	var h: Variant = _hojas.get(id, {})
+	return h if h is Dictionary else {}
+
+
+static func poner_hoja(id: String, cols: int, filas: int, fps: int) -> void:
+	hoja(id)
+	if cols <= 1 and filas <= 1:
+		_hojas.erase(id)
+	else:
+		_hojas[id] = {"c": clampi(cols, 1, 32), "f": clampi(filas, 1, 32), "fps": clampi(fps, 1, 30)}
+	DirAccess.make_dir_recursive_absolute(CARPETA)
+	var f := FileAccess.open(HOJAS, FileAccess.WRITE)
+	if f:
+		f.store_string(JSON.stringify(_hojas))
+
+
 ## Guarda una imagen hecha dentro del programa (por ejemplo, un personaje creado) como dibujo propio.
 static func guardar_imagen(img: Image, nombre: String) -> String:
 	DirAccess.make_dir_recursive_absolute(CARPETA)

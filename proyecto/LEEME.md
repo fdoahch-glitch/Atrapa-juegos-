@@ -125,3 +125,14 @@ Cada tipo del asistente crea una demo que funciona desde el primer toque y que p
 - **Creador de pista**: la pista vista desde arriba con sus curvas, subidas y bajadas.
 - **Trío de héroes** (Plataformas → Trío): teclas 1, 2 y 3. Caballero (espada, H), mago (crea bloques, G) y ladrón (doble salto, dispara con F y corre con Shift).
 - Teclas: X/K impulso, F/J disparar, H espada, G bloques, Shift correr.
+
+
+## Eventos, efectos y más (segunda ronda)
+- ⚡ **Eventos**: «si recojo 10 monedas → abre las puertas», «si pasan 30 s → mensaje», dar vidas o puntos, mostrar la meta, ganar o perder.
+- **Objetos nuevos** (plataformas 2D): llave, puerta, botón (abre las puertas), plataforma móvil (lleva al héroe) y caja empujable (cae y se empuja).
+- 🎬 **Efectos y sonido**: sonido por evento (incluye tus propios sonidos), partículas (chispas, humo, fuego, nieve, explosión; también en decoraciones), suavidad de cámara y temblor, cueva oscura con linterna, filtros de pantalla (blanco y negro, sepia, retro, viñeta, frío, cálido), transición (fundido o cortina), idioma de los textos del programa (español/inglés) y créditos.
+- **Controles táctiles** para impulso, disparo, espada y bloques; en el trío se cambia de héroe tocando su cuadro.
+- **Pausa** (Esc, P o botón ⏸): continuar, sonido, volumen, créditos y salir. **Continuar** partida guardada en el menú de inicio.
+- 🖌 **Pintar** bloques arrastrando (los bloques pegados se unen solos).
+- 🎞 **Animar una imagen**: hoja de cuadros (columnas, filas y velocidad).
+- Enemigo nuevo: **Vigila** (patrulla y, si te ve de frente, te persigue un rato).

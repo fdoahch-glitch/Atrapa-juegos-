@@ -14,6 +14,18 @@ static func emoji(ci: CanvasItem, e: String, c: Vector2, tam: float, voltear: bo
 	if tex == null:
 		return
 	ci.draw_set_transform(c, 0.0, Vector2(-1.0 if voltear else 1.0, esc_y))
+	var h: Dictionary = Datos.Importar.hoja(e) if e.begins_with("u:") else {}
+	if not h.is_empty():
+		# imagen con varios cuadros de animación (hoja): se muestra un cuadro a la vez
+		var cols := int(h["c"])
+		var filas := int(h["f"])
+		var fr := int(float(Time.get_ticks_msec()) / 1000.0 * float(h["fps"])) % maxi(1, cols * filas)
+		var fw := float(tex.get_width()) / cols
+		var fh := float(tex.get_height()) / filas
+		var asp := fw / maxf(1.0, fh)
+		ci.draw_texture_rect_region(tex, Rect2(Vector2(-tam * asp / 2.0, -tam / 2.0), Vector2(tam * asp, tam)), Rect2((fr % cols) * fw, (fr / cols) * fh, fw, fh))
+		ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		return
 	ci.draw_texture_rect(tex, Rect2(Vector2(-tam / 2.0, -tam / 2.0), Vector2(tam, tam)), false)
 	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
@@ -159,6 +171,30 @@ static func objeto(ci: CanvasItem, it0: Dictionary, th: Dictionary, t: float, ex
 			ci.draw_rect(Rect2(x, y, w, 12), pl[1])
 			ci.draw_rect(Rect2(x, y, w, 3), Color(1, 1, 1, 0.28))
 			ci.draw_rect(Rect2(x + 1, y + 1, w - 2, h - 2), Color(0, 0, 0, 0.25), false, 2.0)
+		"llave":
+			emoji(ci, "🔑", Vector2(x + T / 2.0, y + T / 2.0 + sin(t * 3.0 + float(it["x"])) * 3.0), 36.0)
+		"puerta":
+			if it.get("abierta", false):
+				return
+			ci.draw_rect(Rect2(x + 4, y, T - 8, T * 2), Color("7a4b24"))
+			ci.draw_rect(Rect2(x + 4, y, T - 8, T * 2), Color("4a2c12"), false, 3.0)
+			ci.draw_rect(Rect2(x + 10, y + 8, T - 20, T * 2 - 16), Color("9a6532"))
+			ci.draw_circle(Vector2(x + T - 14, y + T), 4.0, Color("ffd23f"))
+		"boton":
+			ci.draw_rect(Rect2(x + 2, y + T - 6, T - 4, 6), Color("4b5563"))
+			ci.draw_rect(Rect2(x + 8, y + T - (4 if it.get("on", false) else 10), T - 16, 6 if it.get("on", false) else 8), Color("22c55e") if it.get("on", false) else Color("ef4444"))
+		"platmov":
+			var wm: float = float(it.get("w", 3)) * T
+			ci.draw_rect(Rect2(x, y, wm, T * 0.4), Color("f59e0b"))
+			ci.draw_rect(Rect2(x, y, wm, 4), Color("fde68a"))
+			for k in range(0, int(it.get("w", 3))):
+				ci.draw_rect(Rect2(x + k * T + 4, y + 4, 8, T * 0.4 - 8), Color("b45309"))
+			ci.draw_arc(Vector2(x + wm / 2.0, y + T * 0.2), 6.0, 0.0, TAU, 12, Color(1, 1, 1, 0.6), 2.0)
+		"caja":
+			ci.draw_rect(Rect2(x + 2, y + 2, T - 4, T - 4), Color("a16207"))
+			ci.draw_rect(Rect2(x + 2, y + 2, T - 4, T - 4), Color("422006"), false, 3.0)
+			ci.draw_line(Vector2(x + 4, y + 4), Vector2(x + T - 4, y + T - 4), Color("422006"), 3.0)
+			ci.draw_line(Vector2(x + T - 4, y + 4), Vector2(x + 4, y + T - 4), Color("422006"), 3.0)
 		"coin":
 			var c := Vector2(x + T / 2.0, y + T / 2.0 + sin(t * 4.0 + it["x"]) * 3.0)
 			var sx := absf(cos(t * 3.0 + it["x"])) * 0.7 + 0.3

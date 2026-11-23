@@ -23,7 +23,7 @@ const DIFICULTADES := {
 
 
 static func leer() -> Dictionary:
-	var d := {"dificultad": "", "fosiles": 0, "minutos": 0.0, "rank": [], "skin": "", "skins": [], "accesorios": [], "puestos": [], "dia": 0, "hechas": [], "ficha_vista": 0, "logros": []}
+	var d := {"dificultad": "", "fosiles": 0, "minutos": 0.0, "rank": [], "skin": "", "skins": [], "accesorios": [], "puestos": [], "dia": 0, "hechas": [], "ficha_vista": 0, "logros": [], "partidas": {}}
 	if FileAccess.file_exists(RUTA):
 		var r = JSON.parse_string(FileAccess.get_file_as_string(RUTA))
 		if r is Dictionary:
@@ -31,6 +31,29 @@ static func leer() -> Dictionary:
 				if r.has(k):
 					d[k] = r[k]
 	return d
+
+
+## Partida guardada: en qué nivel quedaste y con cuántos puntos.
+static func guardar_partida(nombre: String, idx: int, puntos: int) -> void:
+	var d := leer()
+	var p: Dictionary = d["partidas"] if d["partidas"] is Dictionary else {}
+	p[nombre] = {"idx": idx, "puntos": puntos}
+	d["partidas"] = p
+	guardar(d)
+
+
+static func leer_partida(nombre: String) -> Dictionary:
+	var p: Variant = leer()["partidas"]
+	if p is Dictionary and (p as Dictionary).get(nombre) is Dictionary:
+		return p[nombre]
+	return {}
+
+
+static func borrar_partida(nombre: String) -> void:
+	var d := leer()
+	if d["partidas"] is Dictionary:
+		(d["partidas"] as Dictionary).erase(nombre)
+		guardar(d)
 
 
 static func guardar(d: Dictionary) -> void:

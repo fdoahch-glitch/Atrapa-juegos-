@@ -55,7 +55,7 @@ var niveles: Array = []             # copias de todos los niveles (el actual se 
 var idx := 0                        # posición del nivel actual
 var reglas: Dictionary = {}         # reglas del juego completo
 const MAX_NIVELES := 10
-const REGLAS_BASE := {"vidas": 3, "tiempo": 0, "meta": "meta", "pts_coin": 1, "pts_gem": 3, "pts_star": 5, "pts_enemy": 2, "titulo": true, "final": "¡Ganaste el juego!", "musica": "", "mascota": "", "poder": "escudo", "tienda": false, "jugadores": 1, "heroe2": "", "plataforma": "windows", "categoria": "", "subtipo": "", "rend": {}, "dificultad": "normal", "elegir_dificultad": false, "misiones": false, "revivir": 0, "modo_prueba": false, "arma": "pistola", "espera": false, "logros": true, "sin_fin": false, "fis": {}, "mec": {}}
+const REGLAS_BASE := {"vidas": 3, "tiempo": 0, "meta": "meta", "pts_coin": 1, "pts_gem": 3, "pts_star": 5, "pts_enemy": 2, "titulo": true, "final": "¡Ganaste el juego!", "musica": "", "mascota": "", "poder": "escudo", "tienda": false, "jugadores": 1, "heroe2": "", "plataforma": "windows", "categoria": "", "subtipo": "", "rend": {}, "dificultad": "normal", "elegir_dificultad": false, "misiones": false, "revivir": 0, "modo_prueba": false, "arma": "pistola", "espera": false, "logros": true, "sin_fin": false, "fis": {}, "mec": {}, "sonidos": {}, "fx": {}, "cam_suave": 100, "cam_temblor": true, "trans": "fundido", "idioma": "es", "creditos": ""}
 var historial: Array[String] = []
 var futuro: Array[String] = []
 var _actual := ""
@@ -176,6 +176,34 @@ func nivel_corredor() -> Dictionary:
 
 ## Mundo de ejemplo del modo 3D «Aventura»: se ve desde arriba; 1 celda = 2 metros.
 ## Plataformas con tres héroes que se cambian al vuelo (como Trine): caballero, mago y ladrón.
+## Une los bloques sueltos (plataformas de 1 celda pintadas) que quedan uno al lado del otro.
+func unir_bloques() -> void:
+	var por_fila := {}
+	var otros: Array = []
+	for it in nivel["items"]:
+		if it["t"] == "plat" and int(it.get("h", 1)) == 1:
+			var y := int(it["y"])
+			if not por_fila.has(y):
+				por_fila[y] = []
+			por_fila[y].append(it)
+		else:
+			otros.append(it)
+	var res: Array = otros
+	for y in por_fila.keys():
+		var fila: Array = por_fila[y]
+		fila.sort_custom(func(a, b): return int(a["x"]) < int(b["x"]))
+		var cur: Dictionary = fila[0]
+		for i in range(1, fila.size()):
+			var sig: Dictionary = fila[i]
+			if int(cur["x"]) + int(cur["w"]) >= int(sig["x"]):
+				cur["w"] = maxi(int(cur["w"]), int(sig["x"]) + int(sig["w"]) - int(cur["x"]))
+			else:
+				res.append(cur)
+				cur = sig
+		res.append(cur)
+	nivel["items"] = res
+
+
 func nivel_trio() -> Dictionary:
 	var n := nivel_inicial()
 	n["name"] = "Mi trío"
@@ -704,6 +732,8 @@ func normalizar(n: Dictionary) -> Dictionary:
 			it["h"] = maxi(1, int(it.get("h", 1)))
 		if ["deco", "enemy"].has(str(it["t"])) and str(it.get("e", "")) == "":
 			it["e"] = "👾" if str(it["t"]) == "enemy" else "🌳"
+		if it.has("fx") and not PART_TIPOS.any(func(c): return c[0] == str(it["fx"])):
+			it.erase("fx")
 		if it.has("ia") and not COMPORTAMIENTOS.any(func(c): return c[0] == str(it["ia"])):
 			it.erase("ia")
 		if it.has("anim") and not ANIM_OBJ.any(func(c): return c[0] == str(it["anim"])):
@@ -712,11 +742,97 @@ func normalizar(n: Dictionary) -> Dictionary:
 			it["id"] = nuevo_id()
 		limpios.append(it)
 	n["items"] = limpios
+	var evs: Array = []
+	if n.get("eventos") is Array:
+		for ev in n["eventos"]:
+			if ev is Dictionary and EVENTOS_SI.any(func(c): return c[0] == str(ev.get("si", ""))) and EVENTOS_HAZ.any(func(c): return c[0] == str(ev.get("haz", ""))):
+				evs.append({"si": str(ev["si"]), "n": clampi(int(ev.get("n", 1)), 1, 9999), "haz": str(ev["haz"]), "txt": str(ev.get("txt", "")).left(80), "v": clampi(int(ev.get("v", 1)), 0, 9999)})
+	if evs.is_empty():
+		n.erase("eventos")
+	else:
+		n["eventos"] = evs
+	if float(n.get("oscuridad", 0.0)) <= 0.0:
+		n.erase("oscuridad")
+	else:
+		n["oscuridad"] = clampf(float(n["oscuridad"]), 0.0, 0.95)
+	if not FILTROS.any(func(c): return c[0] == str(n.get("filtro", ""))) or str(n.get("filtro", "")) == "":
+		n.erase("filtro")
 	return n
 
 
 ## Reglas con todos los valores presentes (los que falten usan el valor base).
 ## Física del mundo (plataformas): 1.0 = normal. Cada número multiplica el valor de siempre.
+## Sonidos: cada evento del juego usa uno de estos (o un sonido tuyo "m:..."). Vacío = silencio.
+const SFX_PRE := {"pip": [880.0, 0.08, "cuadrada"], "moneda": [988.0, 0.1, "triangulo"], "salto": [520.0, 0.12, "cuadrada"], "laser": [1400.0, 0.1, "sierra"],
+	"golpe": [150.0, 0.25, "sierra"], "pop": [300.0, 0.12, "seno"], "magia": [1200.0, 0.25, "triangulo"], "victoria": [1000.0, 0.4, "triangulo"], "grave": [110.0, 0.3, "cuadrada"]}
+const SFX_NOMBRES := {"": "Silencio", "pip": "Pip", "moneda": "Moneda", "salto": "Salto", "laser": "Láser", "golpe": "Golpe", "pop": "Pop", "magia": "Magia", "victoria": "Victoria", "grave": "Grave"}
+const SFX_EVENTOS := [["saltar", "Al saltar", "salto"], ["recoger", "Al recoger un premio", "moneda"], ["pisar", "Al derrotar un enemigo", "pop"], ["golpe", "Al recibir un golpe", "golpe"], ["disparar", "Al disparar", "laser"], ["ganar", "Al ganar", "victoria"], ["perder", "Al perder", "grave"]]
+## Partículas: efectos de chispas, humo, fuego…
+const PART_TIPOS := [["", "Ninguna"], ["chispas", "Chispas"], ["estrellas", "Estrellas"], ["polvo", "Polvo"], ["humo", "Humo"], ["fuego", "Fuego"], ["nieve", "Nieve"], ["explosion", "Explosión"]]
+const FX_EVENTOS := [["recoger", "Al recoger un premio", "chispas"], ["saltar", "Al saltar", ""], ["pisar", "Al derrotar un enemigo", "explosion"], ["golpe", "Al recibir un golpe", "estrellas"]]
+## Eventos: «si pasa esto, haz aquello».
+const EVENTOS_SI := [["monedas", "Recojo monedas"], ["enemigos", "Derroto enemigos"], ["puntos", "Llego a puntos"], ["tiempo", "Pasan segundos"], ["llave", "Recojo una llave"], ["boton", "Piso un botón"]]
+const EVENTOS_HAZ := [["mensaje", "Mostrar un mensaje"], ["puertas", "Abrir las puertas"], ["meta", "Mostrar la meta"], ["vida", "Dar una vida"], ["puntos", "Dar puntos"], ["efecto", "Lanzar partículas"], ["ganar", "Ganar el nivel"], ["perder", "Perder el nivel"]]
+const FILTROS := [["", "Ninguno"], ["bn", "Blanco y negro"], ["sepia", "Sepia"], ["retro", "Pixelado retro"], ["vineta", "Viñeta"], ["frio", "Frío"], ["calido", "Cálido"]]
+const TRANSICIONES := [["ninguna", "Ninguna"], ["fundido", "Fundido"], ["cortina", "Cortina"]]
+
+
+func sfx_normal(d: Variant) -> Dictionary:
+	var m: Dictionary = d if d is Dictionary else {}
+	var o := {}
+	for e in SFX_EVENTOS:
+		var v := str(m.get(e[0], e[2]))
+		o[e[0]] = v if (SFX_NOMBRES.has(v) or v.begins_with("m:")) else e[2]
+	return o
+
+
+func fx_normal(d: Variant) -> Dictionary:
+	var m: Dictionary = d if d is Dictionary else {}
+	var o := {}
+	for e in FX_EVENTOS:
+		var v := str(m.get(e[0], e[2]))
+		o[e[0]] = v if PART_TIPOS.any(func(p): return p[0] == v) else e[2]
+	return o
+
+
+## Traducción de los textos que trae el programa (los tuyos no se traducen).
+const TRAD_RE := [["Recogiste (\\d+) de (\\d+) premios", "You collected $1 of $2 items"], ["Te faltan (\\d+) premios para abrir la meta", "$1 items missing to open the goal"],
+	["Te faltaron (\\d+) premios para ganar", "You missed $1 items to win"], ["¡Nivel (\\d+) completado!", "Level $1 complete!"], ["Nivel (\\d+) de (\\d+)", "Level $1 of $2"],
+	["Vuelta (\\d+)", "Lap $1"], ["(\\d+) niveles", "$1 levels"], ["Revivir \\((\\d+) monedas\\)", "Revive ($1 coins)"], ["\\+(\\d+) monedas", "+$1 coins"]]
+const TRAD := {"¡Jugar!": "Play!", "Jugar otra vez": "Play again", "Siguiente nivel": "Next level", "Reintentar": "Try again", "Volver al inicio": "Back to start", "Editar": "Edit",
+	"Elegir personaje": "Choose character", "Tienda de mascotas": "Pet shop", "Misiones del día": "Daily missions", "Bitácora": "Logbook", "Vestuario": "Wardrobe", "Logros": "Achievements",
+	"Récords": "Records", "¡Nivel completado!": "Level complete!", "Puntos": "Points", "¡Ups! Se acabaron las vidas": "Oops! You ran out of lives", "¡Se acabó el tiempo!": "Time's up!",
+	"¡Llegaste a la meta!": "You reached the goal!", "¡Casi! Faltaron premios": "So close! Items missing", "Continuar": "Continue", "Pausa": "Paused", "Salir": "Quit", "Créditos": "Credits",
+	"Volumen": "Volume", "Sonido": "Sound", "¡Puerta abierta!": "Door opened!", "Necesitas una llave": "You need a key", "¡Tienes una llave!": "You got a key!",
+	"¡Se abrieron las puertas!": "The doors opened!", "¡Apareció la meta!": "The goal appeared!", "¡Perdiste!": "You lost!", "¡Ganaste el juego!": "You won the game!",
+	"Nuevo récord": "New record", "Logro": "Achievement", "Misión cumplida": "Mission complete", "¡Muy bien!": "Well done!", "¡Algo pasó!": "Something happened!"}
+
+
+func traducir(s: String, idioma: String) -> String:
+	if idioma != "en" or s == "":
+		return s
+	var r := s
+	for par in TRAD_RE:
+		var re := RegEx.create_from_string(str(par[0]))
+		r = re.sub(r, str(par[1]), true)
+	var claves: Array = TRAD.keys()
+	claves.sort_custom(func(a, b): return str(a).length() > str(b).length())
+	for k in claves:
+		r = r.replace(str(k), str(TRAD[k]))
+	return r
+
+
+func traducir_arbol(n: Node, idioma: String) -> void:
+	if idioma != "en":
+		return
+	if n is Button:
+		(n as Button).text = traducir((n as Button).text, idioma)
+	elif n is Label:
+		(n as Label).text = traducir((n as Label).text, idioma)
+	for c in n.get_children():
+		traducir_arbol(c, idioma)
+
+
 const FIS_BASE := {"grav": 1.0, "salto": 1.0, "vel": 1.0, "friccion": 1.0, "caida": 1.0, "rebote": 0.0}
 const FIS_RANGOS := {"grav": [0.3, 2.0], "salto": [0.5, 1.8], "vel": [0.5, 2.0], "friccion": [0.2, 3.0], "caida": [0.4, 2.0], "rebote": [0.0, 0.9]}
 const FIS_PRESETS := [["Normal", {}], ["Luna", {"grav": 0.45, "salto": 1.1, "caida": 0.6}], ["Pesado", {"grav": 1.5, "salto": 1.25, "vel": 0.85}], ["Resbaloso", {"friccion": 0.25}], ["Rebotón", {"rebote": 0.7, "salto": 1.1}], ["Veloz", {"vel": 1.6, "friccion": 1.5}]]
@@ -731,7 +847,7 @@ const MEC_LISTA := [
 	["espada", "Espada", "Tecla H: golpea a los enemigos que tienes cerca.", false],
 	["conjurar", "Crear bloques", "Tecla G: aparece un bloque para subirte (máximo 3).", false]]
 ## Cómo se comportan los enemigos.
-const COMPORTAMIENTOS := [["patrulla", "Patrulla"], ["quieto", "Quieto"], ["persigue", "Persigue"], ["salta", "Salta"], ["dispara", "Dispara"]]
+const COMPORTAMIENTOS := [["patrulla", "Patrulla"], ["vigila", "Vigila"], ["quieto", "Quieto"], ["persigue", "Persigue"], ["salta", "Salta"], ["dispara", "Dispara"]]
 ## Animación de objetos y personajes del mundo.
 const ANIM_OBJ := [["ninguna", "Quieto"], ["flotar", "Flotar"], ["rebotar", "Rebotar"], ["balancear", "Balancear"], ["latir", "Latir"], ["temblar", "Temblar"]]
 
@@ -807,6 +923,14 @@ func reglas_completas(r: Dictionary) -> Dictionary:
 			else:
 				o[k] = int(v)
 	o["portada"] = portada_normal(r.get("portada", {}))
+	o["sonidos"] = sfx_normal(r.get("sonidos", {}))
+	o["fx"] = fx_normal(r.get("fx", {}))
+	o["cam_suave"] = clampi(int(o["cam_suave"]), 30, 300)
+	if not TRANSICIONES.any(func(p): return p[0] == str(o["trans"])):
+		o["trans"] = "fundido"
+	if not ["es", "en"].has(str(o["idioma"])):
+		o["idioma"] = "es"
+	o["creditos"] = str(o["creditos"]).left(300)
 	o["fis"] = fis_normal(r.get("fis", {}))
 	o["mec"] = mec_normal(r.get("mec", {}))
 	o["rend"] = Rendimiento.normal(r.get("rend", {}))
@@ -967,7 +1091,7 @@ func agregar_nivel(copiar: bool = false) -> bool:
 			it["id"] = nuevo_id()
 	else:
 		n = nivel_en_blanco()
-		for k in ["name", "modo", "disp", "orient", "tipo", "theme", "hero", "paleta", "clima", "hora", "perseguidor", "densidad", "decorado", "obstaculos", "premios", "autocorrer", "pista", "hero_alto", "mini", "mini_cfg", "camara", "trio"]:
+		for k in ["name", "modo", "disp", "orient", "tipo", "theme", "hero", "paleta", "clima", "hora", "perseguidor", "densidad", "decorado", "obstaculos", "premios", "autocorrer", "pista", "hero_alto", "mini", "mini_cfg", "camara", "trio", "eventos", "oscuridad", "filtro"]:
 			if nivel.has(k) or n.has(k):
 				n[k] = nivel.get(k, n.get(k))
 		n = normalizar(n)
@@ -1104,7 +1228,7 @@ func cargar_guardado() -> void:
 
 
 # ---------------------------------------------------------------- objetos
-const CAPAS := {"deco": 0, "plat": 1, "spike": 2, "spring": 2, "valla": 2, "pared": 2, "viga": 2, "coin": 3, "star": 3, "gem": 3, "goal": 3, "enemy": 3, "player": 4}
+const CAPAS := {"deco": 0, "plat": 1, "platmov": 1, "caja": 2, "puerta": 2, "boton": 2, "llave": 3, "spike": 2, "spring": 2, "valla": 2, "pared": 2, "viga": 2, "coin": 3, "star": 3, "gem": 3, "goal": 3, "enemy": 3, "player": 4}
 
 # Modo 3D (corredor): la pista se ve desde arriba; el corredor avanza hacia la derecha.
 # Tres carriles: arriba = izquierda, centro, abajo = derecha.
@@ -1143,8 +1267,10 @@ func capa(it: Dictionary) -> int:
 
 ## Rectángulo del objeto en celdas (para tocar/seleccionar).
 func caja_de(it: Dictionary) -> Rect2:
-	if it["t"] == "plat":
-		return Rect2(it["x"], it["y"], it["w"], it["h"])
+	if it["t"] == "plat" or it["t"] == "platmov":
+		return Rect2(it["x"], it["y"], it.get("w", 3), it.get("h", 1))
+	if it["t"] == "puerta":
+		return Rect2(it["x"], it["y"], 1, 2)
 	if it["t"] == "deco" and int(it.get("s", 0)) >= 60:
 		var alto := int(ceil(float(it["s"]) / 48.0 - 0.01))
 		var ancho := maxi(1, int(ceil(float(it["s"]) / 48.0 * 0.6)))
@@ -1187,6 +1313,11 @@ func colocar(def: Dictionary, cx: int, cy: int) -> Dictionary:
 		"plat":
 			o["w"] = mini(3, nivel["cols"] - cx)
 			o["h"] = 1
+		"platmov":
+			o["w"] = mini(3, nivel["cols"] - cx)
+			o["h"] = 1
+			o["r"] = 3
+			o["sp"] = 60
 		"enemy":
 			o["e"] = def["e"]
 			o["r"] = 3

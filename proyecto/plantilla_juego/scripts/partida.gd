@@ -260,6 +260,21 @@ func _mostrar_titulo() -> void:
 	b.pressed.connect(func(): _empezar(idx))
 	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	caja.add_child(b)
+	var gp := Progreso_.leer_partida(_nombre_juego())
+	if not gp.is_empty() and int(gp["idx"]) < cant and int(gp["idx"]) > 0:
+		var bc := Button.new()
+		bc.text = "  Continuar (nivel %d)" % (int(gp["idx"]) + 1)
+		bc.icon = Datos.textura("⏩")
+		bc.expand_icon = true
+		bc.add_theme_constant_override("icon_max_width", 32)
+		bc.custom_minimum_size = Vector2(260, 54)
+		bc.add_theme_font_size_override("font_size", 22)
+		Estilo.pintar(bc, Color(1, 1, 1, 0.3), Color.WHITE)
+		bc.pressed.connect(func():
+			puntos_acum = int(gp["puntos"])
+			_empezar(int(gp["idx"])))
+		bc.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		caja.add_child(bc)
 	if (proy["reglas"].get("jugables", []) as Array).size() > 1:
 		var bp := Button.new()
 		bp.text = "  Elegir personaje"
@@ -315,6 +330,7 @@ func _mostrar_titulo() -> void:
 		e.pressed.connect(func(): salir.emit())
 		_titulo.add_child(e)
 	b.grab_focus()
+	Datos.traducir_arbol(_titulo, str(proy["reglas"].get("idioma", "es")))
 
 
 # ------------------------------------------------------------------ niveles
@@ -376,6 +392,45 @@ func _empezar_ya(i: int) -> void:
 	j.nivel_terminado.connect(_al_terminar.bind(j))
 	j.iniciar(n, tactil, con_salir)
 	_juego = j
+	_transicion()
+
+
+## Fundido o cortina al empezar un nivel.
+func _transicion() -> void:
+	var tp := str(proy["reglas"].get("trans", "fundido"))
+	if tp == "ninguna":
+		return
+	var col := Color(0.08, 0.06, 0.23, 1.0)
+	if tp == "cortina":
+		var izq := ColorRect.new()
+		var der := ColorRect.new()
+		for c in [izq, der]:
+			c.color = col
+			c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			add_child(c)
+		izq.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		der.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		izq.anchor_right = 0.5
+		der.anchor_left = 0.5
+		var tw := create_tween().set_parallel(true)
+		tw.tween_property(izq, "anchor_right", 0.0, 0.5)
+		tw.tween_property(der, "anchor_left", 1.0, 0.5)
+		tw.chain().tween_callback(func():
+			izq.queue_free()
+			der.queue_free())
+		return
+	var cr := ColorRect.new()
+	cr.color = col
+	cr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(cr)
+	cr.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var tw2 := create_tween()
+	tw2.tween_property(cr, "modulate:a", 0.0, 0.45)
+	tw2.tween_callback(cr.queue_free)
+
+
+func _nombre_juego() -> String:
+	return str(proy["niveles"][0].get("name", "Juego"))
 
 
 func _al_terminar(gano: bool, icono: String, titulo: String, sub: String, j: Control) -> void:
@@ -416,11 +471,13 @@ func _al_terminar(gano: bool, icono: String, titulo: String, sub: String, j: Con
 	if gano:
 		puntos_acum = j.puntos
 		if idx < cant - 1:
+			Progreso_.guardar_partida(_nombre_juego(), idx + 1, puntos_acum)
 			icono = "🎉"
 			titulo = "¡Nivel %d completado!" % (idx + 1)
 			sub = "Puntos: %d" % puntos_acum
 			botones.append(["Siguiente nivel", "▶", func(): _empezar(idx + 1), true])
 		else:
+			Progreso_.borrar_partida(_nombre_juego())
 			icono = "🏆"
 			titulo = str(proy["reglas"]["final"])
 			sub = "Puntos: %d" % puntos_acum
@@ -487,6 +544,7 @@ func _mostrar_panel(icono: String, titulo: String, sub: String, botones: Array) 
 		caja.add_child(b)
 	if botones.size() > 0:
 		(caja.get_child(caja.get_child_count() - botones.size()) as Control).grab_focus()
+	Datos.traducir_arbol(fondo, str(proy["reglas"].get("idioma", "es")))
 
 
 # ------------------------------------------------------------------ tienda
