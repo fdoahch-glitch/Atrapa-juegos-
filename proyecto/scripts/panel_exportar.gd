@@ -75,6 +75,13 @@ func _ready() -> void:
 		bg.pressed.connect(func(): exp.elegir_godot(func(): cerrar.emit()))
 		v.add_child(bg)
 
+	var bgo := _boton("  Abrir en Godot completo (proyecto editable)", "🧰", Estilo.AMARILLO)
+	bgo.tooltip_text = "Crea una carpeta con todo el proyecto para abrirla y editarla en el editor de Godot, con todo su poder"
+	bgo.pressed.connect(_lanzar.bind("godot"))
+	v.add_child(bgo)
+	_botones.append(bgo)
+	_texto(v, "      Para quien quiera ir más allá: el mismo juego como proyecto de Godot, con sus escenas y scripts.", 14, Estilo.SUAVE)
+
 	# ---------- paso 2 / 3
 	_texto(v, "② Espera un ratito  ·  ③ Abre la carpeta", 20, Estilo.MORADO)
 	_estado = _texto(v, "Los archivos se guardan en Documentos → «Mis juegos» → el nombre de tu juego.", 16, Estilo.SUAVE)

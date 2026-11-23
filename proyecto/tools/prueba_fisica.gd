@@ -68,11 +68,14 @@ func _ready() -> void:
 	for i in 240:
 		J._actualizar(J.PASO)
 	ok(J.suelo and absf(J.pos.y + J.PH * 48.0 - 7 * 48.0) < 0.5, "aterriza encima de la plataforma flotante")
-	# golpe de cabeza
-	J.pos = Vector2(12.5 * 48.0, 8.0 * 48.0 - J.PH * 48.0 + 2.0)
-	J.vel = Vector2(0, -600.0)
-	for i in 6:
+	# golpe de cabeza: la plataforma ocupa y=7 (bottom 384); el héroe sube desde abajo
+	var peor := 1e9
+	J.pos = Vector2(12.5 * 48.0, 8.0 * 48.0 + 6.0)
+	J.vel = Vector2(0, -900.0)
+	for i in 40:
 		J._actualizar(J.PASO)
-	ok(J.vel.y >= 0.0 or J.pos.y > 8 * 48.0 - 1.0, "no atraviesa la plataforma desde abajo")
+		peor = minf(peor, J.pos.y)
+		if J.suelo: J.vel.y = -900.0
+	ok(peor >= 8 * 48.0 - 0.5, "no atraviesa la plataforma desde abajo (min y=%.1f)" % peor)
 	print("FALLOS ", fallos)
 	get_tree().quit()

@@ -9,6 +9,27 @@ static func _rnd(i: float) -> float:
 	return s - floor(s)
 
 
+## Recorrido de una plataforma en ruta (Curve2D de Godot), en píxeles y relativo a su posición inicial.
+static func ruta_curva(it: Dictionary) -> Curve2D:
+	var cv := Curve2D.new()
+	var r := float(it.get("r", 4)) * T
+	match str(it.get("forma", "vaiven")):
+		"diagonal":
+			cv.add_point(Vector2.ZERO)
+			cv.add_point(Vector2(r, -r * 0.6))
+		"circulo":
+			for k in 17:
+				var a := TAU * float(k) / 16.0 + PI / 2.0
+				cv.add_point(Vector2(cos(a), sin(a) - 1.0) * r * 0.5)
+		"cuadro":
+			for q in [Vector2(0, 0), Vector2(r, 0), Vector2(r, -r * 0.6), Vector2(0, -r * 0.6), Vector2(0, 0)]:
+				cv.add_point(q)
+		_:
+			cv.add_point(Vector2.ZERO)
+			cv.add_point(Vector2(0, -r))
+	return cv
+
+
 ## Objetos con física real (rueda y pelota): círculo con marcas que giran para que se note el rodar.
 static func fisico(ci: CanvasItem, tipo: String, c: Vector2, rad: float, rot: float) -> void:
 	var col := Color("f97316") if tipo == "pelota" else Color("6b7280")
@@ -205,6 +226,47 @@ static func _objeto(ci: CanvasItem, it0: Dictionary, th: Dictionary, t: float, e
 		"boton":
 			ci.draw_rect(Rect2(x + 2, y + T - 6, T - 4, 6), Color("4b5563"))
 			ci.draw_rect(Rect2(x + 8, y + T - (4 if it.get("on", false) else 10), T - 16, 6 if it.get("on", false) else 8), Color("22c55e") if it.get("on", false) else Color("ef4444"))
+		"zona":
+			var zw: float = float(it.get("w", 4)) * T
+			var zh: float = float(it.get("h", 3)) * T
+			var zr := Rect2(x, y, zw, zh)
+			var zt := str(it.get("z", "agua"))
+			var zc: Color = {"agua": Color(0.2, 0.55, 0.95, 0.35), "hielo": Color(0.75, 0.93, 1.0, 0.45), "viento": Color(0.9, 0.95, 1.0, 0.18), "corriente": Color(0.7, 1.0, 0.8, 0.22), "lava": Color(1.0, 0.35, 0.05, 0.6)}.get(zt, Color(1, 1, 1, 0.2))
+			ci.draw_rect(zr, zc)
+			match zt:
+				"agua":
+					for k in range(0, int(zw / 24.0)):
+						ci.draw_line(Vector2(x + k * 24.0, y + 3 + sin(t * 3.0 + k) * 3.0), Vector2(x + k * 24.0 + 18.0, y + 3 + sin(t * 3.0 + k + 1.0) * 3.0), Color(1, 1, 1, 0.7), 3.0)
+				"lava":
+					for k in range(0, int(zw / 20.0)):
+						ci.draw_circle(Vector2(x + k * 20.0 + 10.0, y + 4 + sin(t * 4.0 + k * 1.7) * 3.0), 7.0, Color("ffb703"))
+				"hielo":
+					for k in range(0, int(zw / 30.0)):
+						ci.draw_line(Vector2(x + k * 30.0 + 6.0, y + zh - 6.0), Vector2(x + k * 30.0 + 22.0, y + zh - 18.0), Color(1, 1, 1, 0.8), 3.0)
+				"viento", "corriente":
+					var dd := float(it.get("d", 1)) if zt == "viento" else 0.0
+					for k in range(0, 4):
+						var py := y + zh * (0.2 + 0.2 * k)
+						var px := x + fposmod(t * 90.0 * (dd if dd != 0.0 else 1.0) + k * 80.0, zw)
+						if zt == "corriente":
+							px = x + zw * (0.2 + 0.2 * k)
+							py = y + zh - fposmod(t * 90.0 + k * 50.0, zh)
+							ci.draw_line(Vector2(px, py), Vector2(px, py + 18.0), Color(1, 1, 1, 0.7), 3.0)
+						else:
+							ci.draw_line(Vector2(px, py), Vector2(px - 24.0 * (dd if dd != 0.0 else 1.0), py), Color(1, 1, 1, 0.7), 3.0)
+			ci.draw_rect(zr, Color(zc.r, zc.g, zc.b, 0.8), false, 2.0)
+		"ruta":
+			var wr: float = float(it.get("w", 3)) * T
+			if not it.has("live"):
+				var cv := ruta_curva(it)
+				var pr := cv.tessellate(4, 6.0)
+				var off := Vector2(x, y) + Vector2(wr / 2.0, T * 0.2)
+				for k in range(pr.size() - 1):
+					ci.draw_dashed_line(pr[k] + off, pr[k + 1] + off, Color(1, 1, 1, 0.55), 3.0, 8.0)
+			ci.draw_rect(Rect2(x, y, wr, T * 0.4), Color("0ea5e9"))
+			ci.draw_rect(Rect2(x, y, wr, 4), Color("bae6fd"))
+			for k in range(0, int(it.get("w", 3))):
+				ci.draw_rect(Rect2(x + k * T + 4, y + 4, 8, T * 0.4 - 8), Color("075985"))
 		"platmov":
 			var wm: float = float(it.get("w", 3)) * T
 			ci.draw_rect(Rect2(x, y, wm, T * 0.4), Color("f59e0b"))

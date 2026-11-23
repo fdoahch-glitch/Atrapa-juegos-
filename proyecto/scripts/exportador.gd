@@ -212,7 +212,30 @@ func _copiar_archivo(de: String, a: String) -> void:
 		dst.store_buffer(src.get_buffer(1048576))
 
 
+## Copia el proyecto completo (scripts, escenas y tu juego en nivel.json) para abrirlo y editarlo en Godot.
+func _proyecto_godot(nombre: String, nivel_json: String) -> void:
+	var origen := plantilla_dir()
+	if not DirAccess.dir_exists_absolute(origen):
+		_fin(false, "No encuentro la carpeta «plantilla_juego». Debe estar junto al programa del creador.")
+		return
+	var salida := carpeta_salida(nombre).path_join("proyecto-godot")
+	_borrar(salida)
+	_copiar(origen, salida)
+	var f := FileAccess.open(salida.path_join("nivel.json"), FileAccess.WRITE)
+	if f == null:
+		_fin(false, "No pude escribir los archivos del proyecto.")
+		return
+	f.store_string(nivel_json)
+	f.close()
+	_poner_nombre(salida.path_join("project.godot"), nombre)
+	_copiar_assets(nivel_json, salida)
+	_fin(true, "¡Listo! En Godot elige «Importar» y abre esa carpeta (archivo project.godot). Ahí puedes editar todo con el editor completo.", salida)
+
+
 func _trabajo(plataforma: String, nombre: String, nivel_json: String) -> void:
+	if plataforma == "godot":
+		_proyecto_godot(nombre, nivel_json)
+		return
 	var propio := motor_propio(plataforma)
 	if propio != "":
 		_con_motor_propio(plataforma, nombre, nivel_json, propio)

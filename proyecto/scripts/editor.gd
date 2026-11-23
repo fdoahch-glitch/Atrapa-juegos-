@@ -450,7 +450,7 @@ func _defs(que: String) -> Array:
 		"objetos":
 			var lista := [["plat", "Plataforma"], ["coin", "Moneda"], ["star", "Estrella"], ["gem", "Gema"], ["spike", "Pinchos"], ["spring", "Resorte"], ["goal", "Meta"], ["player", "Inicio"]]
 			if modo == "2d" and str(Datos.nivel.get("tipo", "")) != "arriba" and str(Datos.nivel.get("estilo", "")) == "":
-				lista += [["llave", "Llave"], ["puerta", "Puerta"], ["boton", "Botón"], ["platmov", "Plataforma móvil"], ["puente", "Puente que se cae"], ["pendulo", "Péndulo"], ["rueda", "Rueda que rueda"], ["pelota", "Pelota que rebota"], ["cuerda", "Cuerda que se mece"], ["caja", "Caja empujable"]]
+				lista += [["llave", "Llave"], ["puerta", "Puerta"], ["boton", "Botón"], ["platmov", "Plataforma móvil"], ["puente", "Puente que se cae"], ["ruta", "Plataforma en ruta"], ["zona", "Zona (agua, hielo, viento…)"], ["pendulo", "Péndulo"], ["rueda", "Rueda que rueda"], ["pelota", "Pelota que rebota"], ["cuerda", "Cuerda que se mece"], ["caja", "Caja empujable"]]
 			if modo == "2d" and str(Datos.nivel.get("tipo", "")) == "arriba":
 				lista = [["plat", "Pared"], ["coin", "Moneda"], ["star", "Estrella"], ["gem", "Gema"], ["spike", "Pinchos"], ["goal", "Meta"], ["player", "Inicio"]]
 			if str(Datos.nivel.get("estilo", "")) in ["carrera", "kart"]:
@@ -461,6 +461,11 @@ func _defs(que: String) -> Array:
 				lista = [["valla", "Valla"], ["pared", "Pared"], ["viga", "Viga"], ["coin", "Moneda"], ["star", "Estrella"], ["gem", "Gema"], ["goal", "Meta"]]
 			for d in lista:
 				r.append({"id": d[0], "n": d[1], "t": d[0]})
+			var pfs: Array = Datos.reglas.get("prefabs", [])
+			if not pfs.is_empty():
+				r.append({"enc": "Mis bloques reutilizables"})
+				for k in pfs.size():
+					r.append({"id": "pf%d" % k, "n": str(pfs[k]["n"]), "t": "prefab", "items": pfs[k]["items"]})
 		"deco":
 			for cat in Assets3D.OBJETOS:
 				r.append({"enc": cat})
@@ -1344,12 +1349,12 @@ func _refrescar_props() -> void:
 		_props_caja.visible = false
 		return
 	_props_caja.visible = true
-	var nombres := {"plat": "Plataforma", "coin": "Moneda", "star": "Estrella", "gem": "Gema", "spike": "Pinchos", "spring": "Resorte", "goal": "Meta", "llave": "Llave", "puerta": "Puerta", "boton": "Botón", "platmov": "Plataforma móvil", "puente": "Puente que se cae", "pendulo": "Péndulo", "rueda": "Rueda", "pelota": "Pelota", "cuerda": "Cuerda", "caja": "Caja", "enemy": "Enemigo", "deco": "Decoración", "player": "Inicio"}
+	var nombres := {"plat": "Plataforma", "coin": "Moneda", "star": "Estrella", "gem": "Gema", "spike": "Pinchos", "spring": "Resorte", "goal": "Meta", "llave": "Llave", "puerta": "Puerta", "boton": "Botón", "platmov": "Plataforma móvil", "puente": "Puente que se cae", "ruta": "Ruta", "zona": "Zona", "pendulo": "Péndulo", "rueda": "Rueda", "pelota": "Pelota", "cuerda": "Cuerda", "caja": "Caja", "enemy": "Enemigo", "deco": "Decoración", "player": "Inicio"}
 	var l := Label.new()
 	l.text = nombres.get(s["t"], "")
 	l.add_theme_font_size_override("font_size", 20)
 	_props_fila.add_child(l)
-	if s["t"] in ["plat", "platmov", "puente"]:
+	if s["t"] in ["plat", "platmov", "puente", "zona", "ruta"]:
 		_props_fila.add_child(_grupo("Ancho", str(s["w"]), _ajustar.bind("w", -1), _ajustar.bind("w", 1)))
 		_props_fila.add_child(_grupo("Alto", str(s["h"]), _ajustar.bind("h", -1), _ajustar.bind("h", 1)))
 	if s["t"] == "plat" and modo == "3d":
@@ -1373,9 +1378,37 @@ func _refrescar_props() -> void:
 	if s["t"] in ["enemy", "platmov", "pendulo"]:
 		_props_fila.add_child(_grupo("Recorrido", str(s["r"]), _ajustar.bind("r", -1), _ajustar.bind("r", 1)))
 		_props_fila.add_child(_grupo("Rapidez", str(int(s["sp"]) / 10), _ajustar.bind("sp", -1), _ajustar.bind("sp", 1)))
+	if s["t"] in ["zona", "ruta"]:
+		var lst: Array = Datos.ZONAS if s["t"] == "zona" else Datos.RUTAS
+		var clv := "z" if s["t"] == "zona" else "forma"
+		var oz := OptionButton.new()
+		oz.custom_minimum_size = Vector2(190, 40)
+		oz.focus_mode = Control.FOCUS_NONE
+		oz.tooltip_text = "Cómo se comporta"
+		for k in lst.size():
+			oz.add_item(str(lst[k][1]), k)
+			if lst[k][0] == str(s.get(clv, "")):
+				oz.selected = k
+		oz.item_selected.connect(func(k):
+			s[clv] = lst[k][0]
+			Datos.confirmar())
+		_props_fila.add_child(oz)
+		if s["t"] == "ruta":
+			_props_fila.add_child(_grupo("Recorrido", str(s["r"]), _ajustar.bind("r", -1), _ajustar.bind("r", 1)))
+			_props_fila.add_child(_grupo("Rapidez", str(int(s["sp"]) / 10), _ajustar.bind("sp", -1), _ajustar.bind("sp", 1)))
+		elif s["z"] == "viento":
+			_props_fila.add_child(_grupo("Dirección", "→" if int(s.get("d", 1)) >= 0 else "←", func(): s["d"] = -1; Datos.confirmar(), func(): s["d"] = 1; Datos.confirmar()))
+	if not (s["t"] in ["player", "goal"]):
+		var gp := Button.new()
+		gp.text = "🧩 Guardar bloque"
+		gp.tooltip_text = "Guarda este objeto y los que tiene alrededor (3 casillas) para ponerlos de nuevo con un toque"
+		gp.custom_minimum_size = Vector2(150, 40)
+		gp.focus_mode = Control.FOCUS_NONE
+		gp.pressed.connect(func(): _guardar_bloque(s))
+		_props_fila.add_child(gp)
 	if s["t"] in ["rueda", "pelota", "cuerda"]:
 		_props_fila.add_child(_grupo("Tamaño" if s["t"] != "cuerda" else "Largo", str(s["r"]), _ajustar.bind("r", -1), _ajustar.bind("r", 1)))
-	if s["t"] == "enemy" and modo == "2d" and str(Datos.nivel.get("tipo", "")) != "arriba":
+	if s["t"] == "enemy" and modo == "2d":
 		var oc := OptionButton.new()
 		oc.custom_minimum_size = Vector2(150, 40)
 		oc.focus_mode = Control.FOCUS_NONE
@@ -1432,7 +1465,7 @@ func _refrescar_props() -> void:
 			Datos.olvidar_texturas_pal()
 			Datos.confirmar())
 		_props_fila.add_child(op)
-	if not ["plat", "platmov", "puente", "pendulo", "rueda", "pelota", "cuerda", "player", "goal", "pared", "viga", "valla", "puerta", "boton", "caja"].has(str(s["t"])):
+	if not ["plat", "platmov", "puente", "zona", "ruta", "pendulo", "rueda", "pelota", "cuerda", "player", "goal", "pared", "viga", "valla", "puerta", "boton", "caja"].has(str(s["t"])):
 		var oa := OptionButton.new()
 		oa.custom_minimum_size = Vector2(140, 40)
 		oa.focus_mode = Control.FOCUS_NONE
@@ -1458,6 +1491,37 @@ func _refrescar_props() -> void:
 		var del := _boton(" Borrar", "🗑", Estilo.ROJO)
 		del.pressed.connect(_borrar_sel)
 		_props_fila.add_child(del)
+
+
+## Guarda el objeto elegido y los que lo rodean como un «bloque reutilizable» (un prefab, como una escena de Godot).
+func _guardar_bloque(s: Dictionary) -> void:
+	var caja: Rect2 = Datos.caja_de(s).grow(3.0)
+	var grupo: Array = []
+	for it in Datos.nivel["items"]:
+		if str(it["t"]) in ["player", "goal"]:
+			continue
+		if caja.intersects(Datos.caja_de(it)) or it == s:
+			grupo.append(it)
+	if grupo.is_empty():
+		return
+	var mx := 9999
+	var my := 9999
+	for it in grupo:
+		mx = mini(mx, int(it["x"]))
+		my = mini(my, int(it["y"]))
+	var rel: Array = []
+	for it in grupo:
+		var c: Dictionary = (it as Dictionary).duplicate(true)
+		c["x"] = int(it["x"]) - mx
+		c["y"] = int(it["y"]) - my
+		c.erase("id")
+		rel.append(c)
+	var lista: Array = Datos.reglas.get("prefabs", [])
+	lista.append({"n": "Bloque %d" % (lista.size() + 1), "items": rel})
+	Datos.reglas["prefabs"] = lista
+	Datos.guardar()
+	_aviso("Bloque guardado: búscalo en Objetos, «Mis bloques reutilizables»")
+	_construir_biblioteca()
 
 
 func _ajustar(clave: String, d: int) -> void:

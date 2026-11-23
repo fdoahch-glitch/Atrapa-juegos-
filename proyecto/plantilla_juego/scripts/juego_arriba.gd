@@ -29,6 +29,42 @@ func resetear() -> void:
 		e["y"] = float(e["it"]["y"])
 		e["y0"] = e["y"]
 		e["it"]["y"] = e["y"]
+	_astar_construir()
+	if _pw_h != null:
+		# la caja del héroe vista desde arriba es cuadrada y más chica
+		var cs := _pw_h.get_child(0) as CollisionShape2D
+		(cs.shape as RectangleShape2D).size = Vector2(MEDIA * T * 2.0, MEDIA * T * 2.0)
+
+
+## Navegación de Godot (AStarGrid2D): los enemigos que persiguen buscan el camino rodeando las paredes.
+var _astar: AStarGrid2D = null
+
+
+func _astar_construir() -> void:
+	_astar = AStarGrid2D.new()
+	_astar.region = Rect2i(0, 0, int(nivel["cols"]), Datos.FILAS)
+	_astar.cell_size = Vector2.ONE
+	_astar.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_NEVER
+	_astar.update()
+	for p in plats:
+		var r: Rect2 = p
+		for cx in range(int(floor(r.position.x / T)), int(ceil(r.end.x / T))):
+			for cy in range(int(floor(r.position.y / T)), int(ceil(r.end.y / T))):
+				if _astar.is_in_boundsv(Vector2i(cx, cy)):
+					_astar.set_point_solid(Vector2i(cx, cy), true)
+
+
+## Siguiente casilla del camino del enemigo hacia el héroe (o la misma casilla si no hay camino).
+func _camino_hacia(e: Dictionary) -> Vector2:
+	var a := Vector2i(int(floor(float(e["x"]) + 0.5)), int(floor(float(e["y"]) + 0.5)))
+	var c := _centro()
+	var b := Vector2i(int(floor(c.x / T)), int(floor(c.y / T)))
+	if _astar == null or not _astar.is_in_boundsv(a) or not _astar.is_in_boundsv(b) or _astar.is_point_solid(a):
+		return Vector2(float(e["x"]), float(e["y"]))
+	var ruta := _astar.get_id_path(a, b)
+	if ruta.size() < 2:
+		return Vector2(float(e["x"]), float(e["y"]))
+	return Vector2(ruta[1])
 
 
 func _centro() -> Vector2:
@@ -81,6 +117,12 @@ func _input(ev: InputEvent) -> void:
 
 
 func _mover(delta: Vector2) -> void:
+	if _pw_ok and _pw_h != null:
+		# física real de Godot: el héroe (CharacterBody2D) choca con las paredes (StaticBody2D)
+		_pw_h.position = _centro()
+		_pw_h.move_and_collide(delta, false, 0.04)
+		_poner_centro(_pw_h.position)
+		return
 	_poner_centro(_centro() + delta)
 	var h := MEDIA * T
 	for p in plats:
@@ -140,7 +182,19 @@ func _actualizar(dt: float) -> void:
 	for e in enemigos:
 		var vuela: bool = bool(e["it"].get("fly", false))
 		var paso: float = e["dir"] * e["sp"] * _lento / T * dt
-		if vuela:
+		var cc := _centro()
+		var dist_h: float = Vector2(float(e["x"]) * T + T / 2.0, float(e["y"]) * T + T / 2.0).distance_to(cc)
+		var cerca_h: bool = dist_h < T * 8.0 or (bool(e.get("caza", false)) and dist_h < T * 16.0)
+		e["caza"] = cerca_h
+		if str(e["it"].get("ia", "patrulla")) == "persigue" and cerca_h:
+			var meta_c := _camino_hacia(e)
+			var dv := meta_c - Vector2(float(e["x"]), float(e["y"]))
+			if dv.length() > 0.02:
+				var mv := dv.normalized() * maxf(float(e["sp"]), 40.0) * 1.25 * _lento / T * dt
+				e["x"] = float(e["x"]) + mv.x
+				e["y"] = float(e["y"]) + mv.y
+				e["it"]["y"] = e["y"]
+		elif vuela:
 			var ny: float = e["y"] + paso
 			if _enemigo_choca(e["x"], ny):
 				e["dir"] = -e["dir"]  # una pared: da la vuelta en vez de atravesarla

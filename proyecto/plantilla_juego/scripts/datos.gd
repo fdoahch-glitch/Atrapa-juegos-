@@ -55,7 +55,7 @@ var niveles: Array = []             # copias de todos los niveles (el actual se 
 var idx := 0                        # posición del nivel actual
 var reglas: Dictionary = {}         # reglas del juego completo
 const MAX_NIVELES := 10
-const REGLAS_BASE := {"vidas": 3, "tiempo": 0, "meta": "meta", "pts_coin": 1, "pts_gem": 3, "pts_star": 5, "pts_enemy": 2, "titulo": true, "final": "¡Ganaste el juego!", "musica": "", "mascota": "", "poder": "escudo", "tienda": false, "jugadores": 1, "heroe2": "", "plataforma": "windows", "categoria": "", "subtipo": "", "rend": {}, "dificultad": "normal", "elegir_dificultad": false, "misiones": false, "revivir": 0, "modo_prueba": false, "arma": "pistola", "espera": false, "logros": true, "sin_fin": false, "fis": {}, "mec": {}, "sonidos": {}, "fx": {}, "cam_suave": 100, "cam_zoom": 100, "cam_temblor": true, "trans": "fundido", "idioma": "es", "creditos": "", "paleta": "", "paleta_fuerza": 80, "paleta_todo": false}
+const REGLAS_BASE := {"vidas": 3, "tiempo": 0, "meta": "meta", "pts_coin": 1, "pts_gem": 3, "pts_star": 5, "pts_enemy": 2, "titulo": true, "final": "¡Ganaste el juego!", "musica": "", "mascota": "", "poder": "escudo", "tienda": false, "jugadores": 1, "heroe2": "", "plataforma": "windows", "categoria": "", "subtipo": "", "rend": {}, "dificultad": "normal", "elegir_dificultad": false, "misiones": false, "revivir": 0, "modo_prueba": false, "arma": "pistola", "espera": false, "logros": true, "sin_fin": false, "fis": {}, "mec": {}, "sonidos": {}, "fx": {}, "cam_suave": 100, "cam_zoom": 100, "cam_temblor": true, "trans": "fundido", "idioma": "es", "creditos": "", "paleta": "", "paleta_fuerza": 80, "paleta_todo": false, "minimapa": false, "inclinar": false, "prefabs": []}
 var historial: Array[String] = []
 var futuro: Array[String] = []
 var _actual := ""
@@ -870,7 +870,7 @@ func normalizar(n: Dictionary) -> Dictionary:
 					it[k] = int(it[k])
 				else:
 					it.erase(k)
-		if ["plat", "puente", "pared", "viga", "valla"].has(str(it["t"])):
+		if ["plat", "puente", "zona", "ruta", "pared", "viga", "valla"].has(str(it["t"])):
 			it["w"] = maxi(1, int(it.get("w", 1)))
 			it["h"] = maxi(1, int(it.get("h", 1)))
 		if ["deco", "enemy"].has(str(it["t"])) and str(it.get("e", "")) == "":
@@ -918,7 +918,9 @@ const FX_EVENTOS := [["recoger", "Al recoger un premio", "chispas"], ["saltar", 
 ## Eventos: «si pasa esto, haz aquello».
 const EVENTOS_SI := [["monedas", "Recojo monedas"], ["enemigos", "Derroto enemigos"], ["puntos", "Llego a puntos"], ["tiempo", "Pasan segundos"], ["llave", "Recojo una llave"], ["boton", "Piso un botón"]]
 const EVENTOS_HAZ := [["mensaje", "Mostrar un mensaje"], ["puertas", "Abrir las puertas"], ["meta", "Mostrar la meta"], ["vida", "Dar una vida"], ["puntos", "Dar puntos"], ["efecto", "Lanzar partículas"], ["ganar", "Ganar el nivel"], ["perder", "Perder el nivel"]]
-const FILTROS := [["", "Ninguno"], ["bn", "Blanco y negro"], ["sepia", "Sepia"], ["retro", "Pixelado retro"], ["vineta", "Viñeta"], ["frio", "Frío"], ["calido", "Cálido"]]
+const ZONAS := [["agua", "Agua (se nada)"], ["hielo", "Hielo (resbala)"], ["viento", "Viento (empuja)"], ["corriente", "Corriente de aire (sube)"], ["lava", "Lava (quema)"]]
+const RUTAS := [["vaiven", "Sube y baja"], ["diagonal", "Diagonal"], ["circulo", "Círculo"], ["cuadro", "Rectángulo"]]
+const FILTROS := [["", "Ninguno"], ["bn", "Blanco y negro"], ["sepia", "Sepia"], ["retro", "Pixelado retro"], ["vineta", "Viñeta"], ["frio", "Frío"], ["calido", "Cálido"], ["ondas", "Ondas (mareado)"], ["crt", "Televisor antiguo"], ["dibujo", "Dibujo animado"], ["neon", "Neón brillante"], ["agua", "Bajo el agua"]]
 const TRANSICIONES := [["ninguna", "Ninguna"], ["fundido", "Fundido"], ["cortina", "Cortina"]]
 
 
@@ -1065,6 +1067,8 @@ func reglas_completas(r: Dictionary) -> Dictionary:
 				o[k] = str(v)
 			elif o[k] is Dictionary:
 				pass   # se normaliza más abajo
+			elif o[k] is Array:
+				o[k] = (v as Array).duplicate(true) if v is Array else []
 			else:
 				o[k] = int(v)
 	o["portada"] = portada_normal(r.get("portada", {}))
@@ -1377,7 +1381,7 @@ func cargar_guardado() -> void:
 
 
 # ---------------------------------------------------------------- objetos
-const CAPAS := {"deco": 0, "plat": 1, "platmov": 1, "puente": 1, "pendulo": 2, "rueda": 2, "pelota": 2, "cuerda": 2, "caja": 2, "puerta": 2, "boton": 2, "llave": 3, "spike": 2, "spring": 2, "valla": 2, "pared": 2, "viga": 2, "coin": 3, "star": 3, "gem": 3, "goal": 3, "enemy": 3, "player": 4}
+const CAPAS := {"deco": 0, "plat": 1, "platmov": 1, "puente": 1, "zona": 0, "ruta": 1, "pendulo": 2, "rueda": 2, "pelota": 2, "cuerda": 2, "caja": 2, "puerta": 2, "boton": 2, "llave": 3, "spike": 2, "spring": 2, "valla": 2, "pared": 2, "viga": 2, "coin": 3, "star": 3, "gem": 3, "goal": 3, "enemy": 3, "player": 4}
 
 # Modo 3D (corredor): la pista se ve desde arriba; el corredor avanza hacia la derecha.
 # Tres carriles: arriba = izquierda, centro, abajo = derecha.
@@ -1416,7 +1420,7 @@ func capa(it: Dictionary) -> int:
 
 ## Rectángulo del objeto en celdas (para tocar/seleccionar).
 func caja_de(it: Dictionary) -> Rect2:
-	if it["t"] == "plat" or it["t"] == "platmov" or it["t"] == "puente":
+	if it["t"] in ["plat", "platmov", "puente", "zona", "ruta"]:
 		return Rect2(it["x"], it["y"], it.get("w", 3), it.get("h", 1))
 	if it["t"] == "puerta":
 		return Rect2(it["x"], it["y"], 1, 2)
@@ -1448,6 +1452,17 @@ func colocar(def: Dictionary, cx: int, cy: int) -> Dictionary:
 	var t: String = def["t"]
 	if es_corredor() and TIPOS_PISTA.has(t):
 		cy = fila_de_carril(a_carril(cy))
+	if t == "prefab":
+		var primero: Dictionary = {}
+		for rel in def.get("items", []):
+			var cp: Dictionary = (rel as Dictionary).duplicate(true)
+			cp["x"] = clampi(int(rel["x"]) + cx, 0, nivel["cols"] - 1)
+			cp["y"] = clampi(int(rel["y"]) + cy, 0, FILAS - 1)
+			cp["id"] = nuevo_id()
+			nivel["items"].append(cp)
+			if primero.is_empty():
+				primero = cp
+		return primero
 	if t == "hero":
 		nivel["hero"] = def["e"]
 		t = "player"
@@ -1468,6 +1483,17 @@ func colocar(def: Dictionary, cx: int, cy: int) -> Dictionary:
 		"pendulo":
 			o["r"] = 3
 			o["sp"] = 60
+		"zona":
+			o["w"] = mini(4, nivel["cols"] - cx)
+			o["h"] = 3
+			o["z"] = "agua"
+			o["d"] = 1
+		"ruta":
+			o["w"] = mini(3, nivel["cols"] - cx)
+			o["h"] = 1
+			o["r"] = 4
+			o["sp"] = 60
+			o["forma"] = "vaiven"
 		"rueda":
 			o["r"] = 2
 		"pelota":

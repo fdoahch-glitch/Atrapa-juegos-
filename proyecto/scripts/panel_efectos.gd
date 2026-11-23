@@ -77,6 +77,12 @@ func _ready() -> void:
 	_opciones(v, "Tiembla al golpear", [true, false], ["Sí", "No"], bool(Datos.reglas["cam_temblor"]), func(val):
 		Datos.reglas["cam_temblor"] = bool(val)
 		Datos.guardar())
+	_opciones(v, "Minimapa (vista en pequeño)", [false, true], ["No", "Sí"], bool(Datos.reglas.get("minimapa", false)), func(val):
+		Datos.reglas["minimapa"] = bool(val)
+		Datos.guardar())
+	_opciones(v, "Inclinar el celular para mover", [false, true], ["No", "Sí"], bool(Datos.reglas.get("inclinar", false)), func(val):
+		Datos.reglas["inclinar"] = bool(val)
+		Datos.guardar())
 	_t(v, "🎨 Paleta de colores del juego", 20, Estilo.MORADO, true)
 	_t(v, "Cambia los colores de todo lo de la biblioteca y de tus dibujos (por ejemplo, un árbol verde se vuelve de desierto). Cada objeto puede tener su propia paleta al tocarlo.", 14, Estilo.SUAVE)
 	var pi: Array = [""]

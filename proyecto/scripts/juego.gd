@@ -80,7 +80,7 @@ func iniciar(n: Dictionary, forzar_tactil: bool = false, mostrar_salir: bool = f
 	_mundo = Capa.new()
 	_mundo.al_dibujar = _dibujar_mundo
 	add_child(_mundo)
-	var fl: int = ["", "bn", "sepia", "retro", "vineta", "frio", "calido"].find(str(nivel.get("filtro", "")))
+	var fl: int = ["", "bn", "sepia", "retro", "vineta", "frio", "calido", "ondas", "crt", "dibujo", "neon", "agua"].find(str(nivel.get("filtro", "")))
 	if fl > 0:
 		_filtro = ColorRect.new()
 		_filtro.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -275,6 +275,10 @@ var puertas: Array = []
 var botones: Array = []
 var moviles: Array = []
 var puentes: Array = []
+var zonas: Array = []     # zonas especiales: agua, hielo, viento, corriente, lava
+var rutas: Array = []     # plataformas que siguen un camino (Curve2D)
+var _z_agua := false
+var _z_fric := 1.0
 var pendulos: Array = []
 var cajas: Array = []
 # Física real de Godot: el terreno fijo, el héroe y los objetos que ruedan viven en su propio mundo.
@@ -321,6 +325,8 @@ uniform int modo = 0;
 uniform sampler2D tex : hint_screen_texture, filter_linear_mipmap;
 void fragment() {
 	vec2 uv = SCREEN_UV;
+	if (modo == 7) { uv += vec2(sin(uv.y * 24.0 + TIME * 3.0), cos(uv.x * 20.0 + TIME * 2.4)) * 0.006; }
+	if (modo == 11) { uv += vec2(sin(uv.y * 30.0 + TIME * 2.0) * 0.004, cos(uv.x * 26.0 + TIME * 1.7) * 0.003); }
 	vec4 c = texture(tex, uv);
 	float g = dot(c.rgb, vec3(0.299, 0.587, 0.114));
 	if (modo == 1) { c.rgb = vec3(g); }
@@ -329,6 +335,10 @@ void fragment() {
 	else if (modo == 4) { float d = distance(uv, vec2(0.5)); c.rgb *= 1.0 - smoothstep(0.3, 0.85, d) * 0.8; }
 	else if (modo == 5) { c.rgb *= vec3(0.85, 0.95, 1.15); }
 	else if (modo == 6) { c.rgb *= vec3(1.15, 1.0, 0.82); }
+	else if (modo == 8) { float l = 0.85 + 0.15 * sin(uv.y * 540.0); c.rgb *= l; c.rgb *= 1.0 - smoothstep(0.35, 0.9, distance(uv, vec2(0.5))) * 0.6; c.r += 0.03 * sin(uv.y * 90.0 + TIME * 6.0); }
+	else if (modo == 9) { c.rgb = floor(c.rgb * 4.0 + 0.5) / 4.0; c.rgb = mix(c.rgb, vec3(dot(c.rgb, vec3(0.33))), -0.35); }
+	else if (modo == 10) { c.rgb = c.rgb * 1.25 + pow(max(c.rgb - 0.55, 0.0), vec3(1.5)) * 1.2; c.rgb *= vec3(0.9, 1.0, 1.15); }
+	else if (modo == 11) { c.rgb *= vec3(0.6, 0.9, 1.15); c.rgb += vec3(0.0, 0.04, 0.09); }
 	COLOR = c;
 }
 """
@@ -539,6 +549,10 @@ func resetear() -> void:
 	botones = []
 	moviles = []
 	puentes = []
+	zonas = []
+	rutas = []
+	_z_agua = false
+	_z_fric = 1.0
 	pendulos = []
 	cajas = []
 	_pw_borrar()
@@ -599,6 +613,14 @@ func resetear() -> void:
 				pendulos.append({"it": c, "ax": (float(it["x"]) + 0.5) * T, "ay": float(it["y"]) * T, "largo": float(it.get("r", 3)) * T, "sp": float(it.get("sp", 60)) / 60.0, "ang": 0.0, "bx": 0.0, "by": 0.0})
 			"caja":
 				cajas.append({"it": c, "r": Rect2(float(it["x"]) * T, float(it["y"]) * T, T, T), "vy": 0.0})
+			"zona":
+				zonas.append({"it": c, "rect": Rect2(float(it["x"]) * T, float(it["y"]) * T, float(it.get("w", 4)) * T, float(it.get("h", 3)) * T), "z": str(it.get("z", "agua")), "area": null})
+			"ruta":
+				var cvr: Curve2D = Dibujo.ruta_curva(c)
+				var wr := float(it.get("w", 3))
+				var forma := str(it.get("forma", "vaiven"))
+				rutas.append({"it": c, "curve": cvr, "len": maxf(1.0, cvr.get_baked_length()), "off": 0.0, "dir": 1.0, "sp": float(it.get("sp", 60)), "cerrada": forma in ["circulo", "cuadro"],
+					"o": Vector2(float(it["x"]) * T, float(it["y"]) * T), "rect": Rect2(float(it["x"]) * T, float(it["y"]) * T, wr * T, T * 0.4), "dx": 0.0, "dy": 0.0})
 			"rueda", "pelota", "cuerda":
 				_pw_rig.append({"it": c, "t": str(it["t"])})
 			"player":
@@ -666,6 +688,18 @@ func _pw_construir() -> void:
 	var hf := RectangleShape2D.new()
 	hf.size = Vector2(PW * T, PH * T)
 	_pw_h = _pw_cuerpo(hf, 1, 2, 1, pos + hf.size / 2.0) as CharacterBody2D
+	for z in zonas:
+		var ar := Area2D.new()
+		ar.collision_layer = 0
+		ar.collision_mask = 2
+		var zf := RectangleShape2D.new()
+		zf.size = (z["rect"] as Rect2).size
+		var zc := CollisionShape2D.new()
+		zc.shape = zf
+		ar.add_child(zc)
+		ar.position = (z["rect"] as Rect2).get_center()
+		_pw.add_child(ar)
+		z["area"] = ar
 	var gesc := GRAV / 980.0
 	for o in pend:
 		var it: Dictionary = o["it"]
@@ -762,6 +796,11 @@ func _input(ev: InputEvent) -> void:
 			_pausar()
 		elif ev.keycode == KEY_P:
 			_pausar()
+	elif ev is InputEventJoypadButton and ev.pressed:
+		if ev.button_index in [JOY_BUTTON_A, JOY_BUTTON_B]:
+			salto_pulsado = true
+		elif ev.button_index == JOY_BUTTON_START:
+			_pausar()
 	elif ev is InputEventScreenTouch:
 		if ev.pressed:
 			var z := _zona(ev.position - global_position)
@@ -783,6 +822,22 @@ func _input(ev: InputEvent) -> void:
 			if z2 == "salto" and dedos.get(ev.index, "") != "salto":
 				salto_pulsado = true
 			dedos[ev.index] = z2
+
+
+## Mando (palanca izquierda o cruceta) y, si está activado, inclinar el celular.
+func _eje_mando() -> float:
+	var e := Input.get_joy_axis(0, JOY_AXIS_LEFT_X)
+	if absf(e) < 0.25:
+		e = 0.0
+	if Input.is_joy_button_pressed(0, JOY_BUTTON_DPAD_LEFT):
+		e = -1.0
+	elif Input.is_joy_button_pressed(0, JOY_BUTTON_DPAD_RIGHT):
+		e = 1.0
+	if e == 0.0 and bool(reglas.get("inclinar", false)):
+		var gx := Input.get_gravity().x
+		if absf(gx) > 1.5:
+			e = clampf(gx / 5.0, -1.0, 1.0)
+	return e
 
 
 func _zona(p: Vector2) -> String:
@@ -866,6 +921,44 @@ func _escala() -> float:
 	return maxf(0.1, size.y / (Datos.FILAS * T)) * clampf(float(reglas.get("cam_zoom", 100)) / 100.0, 1.0, 2.0)
 
 
+func _zona_activa(z: Dictionary) -> bool:
+	if _pw_ok and z["area"] != null and _pw_h != null:
+		return (z["area"] as Area2D).overlaps_body(_pw_h)
+	return _caja().intersects(z["rect"])
+
+
+## Efectos de las zonas (agua, hielo, viento, corriente de aire, lava) sobre el héroe.
+func _zonas_tick(dt: float) -> void:
+	_z_agua = false
+	_z_fric = 1.0
+	for z in zonas:
+		if not _zona_activa(z):
+			continue
+		match str(z["z"]):
+			"agua":
+				_z_agua = true
+			"hielo":
+				_z_fric = 0.12
+			"viento":
+				vel.x += float(z["it"].get("d", 1)) * 900.0 * dt
+			"corriente":
+				vel.y = maxf(vel.y - 3400.0 * dt, -420.0)
+			"lava":
+				_herir()
+	if _z_agua and salto_pulsado:
+		vel.y = -430.0
+		salto_pulsado = false
+		_sonido.tocar(520.0, 0.06, "triangulo")
+
+
+## ¿Hay línea de visión libre entre dos puntos? Usa un rayo de la física de Godot contra el terreno.
+func _linea_libre(a: Vector2, b: Vector2) -> bool:
+	if not _pw_ok or _pw == null:
+		return true
+	var q := PhysicsRayQueryParameters2D.create(a, b, 1)
+	return _pw.world_2d.direct_space_state.intersect_ray(q).is_empty()
+
+
 func _caja() -> Rect2:
 	return Rect2(pos, Vector2(PW * T, PH * T))
 
@@ -891,11 +984,15 @@ func _actualizar(dt: float) -> void:
 		return
 	inv = maxf(0.0, inv - dt)
 	_objetos_vivos(dt)
-	var izq := Input.is_key_pressed(KEY_LEFT) or Input.is_key_pressed(KEY_A) or _pulsado("izq")
-	var der := Input.is_key_pressed(KEY_RIGHT) or Input.is_key_pressed(KEY_D) or _pulsado("der") or bool(nivel.get("autocorrer", false))
-	var sost := Input.is_key_pressed(KEY_UP) or Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_SPACE) or _pulsado("salto")
+	var ejex := _eje_mando()
+	var izq := Input.is_key_pressed(KEY_LEFT) or Input.is_key_pressed(KEY_A) or _pulsado("izq") or ejex < -0.3
+	var der := Input.is_key_pressed(KEY_RIGHT) or Input.is_key_pressed(KEY_D) or _pulsado("der") or ejex > 0.3 or bool(nivel.get("autocorrer", false))
+	var sost := Input.is_key_pressed(KEY_UP) or Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_SPACE) or _pulsado("salto") or Input.is_joy_button_pressed(0, JOY_BUTTON_A)
 	var dir := (1.0 if der else 0.0) - (1.0 if izq else 0.0)
-	var vmax := MOVER * float(_fis.get("vel", 1.0)) * _k_vel
+	if absf(ejex) > 0.3 and not (_pulsado("izq") or _pulsado("der")):
+		dir = clampf(ejex * 1.25, -1.0, 1.0)
+	_zonas_tick(dt)
+	var vmax := MOVER * float(_fis.get("vel", 1.0)) * _k_vel * (0.7 if _z_agua else 1.0)
 	if _mecanica("correr") and Input.is_key_pressed(KEY_SHIFT):
 		vmax *= 1.6
 	_dash = maxf(0.0, _dash - dt)
@@ -908,7 +1005,7 @@ func _actualizar(dt: float) -> void:
 	if _dash > 0.0:
 		vel.y *= 0.3
 	else:
-		vel.x += (dir * vmax - vel.x) * minf(1.0, dt * (16.0 if suelo else 9.0) * float(_fis.get("friccion", 1.0)))
+		vel.x += (dir * vmax - vel.x) * minf(1.0, dt * (16.0 if suelo else 9.0) * float(_fis.get("friccion", 1.0)) * _z_fric)
 	if dir != 0.0:
 		cara = dir
 	_acciones(dt)
@@ -933,10 +1030,10 @@ func _actualizar(dt: float) -> void:
 		buffer = 0.0
 		_aire += 1
 		_sfx("saltar")
-	var g := GRAV * float(_fis.get("grav", 1.0))
+	var g := GRAV * float(_fis.get("grav", 1.0)) * (0.35 if _z_agua else 1.0)
 	if not sost and vel.y < -280.0:
 		vel.y += g * 1.2 * dt
-	vel.y = minf(vel.y + g * dt, 1100.0 * float(_fis.get("caida", 1.0)))
+	vel.y = minf(vel.y + g * dt, (260.0 if _z_agua else 1100.0) * float(_fis.get("caida", 1.0)))
 	_planeo = _mecanica("planear") and sost and vel.y > 110.0 and not suelo
 	if _planeo:
 		vel.y = 110.0
@@ -1018,7 +1115,7 @@ func _actualizar(dt: float) -> void:
 		var ia := str(e["it"].get("ia", "patrulla"))
 		var cerca: bool = absf(pos.x / T - e["x"]) < 6.0 and absf(pos.y / T - float(e["it"]["y"])) < 3.0
 		var alerta: float = maxf(0.0, float(e.get("alerta", 0.0)) - dt)
-		if ia == "vigila" and absf(pos.y / T - float(e["it"]["y"])) < 2.0 and absf(pos.x / T - e["x"]) < 7.0 and (pos.x / T - e["x"]) * e["dir"] > 0.0:
+		if ia == "vigila" and absf(pos.y / T - float(e["it"]["y"])) < 2.0 and absf(pos.x / T - e["x"]) < 7.0 and (pos.x / T - e["x"]) * e["dir"] > 0.0 and _linea_libre(Vector2(e["x"] * T + T / 2.0, float(e["it"]["y"]) * T + T * 0.4), pos + Vector2(PW * T / 2.0, PH * T / 2.0)):
 			alerta = 2.0
 		e["alerta"] = alerta
 		if (ia == "persigue" and cerca) or (ia == "vigila" and alerta > 0.0):
@@ -1147,7 +1244,7 @@ func _draw() -> void:
 
 ## Plataformas fijas y bloques creados por el mago.
 func _todas_plats() -> Array:
-	if _bloques.is_empty() and puertas.is_empty() and moviles.is_empty() and cajas.is_empty() and puentes.is_empty():
+	if _bloques.is_empty() and puertas.is_empty() and moviles.is_empty() and rutas.is_empty() and cajas.is_empty() and puentes.is_empty():
 		return plats
 	var r: Array = _estaticas(null)
 	for cj in cajas:
@@ -1165,6 +1262,8 @@ func _estaticas(excepto: Variant) -> Array:
 			r.append(Rect2(float(d["x"]) * T + 6, float(d["y"]) * T, T - 12, T * 2))
 	for m in moviles:
 		r.append(m["rect"])
+	for ru in rutas:
+		r.append(ru["rect"])
 	for pu in puentes:
 		if int(pu["est"]) != 2:
 			r.append(pu["rect"])
@@ -1294,6 +1393,30 @@ func _objetos_vivos(dt: float) -> void:
 		m["it"]["x"] = m["px"] / T
 		if encima:
 			pos.x += m["dx"]
+	# plataformas en ruta: siguen un camino (Curve2D) y llevan al jugador
+	for ru in rutas:
+		var antes_r: Rect2 = ru["rect"]
+		ru["off"] = float(ru["off"]) + float(ru["dir"]) * float(ru["sp"]) * dt
+		if ru["cerrada"]:
+			ru["off"] = fposmod(float(ru["off"]), float(ru["len"]))
+		elif float(ru["off"]) > float(ru["len"]):
+			ru["off"] = ru["len"]
+			ru["dir"] = -1.0
+		elif float(ru["off"]) < 0.0:
+			ru["off"] = 0.0
+			ru["dir"] = 1.0
+		var pr: Vector2 = (ru["o"] as Vector2) + (ru["curve"] as Curve2D).sample_baked(float(ru["off"]))
+		var encima_r: bool = suelo and absf(pos.y + PH * T - antes_r.position.y) < 6.0 and pos.x + PW * T > antes_r.position.x and pos.x < antes_r.end.x
+		var rr2: Rect2 = ru["rect"]
+		rr2.position = pr
+		ru["rect"] = rr2
+		ru["dx"] = pr.x - antes_r.position.x
+		ru["dy"] = pr.y - antes_r.position.y
+		ru["it"]["x"] = pr.x / T
+		ru["it"]["y"] = pr.y / T
+		ru["it"]["live"] = true
+		if encima_r:
+			pos += Vector2(float(ru["dx"]), float(ru["dy"]))
 	# puentes: se rompen poco después de pisarlos y vuelven a salir
 	for pu in puentes:
 		var rp: Rect2 = pu["rect"]
@@ -1455,6 +1578,8 @@ func _acciones(dt: float) -> void:
 
 
 func _dibujar_mundo(ci: CanvasItem) -> void:
+	for z in zonas:
+		Dibujo.objeto(ci, z["it"], tema, t)
 	for b in _bloques:
 		Dibujo.objeto(ci, b["it"], tema, t)
 	for b in bolas:
@@ -1489,6 +1614,8 @@ func _dibujar_mundo(ci: CanvasItem) -> void:
 		Dibujo.objeto(ci, b, tema, t)
 	for m in moviles:
 		Dibujo.objeto(ci, m["it"], tema, t)
+	for ru in rutas:
+		Dibujo.objeto(ci, ru["it"], tema, t)
 	for pu in puentes:
 		Dibujo.objeto(ci, pu["it"], tema, t)
 	for pe in pendulos:
@@ -1542,8 +1669,36 @@ func _dibujar_oscuridad(ci: CanvasItem) -> void:
 	ci.draw_rect(Rect2(c.x + R, c.y - R, maxf(0.0, size.x - c.x - R), R * 2.0), col)
 
 
+## Mapa pequeño de todo el nivel (plataformas, premios, meta y tú).
+func _minimapa(ci: CanvasItem) -> void:
+	var cols := float(nivel["cols"])
+	var w := minf(220.0, size.x * 0.28)
+	var h := w * float(Datos.FILAS) / cols * 1.0
+	h = clampf(h, 30.0, 90.0)
+	var o := Vector2(size.x - w - 12.0, 56.0 if etiqueta_nivel == "" else 120.0)
+	ci.draw_rect(Rect2(o - Vector2(4, 4), Vector2(w + 8, h + 8)), Color(0, 0, 0, 0.5))
+	var ex := w / (cols * T)
+	var ey := h / (float(Datos.FILAS) * T)
+	for p in _todas_plats():
+		var r: Rect2 = p
+		ci.draw_rect(Rect2(o + Vector2(r.position.x * ex, r.position.y * ey), Vector2(maxf(1.5, r.size.x * ex), maxf(1.5, r.size.y * ey))), Color("c7d2fe"))
+	for c in recogibles:
+		if not c["got"]:
+			ci.draw_rect(Rect2(o + Vector2(float(c["x"]) * T * ex, float(c["y"]) * T * ey), Vector2(2.5, 2.5)), Color("fde047"))
+	if meta != null:
+		ci.draw_rect(Rect2(o + Vector2(float(meta["x"]) * T * ex, float(meta["y"]) * T * ey), Vector2(4, 4)), Color("34d399"))
+	for e in enemigos:
+		if not e["muerto"]:
+			ci.draw_rect(Rect2(o + Vector2(float(e["x"]) * T * ex, float(e["it"]["y"]) * T * ey), Vector2(3, 3)), Color("f87171"))
+	ci.draw_circle(o + Vector2((pos.x + PW * T / 2.0) * ex, (pos.y + PH * T / 2.0) * ey), 3.5, Color.WHITE)
+	var vx := cam * ex
+	ci.draw_rect(Rect2(o + Vector2(vx, 0), Vector2(size.x / escala * ex, h)), Color(1, 1, 1, 0.6), false, 1.0)
+
+
 func _dibujar_hud(ci: CanvasItem) -> void:
 	_hud_extra(ci)
+	if bool(reglas.get("minimapa", false)):
+		_minimapa(ci)
 	var fuente := ThemeDB.fallback_font
 	ci.draw_style_box(Estilo.caja(Color(0, 0, 0, 0.45), 22), Rect2(12, 10, maxf(250.0, 126.0 + int(reglas["vidas"]) * 30.0), 40))
 	Dibujo.emoji(ci, "⭐", Vector2(34, 30), 26.0)

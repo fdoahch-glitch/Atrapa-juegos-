@@ -52,6 +52,9 @@ class Icono extends Control:
 		var Dib := preload("res://scripts/dibujo.gd")
 		var th: Dictionary = Datos.temas["dia"]
 		var d := def
+		if d["t"] == "prefab":
+			Dib.emoji(ci, "🧩", Vector2(24, 24), 44.0)
+			return
 		var it: Dictionary = {"t": d["t"], "x": 0, "y": 0}
 		var extra := {}
 		match d["t"]:

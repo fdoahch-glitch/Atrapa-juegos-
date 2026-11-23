@@ -153,3 +153,14 @@ Cada tipo del asistente crea una demo que funciona desde el primer toque y que p
 - **Analizar mi juego** (panel Rendimiento): prueba cada mundo unos segundos, mide FPS, dibujos y memoria de imágenes, estima el rendimiento en la plataforma elegida y propone mejoras de velocidad y de apariencia con botón «Aplicar».
 - **💡 Ahora…** (barra superior): mira cómo va el proyecto y sugiere el siguiente paso con palabras simples, más un mini tutorial de la sección y consejos por plataforma.
 - Pruebas nuevas: `prueba_fisica`, `prueba_analizar`, `prueba_guia`.
+
+## Más poder de Godot (zonas, rutas, mando, navegación y más)
+- **Zonas** (Area2D): agua (se nada), hielo (resbala), viento (empuja), corriente de aire (sube) y lava (quema). Se estiran como una plataforma.
+- **Plataformas en ruta** (Curve2D): sube y baja, diagonal, círculo o rectángulo; llevan al héroe.
+- **Línea de visión** (RayCast de la física): los enemigos que «vigilan» ya no ven a través de los muros.
+- **Navegación A\*** (AStarGrid2D): en la vista desde arriba, los enemigos que «persiguen» rodean las paredes buscando el camino. Ahora el héroe de esa vista también usa la física real de Godot.
+- **Mando y celular**: palanca, cruceta, botón A para saltar y Start para pausar; opción «Inclinar el celular para mover» (giroscopio/acelerómetro).
+- **Minimapa** (opción en Efectos) y 5 filtros de pantalla nuevos (ondas, televisor antiguo, dibujo animado, neón, bajo el agua).
+- **Bloques reutilizables**: «🧩 Guardar bloque» guarda el objeto y los que lo rodean; aparece en Objetos → «Mis bloques reutilizables».
+- **Abrir en Godot completo**: en Exportar, crea la carpeta `proyecto-godot` lista para importar en el editor de Godot.
+- Pruebas nuevas: `prueba_zonas`, `prueba_astar`, `prueba_bloques`, `prueba_godot_completo`.
