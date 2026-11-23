@@ -115,6 +115,7 @@ func _alternar_sonido() -> void:
 func _aplicar_reglas() -> void:
 	vidas = int(reglas["vidas"])
 	_poner_poder()
+	_poner_fisica()
 	puntos = puntos_base
 	tiempo_rest = float(reglas["tiempo"]) if int(reglas["tiempo"]) > 0 else -1.0
 	_msg = ""
@@ -130,6 +131,24 @@ var _iman_s := 0.0
 var _doble_s := 0.0
 var _bono := 1.0
 var _k_salto := 1.0
+var _fis: Dictionary = {}
+var _mec: Dictionary = {}
+var _aire := 0
+var _dash := 0.0
+var _dash_cd := 0.0
+var _disp_cd := 0.0
+var _esp_cd := 0.0
+var _esp_t := 0.0
+var _conj_cd := 0.0
+var _bloques: Array = []          # bloques creados por el mago: {"r": Rect2, "it": Dictionary}
+var bolas: Array = []             # bolitas del jugador
+var bolas_e: Array = []           # bolitas de enemigos
+var _planeo := false
+# trío de héroes (juegos con nivel["trio"])
+const TRIO := [["a:caballero", "Caballero", {"espada": true}, 0.9, 0.9], ["a:mago", "Mago", {"conjurar": true}, 1.0, 1.0], ["a:ninja", "Ladrón", {"doble_salto": true, "disparar": true, "correr": true}, 1.0, 1.15]]
+var _trio := false
+var _hero_i := 0
+var _k_vel := 1.0
 var _lento := 1.0
 var _inv_golpe := 1.6
 var _mult := {}
@@ -171,6 +190,41 @@ func _poner_poder() -> void:
 		for k in ["coin", "gem", "star", "enemy"]:
 			if e.has(k):
 				_mult[k] = float(_mult.get(k, 1.0)) * float(e[k])
+
+
+## Física y mecánicas que eligió el creador (paneles «Física» y «Mecánicas»).
+func _poner_fisica() -> void:
+	_fis = Datos.fis_normal(reglas.get("fis", {}))
+	_mec = Datos.mec_normal(reglas.get("mec", {}))
+	_k_salto *= float(_fis["salto"])
+	_k_vel = 1.0
+	_trio = bool(nivel.get("trio", false))
+	if _trio:
+		_cambiar_heroe(_hero_i)
+	bolas = []
+	bolas_e = []
+	_bloques = []
+	_aire = 0
+
+
+func _mecanica(k: String) -> bool:
+	return bool(_mec.get(k, false))
+
+
+## Trío: cambia de héroe (teclas 1, 2, 3). Cada uno tiene sus propias habilidades.
+func _cambiar_heroe(i: int) -> void:
+	_hero_i = clampi(i, 0, TRIO.size() - 1)
+	var h: Array = TRIO[_hero_i]
+	nivel["hero"] = h[0]
+	_mec = Datos.mec_normal(reglas.get("mec", {}))
+	for k in (h[2] as Dictionary).keys():
+		_mec[k] = true
+	_k_vel = float(h[4])
+	_k_salto = _k_salto_base() * float(h[3])
+
+
+func _k_salto_base() -> float:
+	return float(_fis.get("salto", 1.0))
 
 
 func _iman_act() -> bool:
@@ -433,9 +487,23 @@ func _actualizar(dt: float) -> void:
 	var der := Input.is_key_pressed(KEY_RIGHT) or Input.is_key_pressed(KEY_D) or _pulsado("der") or bool(nivel.get("autocorrer", false))
 	var sost := Input.is_key_pressed(KEY_UP) or Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_SPACE) or _pulsado("salto")
 	var dir := (1.0 if der else 0.0) - (1.0 if izq else 0.0)
-	vel.x += (dir * MOVER - vel.x) * minf(1.0, dt * (16.0 if suelo else 9.0))
+	var vmax := MOVER * float(_fis.get("vel", 1.0)) * _k_vel
+	if _mecanica("correr") and Input.is_key_pressed(KEY_SHIFT):
+		vmax *= 1.6
+	_dash = maxf(0.0, _dash - dt)
+	_dash_cd = maxf(0.0, _dash_cd - dt)
+	if _mecanica("dash") and _dash_cd <= 0.0 and (Input.is_key_pressed(KEY_X) or Input.is_key_pressed(KEY_K)):
+		_dash = 0.16
+		_dash_cd = 0.8
+		vel.x = cara * 720.0
+		_sonido.tocar(260.0, 0.1, "triangulo")
+	if _dash > 0.0:
+		vel.y *= 0.3
+	else:
+		vel.x += (dir * vmax - vel.x) * minf(1.0, dt * (16.0 if suelo else 9.0) * float(_fis.get("friccion", 1.0)))
 	if dir != 0.0:
 		cara = dir
+	_acciones(dt)
 	if salto_pulsado:
 		buffer = 0.12
 		salto_pulsado = false
@@ -443,18 +511,29 @@ func _actualizar(dt: float) -> void:
 	coyote -= dt
 	if suelo:
 		coyote = 0.1
+	if suelo:
+		_aire = 0
 	if buffer > 0.0 and coyote > 0.0:
 		vel.y = -SALTO * _k_salto
 		buffer = 0.0
 		coyote = 0.0
 		suelo = false
 		_sonido.tocar(520.0, 0.12)
+	elif buffer > 0.0 and _mecanica("doble_salto") and _aire < 1 and not suelo:
+		vel.y = -SALTO * _k_salto * 0.92
+		buffer = 0.0
+		_aire += 1
+		_sonido.tocar(640.0, 0.12)
+	var g := GRAV * float(_fis.get("grav", 1.0))
 	if not sost and vel.y < -280.0:
-		vel.y += GRAV * 1.2 * dt
-	vel.y = minf(vel.y + GRAV * dt, 1100.0)
+		vel.y += g * 1.2 * dt
+	vel.y = minf(vel.y + g * dt, 1100.0 * float(_fis.get("caida", 1.0)))
+	_planeo = _mecanica("planear") and sost and vel.y > 110.0 and not suelo
+	if _planeo:
+		vel.y = 110.0
 	# --- movimiento horizontal
 	pos.x += vel.x * dt
-	for p in plats:
+	for p in _todas_plats():
 		if _caja().intersects(p):
 			if vel.x > 0.0:
 				pos.x = p.position.x - pw
@@ -467,14 +546,21 @@ func _actualizar(dt: float) -> void:
 	# --- movimiento vertical
 	pos.y += vel.y * dt
 	suelo = false
-	for p in plats:
+	var rebote_v := 0.0
+	for p in _todas_plats():
 		if _caja().intersects(p):
 			if vel.y >= 0.0:
 				pos.y = p.position.y - ph
 				suelo = true
+				if vel.y > 260.0 and float(_fis.get("rebote", 0.0)) > 0.0:
+					rebote_v = -vel.y * float(_fis["rebote"])
 			else:
 				pos.y = p.end.y
 			vel.y = 0.0
+	if rebote_v != 0.0:
+		vel.y = rebote_v
+		suelo = false
+		_sonido.tocar(420.0, 0.08, "triangulo")
 	# --- resortes, pinchos, premios
 	for r in resortes:
 		if vel.y >= 0.0 and _caja().intersects(Rect2(r["x"] * T, r["y"] * T + T * 0.5, T, T * 0.5)):
@@ -496,16 +582,30 @@ func _actualizar(dt: float) -> void:
 		if e["muerto"]:
 			e["sqt"] += dt
 			continue
-		e["x"] += e["dir"] * e["sp"] * _lento / T * dt
-		if e["x"] > e["x0"] + e["r"]:
-			e["dir"] = -1.0
-		if e["x"] < e["x0"] - e["r"]:
-			e["dir"] = 1.0
-		var ey: float = float(e["it"]["y"]) * T
+		var ia := str(e["it"].get("ia", "patrulla"))
+		var cerca: bool = absf(pos.x / T - e["x"]) < 6.0 and absf(pos.y / T - float(e["it"]["y"])) < 3.0
+		if ia == "persigue" and cerca:
+			e["dir"] = 1.0 if pos.x / T > e["x"] else -1.0
+			e["x"] = clampf(e["x"] + e["dir"] * maxf(e["sp"], 40.0) * 1.3 * _lento / T * dt, 0.0, ancho / T - 1.0)
+		elif ia == "quieto" or ia == "dispara":
+			e["dir"] = 1.0 if pos.x / T > e["x"] else -1.0
+		else:
+			e["x"] += e["dir"] * e["sp"] * _lento / T * dt
+			if e["x"] > e["x0"] + e["r"]:
+				e["dir"] = -1.0
+			if e["x"] < e["x0"] - e["r"]:
+				e["dir"] = 1.0
+		if ia == "dispara":
+			e["ct"] = float(e.get("ct", 1.2)) - dt
+			if e["ct"] <= 0.0 and absf(pos.x / T - e["x"]) < 10.0:
+				e["ct"] = 2.2
+				bolas_e.append({"x": e["x"] * T + T / 2.0, "y": float(e["it"]["y"]) * T + T * 0.45, "d": e["dir"]})
+		e["dy"] = -absf(sin(t * 4.0 + e["x0"])) * T * 0.9 if ia == "salta" else 0.0
+		var ey: float = float(e["it"]["y"]) * T + float(e["dy"])
 		if e["it"].get("fly", false):
 			ey += sin(t * 3.0 + e["x0"]) * 7.0
 		if _caja().intersects(Rect2(e["x"] * T + 8, ey + 10, T - 16, T - 14)):
-			if vel.y > 0.0 and pos.y + ph < ey + T * 0.55:
+			if vel.y > 0.0 and pos.y + ph < ey + T * 0.55 and _mecanica("pisar"):
 				e["muerto"] = true
 				vel.y = -540.0
 				puntos += _vale("enemy")
@@ -599,7 +699,90 @@ func _draw() -> void:
 	Dibujo.fondo_de(self, nivel, tema, size, cam * escala, t)
 
 
+## Plataformas fijas y bloques creados por el mago.
+func _todas_plats() -> Array:
+	if _bloques.is_empty():
+		return plats
+	var r: Array = plats.duplicate()
+	for b in _bloques:
+		r.append(b["r"])
+	return r
+
+
+## Disparar, espada, crear bloques, cambiar de héroe y mover las bolitas.
+func _acciones(dt: float) -> void:
+	_disp_cd = maxf(0.0, _disp_cd - dt)
+	_esp_cd = maxf(0.0, _esp_cd - dt)
+	_esp_t = maxf(0.0, _esp_t - dt)
+	_conj_cd = maxf(0.0, _conj_cd - dt)
+	if _trio:
+		for k in 3:
+			if Input.is_key_pressed(KEY_1 + k) and _hero_i != k:
+				_cambiar_heroe(k)
+				_sonido.tocar(600.0 + k * 150.0, 0.1, "triangulo")
+	var centro := Vector2(pos.x + PW * T / 2.0, pos.y + PH * T / 2.0)
+	if _mecanica("disparar") and _disp_cd <= 0.0 and (Input.is_key_pressed(KEY_F) or Input.is_key_pressed(KEY_J)):
+		_disp_cd = 0.35
+		bolas.append({"x": centro.x, "y": centro.y, "d": cara})
+		_sonido.tocar(700.0, 0.06, "cuadrada")
+	if _mecanica("espada") and _esp_cd <= 0.0 and Input.is_key_pressed(KEY_H):
+		_esp_cd = 0.45
+		_esp_t = 0.18
+		var zona := Rect2(centro.x - (0.0 if cara > 0.0 else T * 1.5), centro.y - T * 0.6, T * 1.5, T * 1.2)
+		for e in enemigos:
+			if not e["muerto"] and zona.intersects(Rect2(e["x"] * T, float(e["it"]["y"]) * T, T, T)):
+				e["muerto"] = true
+				puntos += _vale("enemy")
+		_sonido.tocar(380.0, 0.1, "sierra")
+	if _mecanica("conjurar") and _conj_cd <= 0.0 and Input.is_key_pressed(KEY_G):
+		_conj_cd = 0.6
+		var bx := floorf((centro.x + cara * T * 1.1) / T)
+		var by := floorf((pos.y + PH * T - 2.0) / T)
+		var r := Rect2(bx * T, by * T, T, T)
+		if not _bloques.any(func(b): return (b["r"] as Rect2).position == r.position):
+			_bloques.append({"r": r, "it": {"t": "plat", "x": bx, "y": by, "w": 1, "h": 1}})
+			if _bloques.size() > 3:
+				_bloques.pop_front()
+			_sonido.tocar(900.0, 0.12, "triangulo")
+	# bolitas del jugador
+	for b in bolas:
+		b["x"] += b["d"] * 640.0 * dt
+		var rb := Rect2(b["x"] - 6, b["y"] - 6, 12, 12)
+		for p in plats:
+			if rb.intersects(p):
+				b["x"] = -9999.0
+		for e in enemigos:
+			if not e["muerto"] and rb.intersects(Rect2(e["x"] * T, float(e["it"]["y"]) * T, T, T)):
+				e["muerto"] = true
+				b["x"] = -9999.0
+				puntos += _vale("enemy")
+				_sonido.tocar(300.0, 0.15)
+	bolas = bolas.filter(func(b): return b["x"] > -500.0 and b["x"] < float(nivel["cols"]) * T + 500.0)
+	# bolitas de enemigos
+	for b in bolas_e:
+		b["x"] += b["d"] * 300.0 * dt
+		var rb2 := Rect2(b["x"] - 7, b["y"] - 7, 14, 14)
+		if rb2.intersects(_caja()):
+			b["x"] = -9999.0
+			_herir()
+		for p in plats:
+			if rb2.intersects(p):
+				b["x"] = -9999.0
+	bolas_e = bolas_e.filter(func(b): return b["x"] > -500.0 and b["x"] < float(nivel["cols"]) * T + 500.0)
+
+
 func _dibujar_mundo(ci: CanvasItem) -> void:
+	for b in _bloques:
+		Dibujo.objeto(ci, b["it"], tema, t)
+	for b in bolas:
+		ci.draw_circle(Vector2(b["x"], b["y"]), 7.0, Color("fff1a8"))
+		ci.draw_circle(Vector2(b["x"], b["y"]), 4.0, Color("ffc61a"))
+	for b in bolas_e:
+		ci.draw_circle(Vector2(b["x"], b["y"]), 8.0, Color("7a1fff"))
+		ci.draw_circle(Vector2(b["x"], b["y"]), 4.0, Color("d9b8ff"))
+	if _esp_t > 0.0:
+		var cx := pos.x + PW * T / 2.0 + cara * T * 0.9
+		ci.draw_arc(Vector2(cx, pos.y + PH * T / 2.0), T * 0.7, -1.2 if cara > 0.0 else 1.94, 1.2 if cara > 0.0 else 4.34, 14, Color(1, 1, 1, 0.9), 6.0)
 	for d in decos:
 		Dibujo.objeto(ci, d, tema, t)
 	for p in items_plat:
@@ -615,7 +798,11 @@ func _dibujar_mundo(ci: CanvasItem) -> void:
 		Dibujo.objeto(ci, meta, tema, t)
 	for e in enemigos:
 		if not e["muerto"] or e["sqt"] < 0.5:
-			Dibujo.objeto(ci, e["it"], tema, t, {"dir": e["dir"], "x": e["x"], "sq": e["muerto"]})
+			var cp: Dictionary = e["it"]
+			if float(e.get("dy", 0.0)) != 0.0:
+				cp = e["it"].duplicate()
+				cp["y"] = float(cp["y"]) + float(e["dy"]) / T
+			Dibujo.objeto(ci, cp, tema, t, {"dir": e["dir"], "x": e["x"], "sq": e["muerto"]})
 	if not (inv > 0.0 and int(t * 14.0) % 2 == 1):
 		var c2 := Vector2(pos.x + PW * T / 2.0 - T / 2.0, pos.y + PH * T / 2.0 - T / 2.0) / T
 		_mascota_2d(ci, c2)
@@ -632,6 +819,12 @@ func _dibujar_hud(ci: CanvasItem) -> void:
 		Dibujo.emoji(ci, "❤", Vector2(130 + i * 30, 30), 26.0)
 	if _escudos > 0:
 		Dibujo.emoji(ci, "🛡", Vector2(130 + maxi(0, vidas) * 30 + 6, 30), 24.0)
+	if _trio:
+		for i in TRIO.size():
+			var rc := Rect2(12 + i * 62, 56, 56, 56)
+			ci.draw_style_box(Estilo.caja(Color(1, 0.85, 0.2, 0.9) if i == _hero_i else Color(0, 0, 0, 0.45), 14), rc)
+			Dibujo.emoji(ci, str(TRIO[i][0]), rc.get_center() + Vector2(0, -2), 44.0)
+			ci.draw_string(fuente, rc.position + Vector2(5, 14), str(i + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.WHITE)
 	if tactil:
 		for z in ["izq", "der", "salto"]:
 			var r := _rect_zona(z)

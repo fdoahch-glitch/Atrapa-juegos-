@@ -99,6 +99,22 @@ static func _nombre_libre(base: String) -> String:
 	return n
 
 
+## Guarda una imagen hecha dentro del programa (por ejemplo, un personaje creado) como dibujo propio.
+static func guardar_imagen(img: Image, nombre: String) -> String:
+	DirAccess.make_dir_recursive_absolute(CARPETA)
+	var base := nombre.strip_edges()
+	if base == "":
+		base = "personaje"
+	var archivo := _nombre_libre(base.replace("/", "_") + ".png")
+	if img.save_png(CARPETA.path_join(archivo)) != OK:
+		return ""
+	var id := "u:" + archivo
+	var lista := listar_propios()
+	lista.append({"id": id, "n": archivo.get_basename().left(14)})
+	_guardar_indice(lista)
+	return id
+
+
 ## Copia un archivo al creador. Devuelve el id ("u:..." o "g:...") o "" si no se pudo.
 static func importar_archivo(origen: String) -> String:
 	var ext := origen.get_extension().to_lower()

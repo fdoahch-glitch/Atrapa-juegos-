@@ -110,7 +110,30 @@ static func fondo(ci: CanvasItem, th: Dictionary, tam: Vector2, cam: float, t: f
 
 # ---------------------------------------------------------------- objetos
 ## Dibuja un objeto en coordenadas del mundo (1 celda = 48 px).
-static func objeto(ci: CanvasItem, it: Dictionary, th: Dictionary, t: float, extra: Dictionary = {}) -> void:
+## Animación elegida para un objeto (panel de propiedades): mueve el objeto un poquito.
+static func _con_anim(it: Dictionary, t: float) -> Dictionary:
+	var a := str(it["anim"])
+	var c := it.duplicate()
+	var f := float(it["x"]) * 0.7
+	match a:
+		"flotar":
+			c["y"] = float(it["y"]) + sin(t * 2.0 + f) * 0.12
+		"rebotar":
+			c["y"] = float(it["y"]) - absf(sin(t * 4.0 + f)) * 0.35
+		"balancear":
+			c["x"] = float(it["x"]) + sin(t * 2.5 + f) * 0.12
+		"latir":
+			c["y"] = float(it["y"]) + sin(t * 9.0 + f) * 0.05
+			c["x"] = float(it["x"]) + cos(t * 9.0 + f) * 0.05
+		"temblar":
+			c["x"] = float(it["x"]) + sin(t * 40.0 + f) * 0.03
+	return c
+
+
+static func objeto(ci: CanvasItem, it0: Dictionary, th: Dictionary, t: float, extra: Dictionary = {}) -> void:
+	var it: Dictionary = it0
+	if it0.has("anim") and str(it0["anim"]) != "ninguna" and it0["t"] != "plat":
+		it = _con_anim(it0, t)
 	var x: float = float(it["x"]) * T
 	var y: float = float(it["y"]) * T
 	match it["t"]:

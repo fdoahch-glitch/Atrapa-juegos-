@@ -115,3 +115,13 @@ Cada tipo del asistente crea una demo que funciona desde el primer toque y que p
 - El botón 🧭 Guía muestra los pasos de cada categoría; 💡 «Cuéntame tu idea» recomienda la categoría adecuada.
 - Se agregaron ~1.200 emojis (Twemoji) para que cartas, torres, autos, comida y animales se vean en todos los juegos.
 - Créditos: emojis Twemoji (© Twitter / comunidad jdecked), licencia CC-BY 4.0.
+
+
+## Mecánicas, física, comportamientos y más
+- **Tres botones arriba** del mundo: 📜 Reglas (cómo se gana y se pierde; arriba un resumen en palabras; «Pista: con meta / sin fin como Dino Run»), 🎮 Mecánicas (pisar, doble salto, planear, correr, impulso, disparar, espada, crear bloques) y ⚙ Física (gravedad, salto, velocidad, agarre, caída y rebote, con estilos listos: Luna, Pesado, Resbaloso, Rebotón, Veloz). Se aplican a los juegos de plataformas 2D, 2.5D y al trío.
+- **Enemigos**: al tocar uno eliges Patrulla, Quieto, Persigue, Salta o Dispara.
+- **Animar objetos**: al tocar cualquier objeto eliges Flotar, Rebotar, Balancear, Latir o Temblar.
+- **Creador de personajes** (🧑 en la barra del mundo): cuerpo + color + accesorio; se guarda en «Mis cosas».
+- **Creador de pista**: la pista vista desde arriba con sus curvas, subidas y bajadas.
+- **Trío de héroes** (Plataformas → Trío): teclas 1, 2 y 3. Caballero (espada, H), mago (crea bloques, G) y ladrón (doble salto, dispara con F y corre con Shift).
+- Teclas: X/K impulso, F/J disparar, H espada, G bloques, Shift correr.

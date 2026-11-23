@@ -32,6 +32,8 @@ const CATEGORIAS := [
 			"modo": "2d", "tipo": "plataformas", "theme": "dia", "hero": "🐱"},
 		{"id": "papel", "emoji": "🧊", "titulo": "Plataformas 2.5D", "txt": "Igual, pero con bloques con profundidad.", "ok": true,
 			"modo": "25d", "tipo": "plataformas", "theme": "dia", "hero": "🐱"},
+		{"id": "trio", "emoji": "⚔", "titulo": "Trío de héroes", "txt": "Como Trine: cambia entre caballero, mago y ladrón (teclas 1, 2 y 3).", "ok": true,
+			"modo": "2d", "tipo": "plataformas", "estilo": "trio", "theme": "dia", "hero": "a:caballero"},
 	]},
 	{"id": "aventura", "emoji": "🗺", "titulo": "Aventura y RPG", "txt": "Explora mundos y encuentra tesoros.", "color": Color("00a8b5"), "tipos": [
 		{"id": "mundo3d", "emoji": "🗺", "titulo": "Aventura en 3D", "txt": "Camina libre por un mundo en 3D.", "ok": true,

@@ -74,6 +74,8 @@ func _mostrar_inicio() -> void:
 			n["estilo"] = "disparos"
 		elif est == "corredor2d":
 			n = Datos.nivel_corredor2d()
+		elif est == "trio":
+			n = Datos.nivel_trio()
 		elif est == "pelea":
 			n = Datos.nivel_pelea(str(cfg.get("theme", "dia")))
 		elif modo == "3d" and tipo == "aventura":

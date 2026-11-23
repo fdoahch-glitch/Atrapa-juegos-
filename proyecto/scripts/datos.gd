@@ -55,7 +55,7 @@ var niveles: Array = []             # copias de todos los niveles (el actual se 
 var idx := 0                        # posición del nivel actual
 var reglas: Dictionary = {}         # reglas del juego completo
 const MAX_NIVELES := 10
-const REGLAS_BASE := {"vidas": 3, "tiempo": 0, "meta": "meta", "pts_coin": 1, "pts_gem": 3, "pts_star": 5, "pts_enemy": 2, "titulo": true, "final": "¡Ganaste el juego!", "musica": "", "mascota": "", "poder": "escudo", "tienda": false, "jugadores": 1, "heroe2": "", "plataforma": "windows", "categoria": "", "subtipo": "", "rend": {}, "dificultad": "normal", "elegir_dificultad": false, "misiones": false, "revivir": 0, "modo_prueba": false, "arma": "pistola", "espera": false, "logros": true, "sin_fin": false}
+const REGLAS_BASE := {"vidas": 3, "tiempo": 0, "meta": "meta", "pts_coin": 1, "pts_gem": 3, "pts_star": 5, "pts_enemy": 2, "titulo": true, "final": "¡Ganaste el juego!", "musica": "", "mascota": "", "poder": "escudo", "tienda": false, "jugadores": 1, "heroe2": "", "plataforma": "windows", "categoria": "", "subtipo": "", "rend": {}, "dificultad": "normal", "elegir_dificultad": false, "misiones": false, "revivir": 0, "modo_prueba": false, "arma": "pistola", "espera": false, "logros": true, "sin_fin": false, "fis": {}, "mec": {}}
 var historial: Array[String] = []
 var futuro: Array[String] = []
 var _actual := ""
@@ -175,6 +175,29 @@ func nivel_corredor() -> Dictionary:
 
 
 ## Mundo de ejemplo del modo 3D «Aventura»: se ve desde arriba; 1 celda = 2 metros.
+## Plataformas con tres héroes que se cambian al vuelo (como Trine): caballero, mago y ladrón.
+func nivel_trio() -> Dictionary:
+	var n := nivel_inicial()
+	n["name"] = "Mi trío"
+	n["trio"] = true
+	n["hero"] = "a:caballero"
+	n["cols"] = 40
+	var items: Array = n["items"]
+	items = items.filter(func(it): return it["t"] != "enemy" and it["t"] != "goal")
+	var add := func(o: Dictionary) -> void:
+		o["id"] = nuevo_id()
+		items.append(o)
+	add.call({"t": "plat", "x": 30, "y": 12, "w": 10, "h": 2})
+	add.call({"t": "plat", "x": 33, "y": 8, "w": 2, "h": 1})
+	add.call({"t": "enemy", "x": 21, "y": 11, "e": "a:slime", "r": 3, "sp": 40, "ia": "patrulla"})
+	add.call({"t": "enemy", "x": 27, "y": 11, "e": "a:esqueleto", "r": 2, "sp": 50, "ia": "persigue"})
+	add.call({"t": "enemy", "x": 35, "y": 11, "e": "a:esqueleto", "r": 1, "sp": 0, "ia": "dispara"})
+	add.call({"t": "star", "x": 33, "y": 7})
+	add.call({"t": "goal", "x": 38, "y": 11})
+	n["items"] = items
+	return n
+
+
 func nivel_aventura() -> Dictionary:
 	var items: Array = []
 	var n := 0
@@ -681,6 +704,10 @@ func normalizar(n: Dictionary) -> Dictionary:
 			it["h"] = maxi(1, int(it.get("h", 1)))
 		if ["deco", "enemy"].has(str(it["t"])) and str(it.get("e", "")) == "":
 			it["e"] = "👾" if str(it["t"]) == "enemy" else "🌳"
+		if it.has("ia") and not COMPORTAMIENTOS.any(func(c): return c[0] == str(it["ia"])):
+			it.erase("ia")
+		if it.has("anim") and not ANIM_OBJ.any(func(c): return c[0] == str(it["anim"])):
+			it.erase("anim")
 		if not it.has("id"):
 			it["id"] = nuevo_id()
 		limpios.append(it)
@@ -689,6 +716,44 @@ func normalizar(n: Dictionary) -> Dictionary:
 
 
 ## Reglas con todos los valores presentes (los que falten usan el valor base).
+## Física del mundo (plataformas): 1.0 = normal. Cada número multiplica el valor de siempre.
+const FIS_BASE := {"grav": 1.0, "salto": 1.0, "vel": 1.0, "friccion": 1.0, "caida": 1.0, "rebote": 0.0}
+const FIS_RANGOS := {"grav": [0.3, 2.0], "salto": [0.5, 1.8], "vel": [0.5, 2.0], "friccion": [0.2, 3.0], "caida": [0.4, 2.0], "rebote": [0.0, 0.9]}
+const FIS_PRESETS := [["Normal", {}], ["Luna", {"grav": 0.45, "salto": 1.1, "caida": 0.6}], ["Pesado", {"grav": 1.5, "salto": 1.25, "vel": 0.85}], ["Resbaloso", {"friccion": 0.25}], ["Rebotón", {"rebote": 0.7, "salto": 1.1}], ["Veloz", {"vel": 1.6, "friccion": 1.5}]]
+## Mecánicas: lo que el personaje sabe hacer. [clave, nombre, explicación, valor de fábrica]
+const MEC_LISTA := [
+	["pisar", "Pisar enemigos", "Saltar encima de un enemigo lo derrota.", true],
+	["doble_salto", "Doble salto", "Salta otra vez en el aire.", false],
+	["planear", "Planear", "Mantén el salto al caer y bajas despacio.", false],
+	["correr", "Correr", "Mantén Shift para ir más rápido.", false],
+	["dash", "Impulso", "Tecla X o K: un empujón rápido hacia adelante.", false],
+	["disparar", "Disparar", "Tecla F o J: lanza bolitas que derrotan enemigos.", false],
+	["espada", "Espada", "Tecla H: golpea a los enemigos que tienes cerca.", false],
+	["conjurar", "Crear bloques", "Tecla G: aparece un bloque para subirte (máximo 3).", false]]
+## Cómo se comportan los enemigos.
+const COMPORTAMIENTOS := [["patrulla", "Patrulla"], ["quieto", "Quieto"], ["persigue", "Persigue"], ["salta", "Salta"], ["dispara", "Dispara"]]
+## Animación de objetos y personajes del mundo.
+const ANIM_OBJ := [["ninguna", "Quieto"], ["flotar", "Flotar"], ["rebotar", "Rebotar"], ["balancear", "Balancear"], ["latir", "Latir"], ["temblar", "Temblar"]]
+
+
+func fis_normal(f: Variant) -> Dictionary:
+	var d: Dictionary = f if f is Dictionary else {}
+	var o := FIS_BASE.duplicate()
+	for k in FIS_BASE.keys():
+		if d.has(k) and (d[k] is float or d[k] is int):
+			var r: Array = FIS_RANGOS[k]
+			o[k] = clampf(float(d[k]), float(r[0]), float(r[1]))
+	return o
+
+
+func mec_normal(m: Variant) -> Dictionary:
+	var d: Dictionary = m if m is Dictionary else {}
+	var o := {}
+	for x in MEC_LISTA:
+		o[x[0]] = bool(d[x[0]]) if d.has(x[0]) else bool(x[3])
+	return o
+
+
 const ANIMACIONES := [["ninguna", "Quieto"], ["flotar", "Flotar"], ["latir", "Latir"], ["balancear", "Balancear"], ["rebotar", "Rebotar"], ["brillar", "Brillar"], ["girar", "Girar"]]
 const ACCIONES := [["ninguna", "Nada"], ["jugar", "Jugar"], ["personajes", "Elegir personaje"], ["tienda", "Tienda"], ["salir", "Salir"]]
 
@@ -742,6 +807,8 @@ func reglas_completas(r: Dictionary) -> Dictionary:
 			else:
 				o[k] = int(v)
 	o["portada"] = portada_normal(r.get("portada", {}))
+	o["fis"] = fis_normal(r.get("fis", {}))
+	o["mec"] = mec_normal(r.get("mec", {}))
 	o["rend"] = Rendimiento.normal(r.get("rend", {}))
 	var cat: Array = []
 	if r.get("catalogo", []) is Array:
@@ -900,7 +967,7 @@ func agregar_nivel(copiar: bool = false) -> bool:
 			it["id"] = nuevo_id()
 	else:
 		n = nivel_en_blanco()
-		for k in ["name", "modo", "disp", "orient", "tipo", "theme", "hero", "paleta", "clima", "hora", "perseguidor", "densidad", "decorado", "obstaculos", "premios", "autocorrer", "pista", "hero_alto", "mini", "mini_cfg", "camara"]:
+		for k in ["name", "modo", "disp", "orient", "tipo", "theme", "hero", "paleta", "clima", "hora", "perseguidor", "densidad", "decorado", "obstaculos", "premios", "autocorrer", "pista", "hero_alto", "mini", "mini_cfg", "camara", "trio"]:
 			if nivel.has(k) or n.has(k):
 				n[k] = nivel.get(k, n.get(k))
 		n = normalizar(n)

@@ -52,16 +52,22 @@ static func _pasos(categoria: String, tipo: String = "") -> Array:
 				_p("laterales", "🌳", "Decorado de los lados", "¿Qué hay a los costados? Árboles, casas, edificios, rocas…", "deco"),
 				_p("fondos", "🖼", "Fondos y cielo", "El paisaje de fondo y los elementos del cielo.", "fondos"),
 				_p("elementos", "🌍", "Elementos del mundo", "Lista de todo lo del mundo: reemplaza o activa y desactiva modelos, tamaño real del personaje.", "elementos"),
-				_p("curvas", "↪", "Curvas, subidas y bajadas", "Giros a izquierda y derecha y subidas o bajadas (al final del panel de colores y ambiente).", "pista"),
-				_p("fisica", "⚙", "Física y velocidad", "Velocidad, salto, vidas, qué pasa al chocar y cómo se pierde.", "reglas"),
+				_p("curvas", "↪", "Creador de pista", "Dibuja la pista vista desde arriba: curvas, subidas y bajadas.", "trazado"),
+				_p("fisica", "⚙", "Física", "Gravedad, salto, velocidad y rebote.", "fisica"),
+				_p("mecanicas", "🎮", "Mecánicas", "Lo que sabe hacer tu personaje: doble salto, impulso, disparar…", "mecanicas"),
+				_p("reglas_c", "📜", "Reglas: ganar y perder", "Cuándo se gana, cuándo se pierde y si la pista tiene fin o no.", "reglas"),
 				_p("puntos", "⭐", "Puntuación y recompensas", "Monedas, estrellas, tienda, vestuario y misiones.", "reglas"),
 			]
 			r += _final([_p("seleccion", "🚗", "Selección de vehículo", "Pantalla para elegir tu vehículo o personaje antes de correr (tienda y personajes jugables, en Reglas).", "reglas")])
 		"plataformas":
 			r += [
 				_p("heroe", "🐱", "Personaje", "¿Quién salta? Elige su diseño o importa el tuyo.", "personajes"),
+				_p("creador", "🎨", "Crear un personaje", "Arma uno nuevo: cuerpo, color y accesorio.", "creador"),
 				_p("mundo", "🍄", "Plataformas y mapa", "Dibuja el nivel: plataformas, resortes, puertas y meta.", "objetos"),
-				_p("enemigos", "🐌", "Enemigos y peligros", "¿Qué te hace perder? Pinchos, enemigos, caídas.", "objetos"),
+				_p("enemigos", "🐌", "Enemigos y peligros", "¿Qué te hace perder? Toca un enemigo para elegir si patrulla, persigue, salta o dispara.", "objetos"),
+				_p("animar", "✨", "Animar objetos", "Toca cualquier objeto y elige cómo se mueve: flotar, rebotar, balancear…", "objetos"),
+				_p("fisica", "⚙", "Física", "Gravedad, salto, velocidad y rebote. Hay estilos listos: Luna, Pesado, Resbaloso.", "fisica"),
+				_p("mecanicas", "🎮", "Mecánicas", "Doble salto, planear, correr, impulso, disparar, espada y crear bloques.", "mecanicas"),
 				_p("fondos", "🖼", "Fondos", "El paisaje detrás del nivel.", "fondos"),
 				_p("deco", "🌸", "Decoración", "Árboles, nubes, flores y detalles.", "deco"),
 				_p("colores", "🎨", "Colores del mundo", "Cielo, colinas y suelo.", "pista"),

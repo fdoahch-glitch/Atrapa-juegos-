@@ -8,6 +8,9 @@ const PanelColores := preload("res://scripts/panel_colores.gd")
 const Categorias := preload("res://scripts/categorias.gd")
 const PanelElementos := preload("res://scripts/panel_elementos.gd")
 const PanelMini := preload("res://scripts/panel_mini.gd")
+const PanelJuego := preload("res://scripts/panel_juego.gd")
+const PanelPista := preload("res://scripts/panel_pista.gd")
+const PanelCreador := preload("res://scripts/panel_creador.gd")
 const Recetas := preload("res://scripts/recetas.gd")
 const PersonajesPanel := preload("res://scripts/panel_personajes.gd")
 const PortadaEd := preload("res://scripts/portada_editor.gd")
@@ -747,7 +750,7 @@ func _refrescar_niveles() -> void:
 	var esmini := str(Datos.nivel.get("estilo", "")) == "mini"
 	var extra: Array = []
 	if Datos.es_corredor() or Datos.nivel.has("pista"):
-		extra.append([" Pista", "🛣", "Curvas, subidas y ambiente de la pista", "pista"])
+		extra.append([" Pista", "🛣", "Creador de pista: curvas, subidas y bajadas", "trazado"])
 	if not esmini:
 		extra.append([" Elementos", "🌍", "Lista de todo lo del mundo", "elementos"])
 	else:
@@ -758,11 +761,17 @@ func _refrescar_niveles() -> void:
 		be.tooltip_text = ex[2]
 		be.pressed.connect(_ir_paso.bind(ex[3]))
 		_niveles_fila.add_child(be)
-	var reg := _boton(" Reglas", "⚙", Estilo.TURQUESA)
-	reg.custom_minimum_size.y = 40
-	reg.tooltip_text = "Vidas, tiempo, puntos y más"
-	reg.pressed.connect(_abrir_reglas)
-	_niveles_fila.add_child(reg)
+	var crear := _boton(" Crear personaje", "🧑")
+	crear.custom_minimum_size.y = 40
+	crear.tooltip_text = "Arma un personaje: cuerpo, color y accesorio"
+	crear.pressed.connect(_ir_paso.bind("creador"))
+	_niveles_fila.add_child(crear)
+	for tb in [[" Reglas", "📜", "Cómo se gana y se pierde, vidas, tiempo y puntos", "reglas"], [" Mecánicas", "🎮", "Lo que sabe hacer el personaje", "mecanicas"], [" Física", "⚙", "Gravedad, salto, velocidad y rebote", "fisica"]]:
+		var reg := _boton(tb[0], tb[1], Estilo.TURQUESA)
+		reg.custom_minimum_size.y = 40
+		reg.tooltip_text = tb[2]
+		reg.pressed.connect(_ir_paso.bind(tb[3]))
+		_niveles_fila.add_child(reg)
 
 
 ## El lienzo empieza debajo de las barras de botones, para que nada quede tapado.
@@ -1257,6 +1266,38 @@ func _refrescar_props() -> void:
 	if s["t"] == "enemy":
 		_props_fila.add_child(_grupo("Recorrido", str(s["r"]), _ajustar.bind("r", -1), _ajustar.bind("r", 1)))
 		_props_fila.add_child(_grupo("Rapidez", str(int(s["sp"]) / 10), _ajustar.bind("sp", -1), _ajustar.bind("sp", 1)))
+	if s["t"] == "enemy" and modo == "2d" and str(Datos.nivel.get("tipo", "")) != "arriba":
+		var oc := OptionButton.new()
+		oc.custom_minimum_size = Vector2(150, 40)
+		oc.focus_mode = Control.FOCUS_NONE
+		oc.tooltip_text = "Cómo se comporta el enemigo"
+		var ia := str(s.get("ia", "patrulla"))
+		for k in Datos.COMPORTAMIENTOS.size():
+			oc.add_item(str(Datos.COMPORTAMIENTOS[k][1]), k)
+			if Datos.COMPORTAMIENTOS[k][0] == ia:
+				oc.selected = k
+		oc.item_selected.connect(func(k):
+			s["ia"] = Datos.COMPORTAMIENTOS[k][0]
+			Datos.confirmar())
+		_props_fila.add_child(oc)
+	if not ["plat", "player", "goal", "pared", "viga", "valla"].has(str(s["t"])):
+		var oa := OptionButton.new()
+		oa.custom_minimum_size = Vector2(140, 40)
+		oa.focus_mode = Control.FOCUS_NONE
+		oa.tooltip_text = "Animación del objeto"
+		var an := str(s.get("anim", "ninguna"))
+		for k in Datos.ANIM_OBJ.size():
+			oa.add_item("Anim: " + str(Datos.ANIM_OBJ[k][1]), k)
+			if Datos.ANIM_OBJ[k][0] == an:
+				oa.selected = k
+		oa.item_selected.connect(func(k):
+			var v: String = Datos.ANIM_OBJ[k][0]
+			if v == "ninguna":
+				s.erase("anim")
+			else:
+				s["anim"] = v
+			Datos.confirmar())
+		_props_fila.add_child(oa)
 	if s["t"] != "player" and s["t"] != "goal":
 		var dup := _boton(" Copiar", "📑")
 		dup.pressed.connect(_duplicar)
@@ -1489,12 +1530,53 @@ func _ir_paso(abre: String) -> void:
 			_abrir_elementos()
 		"reglas":
 			_abrir_reglas()
+		"mecanicas", "fisica":
+			_abrir_juego(abre)
+		"trazado":
+			_set_etapa("mundo")
+			_abrir_pista()
+		"creador":
+			_abrir_creador()
 		"rendimiento":
 			_abrir_rendimiento()
 		"exportar":
 			_abrir_exportar()
 		"tipos":
 			_abrir_tipos()
+
+
+func _abrir_juego(que: String) -> void:
+	_cerrar_modal()
+	var pj := PanelJuego.new()
+	pj.modo = "mec" if que == "mecanicas" else "fis"
+	add_child(pj)
+	move_child(_tut, get_child_count() - 1)
+	_modal = pj
+	pj.cerrar.connect(_cerrar_modal)
+
+
+func _abrir_pista() -> void:
+	_cerrar_modal()
+	var pp := PanelPista.new()
+	add_child(pp)
+	move_child(_tut, get_child_count() - 1)
+	_modal = pp
+	pp.cerrar.connect(_cerrar_modal)
+	pp.cambiado.connect(func():
+		_esc.queue_redraw()
+		_refrescar_niveles())
+
+
+func _abrir_creador() -> void:
+	_cerrar_modal()
+	var pc := PanelCreador.new()
+	add_child(pc)
+	move_child(_tut, get_child_count() - 1)
+	_modal = pc
+	pc.cerrar.connect(_cerrar_modal)
+	pc.guardado.connect(func(_id):
+		if _etapa == "mundo":
+			_cambiar_tab("mis"))
 
 
 func _abrir_elementos() -> void:

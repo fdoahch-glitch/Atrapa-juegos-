@@ -11,6 +11,7 @@ const REGLAS := [
 	[["torre", "defensa", "oleada", "castillo"], "estrategia", "defensa_e", "oleadas de enemigos por un camino", "monedas para más torres", "que lleguen a tu casa", "enemigos vencidos"],
 	[["fútbol", "futbol", "penal", "gol", "deporte", "básquet", "basquet"], "otros", "deportes", "un portero rival", "puntos por gol", "quedarte sin tiros", "goles"],
 	[["granja", "cultiv", "sembrar", "cosecha", "animales de granja"], "otros", "granja", "ninguno: el tiempo", "monedas por cosecha", "no hay: es relajado", "monedas ahorradas"],
+	[["trine", "trío", "trio", "tres héroes", "tres heroes", "caballero y mago", "cambiar de personaje"], "plataformas", "trio", "enemigos que patrullan, persiguen y disparan", "estrellas y gemas", "perder todas las vidas", "estrellas y puntos"],
 	[["novela", "diálogo", "dialogo", "decisiones", "elegir", "historia interactiva"], "narrativo", "dialogos", "ninguno: tus decisiones", "finales distintos", "elegir mal", "escenas recorridas"],
 	[["pregunta", "quiz", "aprender", "educativ", "colegio", "escuela", "trivia"], "educativo", "quiz", "ninguno: el reto es saber", "puntos por respuesta", "equivocarte con pocas vidas", "respuestas correctas"],
 	[["conquist", "estrategia", "islas", "ejército", "ejercito", "tropas"], "estrategia", "conquista", "un rival que ataca solo", "islas conquistadas", "perder todas tus islas", "islas ganadas"],
