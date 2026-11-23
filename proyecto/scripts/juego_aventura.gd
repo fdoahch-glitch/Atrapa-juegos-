@@ -94,6 +94,7 @@ func resetear() -> void:
 	vy = 0.0
 	enelsuelo = true
 	giro = 0.0
+	_p3_construir()
 	if _raiz:
 		_reconstruir()
 
@@ -283,32 +284,10 @@ func _actualizar(dt: float) -> void:
 		return
 	inv = maxf(0.0, inv - dt)
 	var d := _dir_entrada()
-	var nx := p3.x + d.x * VEL3 * dt
-	var nz := p3.z + d.y * VEL3 * dt
-	nx = clampf(nx, RADIO, _mundo_ancho - RADIO)
-	nz = clampf(nz, RADIO, _mundo_fondo - RADIO)
-	if not _choca(nx, p3.z):
-		p3.x = nx
-	if not _choca(p3.x, nz):
-		p3.z = nz
-	if d.length() > 0.1:
-		giro = lerp_angle(giro, atan2(d.x, d.y), minf(1.0, dt * 14.0))
-	# salto y gravedad
-	var base := _techo(p3.x, p3.z)
-	if _salto and enelsuelo:
-		vy = SALTO3 * _k_salto
-		enelsuelo = false
-		_sonido.tocar(520.0, 0.12)
-	_salto = false
-	vy -= G3 * dt
-	p3.y += vy * dt
-	if p3.y <= base and vy <= 0.0:
-		p3.y = base
-		vy = 0.0
-		enelsuelo = true
+	if _p3_ok and _p3h != null:
+		_mover_godot(d, dt)
 	else:
-		if p3.y > base + 0.02:
-			enelsuelo = false
+		_mover_legacy(d, dt)
 	# premios
 	for pr in premios:
 		if pr["got"]:
@@ -350,6 +329,144 @@ func _actualizar(dt: float) -> void:
 			estado = "gano"
 			_sonido.tocar(1000.0, 0.4, "triangulo")
 			_mostrar_fin("🎉", "¡Llegaste a la meta!", "Puntos: %d · Recogiste %d de %d" % [puntos, recogidos, total])
+
+
+func _mover_legacy(d: Vector2, dt: float) -> void:
+	var nx := p3.x + d.x * VEL3 * dt
+	var nz := p3.z + d.y * VEL3 * dt
+	nx = clampf(nx, RADIO, _mundo_ancho - RADIO)
+	nz = clampf(nz, RADIO, _mundo_fondo - RADIO)
+	if not _choca(nx, p3.z):
+		p3.x = nx
+	if not _choca(p3.x, nz):
+		p3.z = nz
+	if d.length() > 0.1:
+		giro = lerp_angle(giro, atan2(d.x, d.y), minf(1.0, dt * 14.0))
+	# salto y gravedad
+	var base := _techo(p3.x, p3.z)
+	if _salto and enelsuelo:
+		vy = SALTO3 * _k_salto
+		enelsuelo = false
+		_sonido.tocar(520.0, 0.12)
+	_salto = false
+	vy -= G3 * dt
+	p3.y += vy * dt
+	if p3.y <= base and vy <= 0.0:
+		p3.y = base
+		vy = 0.0
+		enelsuelo = true
+	else:
+		if p3.y > base + 0.02:
+			enelsuelo = false
+
+
+## Física real de Godot (3D): el héroe es un CharacterBody3D y los bloques StaticBody3D.
+var _p3w: SubViewport = null
+var _p3h: CharacterBody3D = null
+var _p3_ok := false
+var _p3_espera := false
+var _p3_gen := 0
+
+
+func _p3_borrar() -> void:
+	_p3_gen += 1
+	_p3_ok = false
+	_p3_espera = false
+	if _p3w != null:
+		_p3w.queue_free()
+		_p3w = null
+	_p3h = null
+
+
+func _p3_cuerpo(forma: Shape3D, pos3: Vector3, top: float) -> StaticBody3D:
+	var b := StaticBody3D.new()
+	var cs := CollisionShape3D.new()
+	cs.shape = forma
+	b.add_child(cs)
+	b.position = pos3
+	b.set_meta("top", top)
+	_p3w.add_child(b)
+	return b
+
+
+func _p3_construir() -> void:
+	_p3_borrar()
+	_p3w = SubViewport.new()
+	_p3w.own_world_3d = true
+	_p3w.size = Vector2i(2, 2)
+	_p3w.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	add_child(_p3w)
+	var sf := BoxShape3D.new()
+	sf.size = Vector3(_mundo_ancho + 80.0, 1.0, _mundo_fondo + 80.0)
+	_p3_cuerpo(sf, Vector3(_mundo_ancho / 2.0, -0.5, _mundo_fondo / 2.0), 0.0)
+	for b in bloques:
+		var r: Rect2 = b["r"]
+		var bf := BoxShape3D.new()
+		bf.size = Vector3(r.size.x, float(b["top"]), r.size.y)
+		_p3_cuerpo(bf, Vector3(r.position.x + r.size.x / 2.0, float(b["top"]) / 2.0, r.position.y + r.size.y / 2.0), float(b["top"]))
+	for so in solidos:
+		var cf := CylinderShape3D.new()
+		cf.radius = float(so["r"])
+		cf.height = 1.5
+		_p3_cuerpo(cf, Vector3((so["c"] as Vector2).x, 0.75, (so["c"] as Vector2).y), 1.5)
+	_p3h = CharacterBody3D.new()
+	var cs := CollisionShape3D.new()
+	var cap := CapsuleShape3D.new()
+	cap.radius = RADIO
+	cap.height = 1.6
+	cs.shape = cap
+	_p3h.add_child(cs)
+	_p3h.position = p3 + Vector3(0, 0.8, 0)
+	_p3w.add_child(_p3h)
+
+
+func _pw_vigilar() -> void:
+	if _p3w == null or _p3_ok or _p3_espera or not is_inside_tree():
+		return
+	_p3_espera = true
+	var gen := _p3_gen
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	if gen == _p3_gen and is_inside_tree():
+		_p3_ok = true
+		_p3_espera = false
+
+
+func _p3_mover(m: Vector3) -> KinematicCollision3D:
+	_p3h.position = p3 + Vector3(0, 0.8, 0)
+	var c := _p3h.move_and_collide(m, false, 0.02)
+	p3 = _p3h.position - Vector3(0, 0.8, 0)
+	return c
+
+
+func _mover_godot(d: Vector2, dt: float) -> void:
+	var dx := d.x * VEL3 * dt
+	var dz := d.y * VEL3 * dt
+	for eje in [Vector3(dx, 0, 0), Vector3(0, 0, dz)]:
+		var c := _p3_mover(eje)
+		if c != null:
+			# escalón: si el borde del bloque está cerca de los pies, se sube en vez de frenar
+			var ob := c.get_collider()
+			var top := float(ob.get_meta("top", 0.0)) if ob != null else 0.0
+			if top > p3.y and top - p3.y <= 0.45:
+				p3.y = top
+				_p3_mover(eje)
+	p3.x = clampf(p3.x, RADIO, _mundo_ancho - RADIO)
+	p3.z = clampf(p3.z, RADIO, _mundo_fondo - RADIO)
+	if d.length() > 0.1:
+		giro = lerp_angle(giro, atan2(d.x, d.y), minf(1.0, dt * 14.0))
+	if _salto and enelsuelo:
+		vy = SALTO3 * _k_salto
+		enelsuelo = false
+		_sonido.tocar(520.0, 0.12)
+	_salto = false
+	vy -= G3 * dt
+	enelsuelo = false
+	var cy := _p3_mover(Vector3(0, vy * dt, 0))
+	if cy != null:
+		if cy.get_normal().y > 0.5 and vy <= 0.0:
+			enelsuelo = true
+		vy = 0.0
 
 
 func _herir() -> void:

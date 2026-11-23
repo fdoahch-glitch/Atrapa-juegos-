@@ -221,13 +221,43 @@ func _mover_f(f: Dictionary, dt: float, dir: float, saltar: bool, bloq: bool) ->
 	else:
 		f["vx"] = move_toward(f["vx"], 0.0, 900.0 * dt)
 	f["vy"] += GRAV_L * dt
-	f["x"] += f["vx"] * dt
-	f["y"] += f["vy"] * dt
-	if f["y"] >= suelo_y:
-		f["y"] = suelo_y
-		f["vy"] = 0.0
-		f["suelo"] = true
+	if _pw_ok and _pw != null:
+		_mover_f_godot(f, dt)
+	else:
+		f["x"] += f["vx"] * dt
+		f["y"] += f["vy"] * dt
+		if f["y"] >= suelo_y:
+			f["y"] = suelo_y
+			f["vy"] = 0.0
+			f["suelo"] = true
 	f["x"] = clampf(f["x"], 0.6 * T, float(nivel["cols"]) * T - 0.6 * T)
+
+
+## Cada luchador es un CharacterBody2D de Godot que cae y se apoya en el escenario (StaticBody2D).
+func _mover_f_godot(f: Dictionary, dt: float) -> void:
+	var cu: CharacterBody2D = f.get("cuerpo")
+	if cu == null or not is_instance_valid(cu):
+		cu = CharacterBody2D.new()
+		var cs := CollisionShape2D.new()
+		var rs := RectangleShape2D.new()
+		rs.size = Vector2(0.5 * T, 0.9 * T)
+		cs.shape = rs
+		cu.add_child(cs)
+		cu.collision_layer = 4
+		cu.collision_mask = 1
+		_pw.add_child(cu)
+		f["cuerpo"] = cu
+	cu.position = Vector2(f["x"], f["y"] - 0.45 * T)
+	cu.move_and_collide(Vector2(float(f["vx"]) * dt, 0.0), false, 0.04)
+	var cy := cu.move_and_collide(Vector2(0.0, float(f["vy"]) * dt), false, 0.04)
+	f["x"] = cu.position.x
+	f["y"] = cu.position.y + 0.45 * T
+	if cy != null:
+		if cy.get_normal().y < -0.5:
+			f["suelo"] = true
+		f["vy"] = 0.0
+	elif float(f["vy"]) != 0.0:
+		f["suelo"] = false
 
 
 func _actualizar(dt: float) -> void:

@@ -289,6 +289,9 @@ var _pw_espera := false
 var _pw_gen := 0
 var _pw_rig: Array = []      # ruedas y pelotas: {"it", "body"}
 var _pw_cuerdas: Array = []  # cuerdas: {"it", "segs": [RigidBody2D]}
+var _pw_anim: Array = []     # cuerpos que se mueven con el juego (móviles, rutas, puentes, puertas, cajas): {"b", "src", "tipo"}
+var _agarre: Dictionary = {} # cuerda que el héroe tiene agarrada: {"cu", "k", "t"}
+var _agarre_cd := 0.0
 var _n_llaves := 0
 var _llaves_disp := 0
 var _n_mon := 0
@@ -651,6 +654,8 @@ func _pw_borrar() -> void:
 	_pw_h = null
 	_pw_rig = []
 	_pw_cuerdas = []
+	_pw_anim = []
+	_agarre = {}
 
 
 func _pw_cuerpo(forma: Shape2D, tipo: int, capa: int, masc: int, p: Vector2) -> PhysicsBody2D:
@@ -700,6 +705,28 @@ func _pw_construir() -> void:
 		ar.position = (z["rect"] as Rect2).get_center()
 		_pw.add_child(ar)
 		z["area"] = ar
+	var anims: Array = []
+	for m in moviles:
+		anims.append([m, "rect"])
+	for ru in rutas:
+		anims.append([ru, "rect"])
+	for pu in puentes:
+		anims.append([pu, "puente"])
+	for cj in cajas:
+		anims.append([cj, "caja"])
+	for d in puertas:
+		anims.append([d, "puerta"])
+	for a in anims:
+		var ab := AnimatableBody2D.new()
+		var af := RectangleShape2D.new()
+		af.size = Vector2(T, T)
+		var acs := CollisionShape2D.new()
+		acs.shape = af
+		ab.add_child(acs)
+		ab.collision_layer = 8
+		ab.collision_mask = 0
+		_pw.add_child(ab)
+		_pw_anim.append({"b": ab, "src": a[0], "tipo": a[1], "cs": acs})
 	var gesc := GRAV / 980.0
 	for o in pend:
 		var it: Dictionary = o["it"]
@@ -710,7 +737,7 @@ func _pw_construir() -> void:
 				var d := maxf(0.5, float(it.get("r", 1 if o["t"] == "pelota" else 2))) * T
 				var cf := CircleShape2D.new()
 				cf.radius = d / 2.0
-				var rb := _pw_cuerpo(cf, 2, 1, 1, Vector2(float(it["x"]) * T + d / 2.0, float(it["y"]) * T + d / 2.0)) as RigidBody2D
+				var rb := _pw_cuerpo(cf, 2, 1, 9, Vector2(float(it["x"]) * T + d / 2.0, float(it["y"]) * T + d / 2.0)) as RigidBody2D
 				var mat := PhysicsMaterial.new()
 				mat.friction = 1.0
 				mat.bounce = 0.75 if o["t"] == "pelota" else 0.1
@@ -727,7 +754,7 @@ func _pw_construir() -> void:
 				for k in range(1, n + 1):
 					var sf := CircleShape2D.new()
 					sf.radius = 6.0
-					var sg := _pw_cuerpo(sf, 2, 4, 1, Vector2(cx, float(it["y"]) * T + k * T * 0.5)) as RigidBody2D
+					var sg := _pw_cuerpo(sf, 2, 4, 9, Vector2(cx, float(it["y"]) * T + k * T * 0.5)) as RigidBody2D
 					sg.mass = 0.25
 					sg.gravity_scale = gesc
 					sg.linear_damp = 0.4
@@ -741,6 +768,55 @@ func _pw_construir() -> void:
 					segs.append(sg)
 					prev = sg
 				_pw_cuerdas.append({"it": it, "segs": segs})
+
+
+## Cuerda: se agarra tocándola en el aire con ↑ o espacio, se trepa con ↑/↓, se mece con ←/→ y se suelta saltando.
+func _cuerda_agarre(dt: float, dir: float, sost: bool) -> void:
+	_agarre_cd = maxf(0.0, _agarre_cd - dt)
+	if not _pw_ok or _pw_cuerdas.is_empty():
+		return
+	if _agarre.is_empty():
+		if _agarre_cd > 0.0 or suelo or not sost:
+			return
+		var mejor := 1e9
+		for cu in _pw_cuerdas:
+			var segs: Array = cu["segs"]
+			for k in segs.size():
+				var sp: Vector2 = (segs[k] as RigidBody2D).position
+				var dd := sp.distance_to(_caja().get_center())
+				if _caja().grow(10.0).has_point(sp) and dd < mejor:
+					mejor = dd
+					_agarre = {"cu": cu, "k": k, "t": 0.0, "trepa": 0.0}
+		if not _agarre.is_empty():
+			_sonido.tocar(380.0, 0.08, "triangulo")
+		return
+	var segs2: Array = _agarre["cu"]["segs"]
+	var k2 := clampi(int(_agarre["k"]), 0, segs2.size() - 1)
+	_agarre["t"] = float(_agarre["t"]) + dt
+	if buffer > 0.0 and float(_agarre["t"]) > 0.25:
+		var rbs := segs2[k2] as RigidBody2D
+		vel = rbs.linear_velocity + Vector2(dir * 150.0, -SALTO * 0.75)
+		_agarre = {}
+		_agarre_cd = 0.4
+		buffer = 0.0
+		salto_pulsado = false
+		suelo = false
+		_sonido.tocar(520.0, 0.1, "triangulo")
+		return
+	var sube := Input.is_key_pressed(KEY_UP) or Input.is_key_pressed(KEY_W)
+	var baja := Input.is_key_pressed(KEY_DOWN) or Input.is_key_pressed(KEY_S)
+	_agarre["trepa"] = float(_agarre["trepa"]) + dt
+	if float(_agarre["trepa"]) > 0.1 and (sube or baja):
+		_agarre["trepa"] = 0.0
+		k2 = clampi(k2 + (-1 if sube else 1), 0, segs2.size() - 1)
+		_agarre["k"] = k2
+	var rb := segs2[k2] as RigidBody2D
+	if dir != 0.0:
+		rb.apply_central_impulse(Vector2(dir * 10.0, 0.0))
+	pos = rb.position - Vector2(PW * T / 2.0, PH * T * 0.35)
+	vel = Vector2.ZERO
+	suelo = false
+	_aire = 0
 
 
 func _pw_vigilar() -> void:
@@ -767,6 +843,24 @@ func _pw_mover(m: Vector2) -> KinematicCollision2D:
 ## Las ruedas, pelotas y cuerdas se actualizan solas con el motor; aquí solo se leen para dibujarlas y empujarlas.
 func _pw_tick() -> void:
 	_pw.process_mode = Node.PROCESS_MODE_DISABLED if (_menu_pausa != null or estado != "jugar") else Node.PROCESS_MODE_INHERIT
+	for an in _pw_anim:
+		var src: Dictionary = an["src"]
+		var rr: Rect2
+		var activo := true
+		match str(an["tipo"]):
+			"puente":
+				rr = src["rect"]
+				activo = int(src["est"]) != 2
+			"caja":
+				rr = src["r"]
+			"puerta":
+				rr = Rect2(float(src["x"]) * T + 6, float(src["y"]) * T, T - 12, T * 2)
+				activo = not src["abierta"]
+			_:
+				rr = src["rect"]
+		((an["b"] as AnimatableBody2D).get_child(0) as CollisionShape2D).disabled = not activo
+		(((an["b"] as AnimatableBody2D).get_child(0) as CollisionShape2D).shape as RectangleShape2D).size = rr.size
+		(an["b"] as AnimatableBody2D).position = rr.get_center()
 	for o in _pw_rig:
 		var b: RigidBody2D = o["body"]
 		o["it"]["px"] = b.position.x
@@ -790,7 +884,9 @@ func _pw_tick() -> void:
 # ------------------------------------------------------------------ entrada
 func _input(ev: InputEvent) -> void:
 	if ev is InputEventKey and ev.pressed and not ev.echo:
-		if ev.keycode in [KEY_UP, KEY_W, KEY_SPACE]:
+		if ev.keycode in [KEY_UP, KEY_W] and not _agarre.is_empty():
+			pass  # con la cuerda agarrada, ↑/W trepan; solo Espacio o el botón sueltan
+		elif ev.keycode in [KEY_UP, KEY_W, KEY_SPACE]:
 			salto_pulsado = true
 		elif ev.keycode == KEY_ESCAPE:
 			_pausar()
@@ -1037,6 +1133,7 @@ func _actualizar(dt: float) -> void:
 	_planeo = _mecanica("planear") and sost and vel.y > 110.0 and not suelo
 	if _planeo:
 		vel.y = 110.0
+	_cuerda_agarre(dt, dir, sost)
 	# --- movimiento horizontal
 	if _pw_ok and _pw_h != null:
 		var cx := _pw_mover(Vector2(vel.x * dt, 0.0))

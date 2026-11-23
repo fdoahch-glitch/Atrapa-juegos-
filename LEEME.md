@@ -164,3 +164,8 @@ Cada tipo del asistente crea una demo que funciona desde el primer toque y que p
 - **Bloques reutilizables**: «🧩 Guardar bloque» guarda el objeto y los que lo rodean; aparece en Objetos → «Mis bloques reutilizables».
 - **Abrir en Godot completo**: en Exportar, crea la carpeta `proyecto-godot` lista para importar en el editor de Godot.
 - Pruebas nuevas: `prueba_zonas`, `prueba_astar`, `prueba_bloques`, `prueba_godot_completo`.
+
+## Física de Godot en todos los motores
+- **Aventura 3D, corredor 3D y pelea** usan cuerpos reales de Godot (CharacterBody3D/2D, Area3D) con el modo anterior como respaldo.
+- **Cuerda**: el héroe se agarra en el aire, se mece (empuja la cuerda), trepa con ↑/↓ y se suelta con Espacio con impulso.
+- **Cuerpos animados**: plataformas móviles, rutas, puentes, cajas y puertas tienen un cuerpo físico que sostiene ruedas y pelotas.

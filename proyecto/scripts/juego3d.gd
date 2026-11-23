@@ -67,6 +67,7 @@ func iniciar(n: Dictionary, forzar_tactil: bool = false, mostrar_salir: bool = f
 	_raiz.add_child(_amb)
 	_amb.config(nivel, reglas, _we3, _sol3, _cam3)
 	_reconstruir()
+	_p3_construir()
 
 
 func resetear() -> void:
@@ -118,6 +119,7 @@ func resetear() -> void:
 				fin_z = z
 	if _raiz:
 		_reconstruir()
+		_p3_construir()
 
 
 func _draw() -> void:
@@ -520,19 +522,29 @@ func _actualizar(dt: float) -> void:
 	agachado = maxf(0.0, agachado - dt)
 	if py > 0.0 or vy > 0.0:
 		vy -= G3 * dt
-		py += vy * dt
-		if py <= 0.0:
-			py = 0.0
-			vy = 0.0
+		if _p3_ok:
+			var r1 := _salto_fisico(0, px, py, vy, dt, 0.9 if agachado > 0.0 else 1.6)
+			py = r1.x
+			vy = r1.y
+		else:
+			py += vy * dt
+			if py <= 0.0:
+				py = 0.0
+				vy = 0.0
 	if j2:
 		px2 += ((carril2 - 1) * ANCHO_CARRIL - px2) * minf(1.0, dt * 14.0)
 		agachado2 = maxf(0.0, agachado2 - dt)
 		if py2 > 0.0 or vy2 > 0.0:
 			vy2 -= G3 * dt
-			py2 += vy2 * dt
-			if py2 <= 0.0:
-				py2 = 0.0
-				vy2 = 0.0
+			if _p3_ok and _p3h.size() > 1:
+				var r2 := _salto_fisico(1, px2, py2, vy2, dt, 0.9 if agachado2 > 0.0 else 1.6)
+				py2 = r2.x
+				vy2 = r2.y
+			else:
+				py2 += vy2 * dt
+				if py2 <= 0.0:
+					py2 = 0.0
+					vy2 = 0.0
 	# cada jugador: [x, altura del salto, altura del cuerpo]
 	var jugs: Array = [[px, py, 0.9 if agachado > 0.0 else 1.6]]
 	if j2:
@@ -541,20 +553,14 @@ func _actualizar(dt: float) -> void:
 		if o["golpeado"] or absf(o["z"] - dist) > 0.7:
 			continue
 		var choca := false
-		for jg in jugs:
-			if absf(jg[0] - (o["lane"] - 1) * ANCHO_CARRIL) > 0.95:
-				continue
-			match o["t"]:
-				"valla":
-					choca = choca or jg[1] < 0.85
-				"pared":
-					# con modelo propio, solo choca por debajo de su altura real (así se puede saltar una roca baja)
-					var an := 99.0
-					if o["nodo"] != null and (o["nodo"] as Node).has_meta("alto"):
-						an = float((o["nodo"] as Node).get_meta("alto")) * 0.9
-					choca = choca or jg[1] < an
-				"viga":
-					choca = choca or (jg[1] < 1.8 and jg[1] + jg[2] > 1.3)
+		if _p3_ok and o.get("area") != null:
+			# colisión real: el cuerpo del héroe (Godot) contra la zona del obstáculo (Area3D)
+			for k in jugs.size():
+				if k < _p3h.size():
+					_p3_poner(k, jugs[k][0], jugs[k][1], jugs[k][2])
+					choca = choca or (o["area"] as Area3D).overlaps_body(_p3h[k])
+		else:
+			choca = _choque_legacy(o, jugs)
 		if choca:
 			o["golpeado"] = true
 			_herir()
@@ -586,6 +592,113 @@ func _actualizar(dt: float) -> void:
 			estado = "gano"
 			_sonido.tocar(1000.0, 0.4, "triangulo")
 			_mostrar_fin("🎉", "¡Llegaste a la meta!", "Puntos: %d · Recogiste %d de %d" % [puntos, recogidos, total])
+
+
+func _choque_legacy(o: Dictionary, jugs: Array) -> bool:
+	var choca := false
+	for jg in jugs:
+		if absf(jg[0] - (o["lane"] - 1) * ANCHO_CARRIL) > 0.95:
+			continue
+		match o["t"]:
+			"valla":
+				choca = choca or jg[1] < 0.85
+			"pared":
+				var an := 99.0
+				if o["nodo"] != null and (o["nodo"] as Node).has_meta("alto"):
+					an = float((o["nodo"] as Node).get_meta("alto")) * 0.9
+				choca = choca or jg[1] < an
+			"viga":
+				choca = choca or (jg[1] < 1.8 and jg[1] + jg[2] > 1.3)
+	return choca
+
+
+## Física real de Godot (3D) del corredor: el héroe es un CharacterBody3D, el suelo un StaticBody3D
+## y cada obstáculo una zona Area3D que detecta el choque.
+var _p3w: SubViewport = null
+var _p3h: Array = []
+var _p3_ok := false
+var _p3_espera := false
+var _p3_gen := 0
+
+
+func _p3_construir() -> void:
+	_p3_gen += 1
+	_p3_ok = false
+	_p3_espera = false
+	if _p3w != null:
+		_p3w.queue_free()
+	_p3h = []
+	_p3w = SubViewport.new()
+	_p3w.own_world_3d = true
+	_p3w.size = Vector2i(2, 2)
+	_p3w.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	add_child(_p3w)
+	var suelo := StaticBody3D.new()
+	var sc := CollisionShape3D.new()
+	var sb := BoxShape3D.new()
+	sb.size = Vector3(60.0, 1.0, fin_z * 2.0 + 400.0)
+	sc.shape = sb
+	suelo.add_child(sc)
+	suelo.position = Vector3(0, -0.5, -fin_z)
+	_p3w.add_child(suelo)
+	for k in (2 if j2 else 1):
+		var h := CharacterBody3D.new()
+		var hc := CollisionShape3D.new()
+		var hb := BoxShape3D.new()
+		hb.size = Vector3(0.8, 1.6, 0.8)
+		hc.shape = hb
+		h.add_child(hc)
+		h.position = Vector3(0, 0.8, 0)
+		_p3w.add_child(h)
+		_p3h.append(h)
+	for o in obst:
+		var ar := Area3D.new()
+		var ac := CollisionShape3D.new()
+		var ab := BoxShape3D.new()
+		var y0 := 0.0
+		var y1 := 0.85
+		match str(o["t"]):
+			"pared":
+				y1 = 4.0
+				if o["nodo"] != null and (o["nodo"] as Node).has_meta("alto"):
+					y1 = float((o["nodo"] as Node).get_meta("alto")) * 0.9
+			"viga":
+				y0 = 1.3
+				y1 = 1.8
+		ab.size = Vector3(1.5, y1 - y0, 0.6)
+		ac.shape = ab
+		ar.add_child(ac)
+		ar.position = Vector3((o["lane"] - 1) * ANCHO_CARRIL, (y0 + y1) / 2.0, -float(o["z"]))
+		_p3w.add_child(ar)
+		o["area"] = ar
+
+
+func _pw_vigilar() -> void:
+	if _p3w == null or _p3_ok or _p3_espera or not is_inside_tree():
+		return
+	_p3_espera = true
+	var gen := _p3_gen
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	if gen == _p3_gen and is_inside_tree():
+		_p3_ok = true
+		_p3_espera = false
+
+
+func _p3_poner(k: int, x: float, y: float, alto: float) -> void:
+	var h: CharacterBody3D = _p3h[k]
+	((h.get_child(0) as CollisionShape3D).shape as BoxShape3D).size = Vector3(0.8, alto, 0.8)
+	h.position = Vector3(x, y + alto / 2.0, -dist)
+
+
+## Salto con gravedad real: devuelve [altura, velocidad vertical].
+func _salto_fisico(k: int, x: float, y: float, vel_y: float, dt: float, alto: float) -> Vector2:
+	_p3_poner(k, x, y, alto)
+	var h: CharacterBody3D = _p3h[k]
+	var c := h.move_and_collide(Vector3(0, vel_y * dt, 0), false, 0.01)
+	if c != null and vel_y <= 0.0:
+		return Vector2(0.0, 0.0)
+	return Vector2(maxf(0.0, h.position.y - alto / 2.0), vel_y)
 
 
 ## Vuelve a la carrera después de perder (lo paga el jugador con monedas, ver Partida).
