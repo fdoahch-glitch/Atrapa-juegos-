@@ -128,6 +128,9 @@ func _actualizar(dt: float) -> void:
 	for s in pinchos:
 		if _caja().intersects(Rect2(s["x"] * T + 10, s["y"] * T + 12, T - 20, T - 20)):
 			_herir()
+	for dc in decos:
+		if dc.has("dlg") and str(dc["dlg"]) != "" and _caja().grow(T * 0.9).intersects(Rect2(float(dc["x"]) * T, float(dc["y"]) * T, T, T)):
+			_decir(str(dc["dlg"]))
 	for r in recogibles:
 		if not r["got"] and _caja().intersects(Rect2(r["x"] * T + 8, r["y"] * T + 8, T - 16, T - 16).grow(_alcance())):
 			r["got"] = true

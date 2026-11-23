@@ -59,6 +59,16 @@ func _mostrar_inicio() -> void:
 			n = Datos.nivel_carrera(est == "kart")
 			if bool(cfg.get("vista3d", false)):
 				n["vista3d"] = true
+		elif est == "mini":
+			n = Datos.nivel_mini(str(cfg.get("mini", "puzzle")))
+		elif est == "supervivencia":
+			n = Datos.nivel_supervivencia()
+		elif est == "disparos3d":
+			n = Datos.nivel_disparos3d()
+		elif est == "ciudad":
+			n = Datos.nivel_ciudad()
+		elif est == "rpg":
+			n = Datos.nivel_rpg()
 		elif est == "disparos":
 			n = Datos.nivel_arriba()
 			n["estilo"] = "disparos"
@@ -76,8 +86,10 @@ func _mostrar_inicio() -> void:
 			n = Datos.nivel_inicial()
 		n["modo"] = str(n.get("modo", modo)) if est != "" else modo
 		n["tipo"] = str(n.get("tipo", tipo)) if est != "" else tipo
-		if est == "disparos":
+		if est in ["disparos", "mini", "supervivencia", "rpg"]:
 			n["tipo"] = "arriba"
+		if est == "rpg" or est == "ciudad":
+			n.erase("estilo")
 		n["theme"] = str(cfg.get("theme", n.get("theme", "dia")))
 		n["hero"] = str(cfg.get("hero", n.get("hero", "🐱")))
 		n["name"] = "Mundo 1"

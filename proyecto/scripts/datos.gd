@@ -6,6 +6,7 @@ extends Node
 const Importar := preload("res://scripts/importar.gd")
 const Assets3D := preload("res://scripts/assets3d.gd")
 const Rendimiento := preload("res://scripts/rendimiento.gd")
+const Minis := preload("res://scripts/minis.gd")
 
 signal nivel_cambiado
 
@@ -255,7 +256,7 @@ func nivel_pelea(tema: String = "dia") -> Dictionary:
 
 ## Texto corto del estilo de un nivel (Carreras, Go-karts, Lucha…); "" si no tiene.
 func nombre_estilo(n: Dictionary) -> String:
-	return {"carrera": "Carreras de pista", "kart": "Go-karts", "pelea": "Lucha 2D", "disparos": "Disparos desde arriba"}.get(str(n.get("estilo", "")), "")
+	return {"carrera": "Carreras de pista", "kart": "Go-karts", "pelea": "Lucha 2D", "disparos": "Disparos desde arriba", "supervivencia": "Supervivencia", "disparos3d": "Disparos 3D"}.get(str(n.get("estilo", "")), str(Minis.MINIS.get(str(n.get("mini", "")), {}).get("n", "")) if str(n.get("estilo", "")) == "mini" else "")
 
 
 func nivel_inicial() -> Dictionary:
@@ -310,6 +311,78 @@ func nivel_corredor2d() -> Dictionary:
 	return {"name": "Mi corredor", "modo": "2d", "tipo": "plataformas", "autocorrer": true, "theme": "dia", "hero": "🐱", "cols": 90, "rows": FILAS, "items": items}
 
 
+## Minijuego de ejemplo (demo que el creador amplía desde el panel Contenido).
+func nivel_mini(id: String) -> Dictionary:
+	var m: Dictionary = Minis.MINIS[id]
+	var n := nivel_arriba()
+	n["items"] = [{"id": nuevo_id(), "t": "player", "x": 2, "y": 6}]
+	n["name"] = "Mi " + str(m["n"]).to_lower()
+	n["estilo"] = "mini"
+	n["mini"] = id
+	n["mini_cfg"] = Minis.cfg_base(id)
+	n["theme"] = str(m["tema"])
+	n["hero"] = str(m["hero"])
+	return n
+
+
+## RPG con personajes que hablan: acércate a ellos para leer su diálogo; recoge tesoros para abrir la meta.
+func nivel_rpg() -> Dictionary:
+	var n := nivel_arriba()
+	n["name"] = "Mi RPG"
+	n["theme"] = "bosque"
+	n["hero"] = "🧙"
+	var items: Array = n["items"]
+	for d in [["🧑‍🌾", 3, 3, "Hola, viajero. Los tesoros están al otro lado del laberinto."], ["👸", 8, 10, "Cuidado con los pinchos. Junta todo para abrir la meta."], ["🧙", 14, 3, "Los bichos solo caminan de lado a lado. ¡Cruza rápido!"], ["🐉", 24, 9, "Soy el guardián. ¡Casi llegas!"]]:
+		items.append({"id": nuevo_id(), "t": "deco", "e": d[0], "x": d[1], "y": d[2], "s": 52, "dlg": d[3]})
+	return n
+
+
+## Supervivencia: el mapa del laberinto, pero llegan enemigos sin parar. Aguanta el tiempo pedido.
+func nivel_supervivencia() -> Dictionary:
+	var n := nivel_arriba()
+	n["items"] = (n["items"] as Array).filter(func(it): return not (str(it["t"]) in ["enemy", "goal", "spike"]))
+	n["items"] = (n["items"] as Array).filter(func(it): return not (str(it["t"]) == "plat" and int(it["h"]) > 1 and int(it["w"]) == 1))
+	n["name"] = "Mi supervivencia"
+	n["estilo"] = "supervivencia"
+	n["aguantar"] = 45
+	n["theme"] = "noche"
+	n["hero"] = "🤖"
+	return n
+
+
+## Disparos 3D: la aventura 3D con enemigos; disparas hacia donde miras (Espacio / F o toca a la derecha).
+func nivel_disparos3d() -> Dictionary:
+	var n := nivel_aventura()
+	n["name"] = "Mi shooter 3D"
+	n["estilo"] = "disparos3d"
+	n["camara"] = "tercera"
+	n["theme"] = "noche"
+	for pos in [[8, 9], [16, 7], [22, 10], [12, 11]]:
+		(n["items"] as Array).append({"id": nuevo_id(), "t": "enemy", "x": pos[0], "y": pos[1], "e": "a:esqueleto", "r": 3, "sp": 50, "fly": false})
+	return n
+
+
+## Ciudad abierta: calles, edificios altos y autos que cruzan, para recorrer en 3D.
+func nivel_ciudad() -> Dictionary:
+	var n := nivel_aventura()
+	var items: Array = [{"id": nuevo_id(), "t": "player", "x": 2, "y": 6}, {"id": nuevo_id(), "t": "goal", "x": 27, "y": 6}]
+	for b in [[5, 1, 4, 4, 4], [11, 1, 3, 3, 6], [17, 1, 4, 4, 3], [23, 1, 4, 4, 5], [5, 9, 4, 4, 5], [11, 9, 3, 3, 3], [17, 9, 4, 4, 6], [23, 9, 4, 4, 4]]:
+		items.append({"id": nuevo_id(), "t": "plat", "x": b[0], "y": b[1], "w": b[2], "h": b[3], "alt": b[4]})
+	for c in [[4, 6], [8, 6], [13, 6], [19, 6], [25, 6], [9, 5], [15, 8], [21, 5]]:
+		items.append({"id": nuevo_id(), "t": "coin", "x": c[0], "y": c[1]})
+	items.append({"id": nuevo_id(), "t": "star", "x": 14, "y": 6})
+	items.append({"id": nuevo_id(), "t": "gem", "x": 26, "y": 12})
+	for auto in [[9, 6, "🚗"], [18, 6, "🚕"], [24, 6, "🚙"]]:
+		items.append({"id": nuevo_id(), "t": "enemy", "x": auto[0], "y": auto[1], "e": auto[2], "r": 5, "sp": 90, "fly": false})
+	for d in [["a:farol", 3, 4], ["a:farol", 10, 8], ["a:farol", 16, 4], ["a:farol", 22, 8], ["a:arbol", 8, 3], ["a:arbol", 14, 11], ["a:casa", 28, 2], ["a:casa", 28, 11]]:
+		items.append({"id": nuevo_id(), "t": "deco", "e": d[0], "x": d[1], "y": d[2], "s": 96})
+	n["items"] = items
+	n["name"] = "Mi ciudad"
+	n["theme"] = "atardecer"
+	n["hero"] = "a:explorador"
+	return n
+
+
 ## Tipo de juego de un nivel: "plataformas", "25d", "arriba", "aventura" o "corredor".
 func tipo_de(n: Dictionary) -> String:
 	var m := str(n.get("modo", "2d"))
@@ -331,6 +404,8 @@ func convertir(origen: Dictionary, destino: String) -> Dictionary:
 	n.erase("estilo")
 	n.erase("vueltas")
 	n.erase("vista3d")
+	n.erase("mini")
+	n.erase("mini_cfg")
 	var cols := int(n.get("cols", 30))
 	var items: Array = n.get("items", [])
 	var salida: Array = []
@@ -490,8 +565,14 @@ func normalizar(n: Dictionary) -> Dictionary:
 	n["tipo"] = str(n.get("tipo", "")) if ["corredor", "aventura", "plataformas", "arriba"].has(str(n.get("tipo", ""))) else ("corredor" if str(n.get("modo", "2d")) == "3d" else "plataformas")
 	n["modo"] = str(n.get("modo", "2d")) if ["2d", "25d", "3d"].has(str(n.get("modo", "2d"))) else "2d"
 	var est := str(n.get("estilo", ""))
-	if not ((est in ["carrera", "kart", "disparos"] and n["tipo"] == "arriba" and n["modo"] == "2d") or (est == "pelea" and n["tipo"] == "plataformas" and n["modo"] == "2d")):
+	if not ((est in ["carrera", "kart", "disparos", "supervivencia"] and n["tipo"] == "arriba" and n["modo"] == "2d") or (est == "pelea" and n["tipo"] == "plataformas" and n["modo"] == "2d") \
+			or (est == "mini" and n["tipo"] == "arriba" and n["modo"] == "2d" and Minis.existe(str(n.get("mini", "")))) or (est == "disparos3d" and n["tipo"] == "aventura" and n["modo"] == "3d")):
 		est = ""
+	if est == "mini":
+		n["mini_cfg"] = Minis.cfg_limpia(str(n["mini"]), n.get("mini_cfg", {}))
+	else:
+		n.erase("mini")
+		n.erase("mini_cfg")
 	if est == "":
 		n.erase("estilo")
 	else:
@@ -808,7 +889,7 @@ func agregar_nivel(copiar: bool = false) -> bool:
 			it["id"] = nuevo_id()
 	else:
 		n = nivel_en_blanco()
-		for k in ["name", "modo", "disp", "orient", "tipo", "theme", "hero", "paleta", "clima", "hora", "perseguidor", "densidad", "decorado", "obstaculos", "premios", "autocorrer", "pista", "hero_alto"]:
+		for k in ["name", "modo", "disp", "orient", "tipo", "theme", "hero", "paleta", "clima", "hora", "perseguidor", "densidad", "decorado", "obstaculos", "premios", "autocorrer", "pista", "hero_alto", "mini", "mini_cfg", "camara"]:
 			if nivel.has(k) or n.has(k):
 				n[k] = nivel.get(k, n.get(k))
 		n = normalizar(n)

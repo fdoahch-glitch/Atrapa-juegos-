@@ -107,3 +107,11 @@ Botón **Colores** (arriba): cielo, colinas, tierra y pasto de este mundo, con s
 - **Calidad**: en Rendimiento, botones Baja / Media / Alta (FSR, imagen, bordes suaves, sombras y FPS de un toque).
 - **Armas** (Reglas): pistola, ráfaga, escopeta o rifle para los juegos de disparos.
 - **Salón de espera** (Reglas): cuenta 3-2-1 antes de cada nivel. **Logros**: medallas que se guardan y se ven desde la portada.
+
+## Todas las categorías tienen demo jugable
+Cada tipo del asistente crea una demo que funciona desde el primer toque y que puedes seguir ampliando:
+- **Minijuegos con panel «Contenido»** (el editor muestra el contenido en vez del mapa): Parejas de memoria, Ritmo y música, Defensa de torres, Penales, Granja, Novela con diálogos, Preguntas y respuestas, Conquista de islas (estrategia) y Carrera 2D frontal. Se amplían escribiendo: emojis de cartas, patrón de notas, oleadas, cultivos, guion (`id | texto | opción>id`), preguntas (`pregunta | A ; B ; C | correcta`), etc.
+- **Con el editor de mapa**: Supervivencia (enemigos sin parar, campo `aguantar`), RPG con personajes que hablan (selecciona un adorno y escribe su diálogo), Shooter 3D (F o J disparan, C cambia de cámara), Ciudad abierta 3D, Disparos y Corredor 2D.
+- El botón 🧭 Guía muestra los pasos de cada categoría; 💡 «Cuéntame tu idea» recomienda la categoría adecuada.
+- Se agregaron ~1.200 emojis (Twemoji) para que cartas, torres, autos, comida y animales se vean en todos los juegos.
+- Créditos: emojis Twemoji (© Twitter / comunidad jdecked), licencia CC-BY 4.0.

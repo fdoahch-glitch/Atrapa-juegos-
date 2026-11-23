@@ -6,8 +6,18 @@ const Cat := preload("res://scripts/categorias.gd")
 
 # [palabras clave, categoría, tipo, enemigos, premios, obstáculos/pérdida, puntuación]
 const REGLAS := [
+	[["memoria", "parejas", "puzzle", "rompecabezas", "cartas"], "otros", "puzzle", "ninguno: el reto es la memoria", "puntos por pareja", "quedarte sin intentos", "parejas encontradas"],
+	[["ritmo", "música", "musica", "guitarra", "baile", "canción"], "otros", "ritmo", "ninguno: las notas que se escapan", "combos", "fallar demasiadas notas", "aciertos y combo"],
+	[["torre", "defensa", "oleada", "castillo"], "estrategia", "defensa_e", "oleadas de enemigos por un camino", "monedas para más torres", "que lleguen a tu casa", "enemigos vencidos"],
+	[["fútbol", "futbol", "penal", "gol", "deporte", "básquet", "basquet"], "otros", "deportes", "un portero rival", "puntos por gol", "quedarte sin tiros", "goles"],
+	[["granja", "cultiv", "sembrar", "cosecha", "animales de granja"], "otros", "granja", "ninguno: el tiempo", "monedas por cosecha", "no hay: es relajado", "monedas ahorradas"],
+	[["novela", "diálogo", "dialogo", "decisiones", "elegir", "historia interactiva"], "narrativo", "dialogos", "ninguno: tus decisiones", "finales distintos", "elegir mal", "escenas recorridas"],
+	[["pregunta", "quiz", "aprender", "educativ", "colegio", "escuela", "trivia"], "educativo", "quiz", "ninguno: el reto es saber", "puntos por respuesta", "equivocarte con pocas vidas", "respuestas correctas"],
+	[["conquist", "estrategia", "islas", "ejército", "ejercito", "tropas"], "estrategia", "conquista", "un rival que ataca solo", "islas conquistadas", "perder todas tus islas", "islas ganadas"],
+	[["supervivencia", "sobrevivir", "zombi", "oleadas de enemigos", "aguantar"], "supervivencia", "superv2d", "enemigos que te persiguen sin parar", "puntos por tiempo", "que te toquen", "segundos aguantados"],
+	[["carretera", "frontal", "tráfico", "trafico", "outrun"], "carreras", "frontal", "autos en la carretera", "kilómetros", "chocar demasiado", "distancia"],
 	[["carrera", "autos", "auto ", "kart", "pista", "velocidad", "correr con"], "carreras", "pista", "otros autos y obstáculos en la pista", "monedas y turbos", "chocar o salirte de la pista", "puntos por vuelta y por monedas"],
-	[["run", "corre", "corredor", "infinito", "subway", "dino"], "carreras", "corredor2d", "troncos, rocas y un perseguidor", "monedas, gemas y estrellas", "chocar con un obstáculo", "metros recorridos + monedas"],
+	[["run ", "corre", "corredor", "infinito", "subway", "dino"], "carreras", "corredor2d", "troncos, rocas y un perseguidor", "monedas, gemas y estrellas", "chocar con un obstáculo", "metros recorridos + monedas"],
 	[["dispar", "pistola", "arma", "shooter", "balas", "soldado", "guerra"], "disparos", "shooter2d", "robots y soldados que te persiguen", "munición y botiquines", "que te toquen o te disparen", "puntos por enemigo vencido"],
 	[["rpg", "magia", "mago", "espada", "dragón", "dragon", "misión", "tesoro", "mazmorra"], "aventura", "rpg", "monstruos y jefes", "tesoros, llaves y pociones", "perder todas las vidas", "tesoros reunidos y misiones"],
 	[["mundo abierto", "libre", "selva", "explorar", "isla", "ciudad"], "mundo_libre", "selva", "animales salvajes", "frutas, cofres y mapas", "caer en trampas o barro", "objetos descubiertos"],

@@ -18,6 +18,12 @@ const Tienda := preload("res://scripts/tienda.gd")
 const JuegoCarrera := preload("res://scripts/juego_carrera.gd")
 const JuegoCarrera3D := preload("res://scripts/juego_carrera3d.gd")
 const JuegoDisparos := preload("res://scripts/juego_disparos.gd")
+const Mini_ := {
+	"puzzle": preload("res://scripts/mini/puzzle.gd"), "ritmo": preload("res://scripts/mini/ritmo.gd"), "defensa": preload("res://scripts/mini/defensa.gd"),
+	"penales": preload("res://scripts/mini/penales.gd"), "granja": preload("res://scripts/mini/granja.gd"), "novela": preload("res://scripts/mini/novela.gd"),
+	"educativo": preload("res://scripts/mini/quiz.gd"), "estrategia": preload("res://scripts/mini/conquista.gd"), "frontal": preload("res://scripts/mini/frontal.gd")}
+const JuegoSuperv := preload("res://scripts/juego_superv.gd")
+const JuegoDisparos3D := preload("res://scripts/juego_disparos3d.gd")
 const JuegoPelea := preload("res://scripts/juego_pelea.gd")
 const Rendimiento := preload("res://scripts/rendimiento.gd")
 const PortadaEd := preload("res://scripts/portada_editor.gd")
@@ -38,9 +44,15 @@ var _musica: AudioStreamPlayer
 ## Qué clase de juego corresponde a este nivel.
 static func clase_para(n: Dictionary) -> GDScript:
 	var modo := str(n.get("modo", "2d"))
-	if modo == "3d" and str(n.get("tipo", "")) == "aventura":
-		return JuegoAventura
 	var est := str(n.get("estilo", ""))
+	if modo == "3d" and str(n.get("tipo", "")) == "aventura" and est != "disparos3d":
+		return JuegoAventura
+	if est == "mini" and Mini_.has(str(n.get("mini", ""))):
+		return Mini_[str(n["mini"])]
+	if est == "disparos3d":
+		return JuegoDisparos3D
+	if est == "supervivencia":
+		return JuegoSuperv
 	if modo == "2d" and str(n.get("tipo", "")) == "arriba":
 		if est in ["carrera", "kart"]:
 			return JuegoCarrera3D if bool(n.get("vista3d", false)) else JuegoCarrera

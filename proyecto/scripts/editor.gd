@@ -7,6 +7,7 @@ const PanelExportar := preload("res://scripts/panel_exportar.gd")
 const PanelColores := preload("res://scripts/panel_colores.gd")
 const Categorias := preload("res://scripts/categorias.gd")
 const PanelElementos := preload("res://scripts/panel_elementos.gd")
+const PanelMini := preload("res://scripts/panel_mini.gd")
 const Recetas := preload("res://scripts/recetas.gd")
 const PersonajesPanel := preload("res://scripts/panel_personajes.gd")
 const PortadaEd := preload("res://scripts/portada_editor.gd")
@@ -54,6 +55,8 @@ var _titulo: Label
 var _modo_txt: Label
 var _niveles_fila: HFlowContainer
 var _port: Control
+var _mini_ed: Control
+var _mini_sig := ""
 var _pers: Control
 var _herr: Control
 var _panel_bib: Control
@@ -272,6 +275,11 @@ func _construir() -> void:
 	_esc.seleccionado.connect(func(_i): _refrescar_props(); if _i != null: _tut.avisar("select"))
 	_esc.cambio.connect(_refrescar_props)
 	_objetivos["escenario"] = zona
+	_mini_ed = PanelMini.new()
+	zona.add_child(_mini_ed)
+	_mini_ed.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_mini_ed.visible = false
+	_mini_ed.probar.connect(_jugar)
 	_port = PortadaEd.new()
 	zona.add_child(_port)
 	_port.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -770,6 +778,7 @@ func _set_etapa(e: String) -> void:
 	if e == "portada":
 		_port.refrescar()
 	_refrescar_niveles()
+	_vista_mini()
 
 
 func _ir_nivel(i: int) -> void:
@@ -1098,6 +1107,23 @@ func _refrescar() -> void:
 	_refrescar_chip()
 	_refrescar_props()
 	_refrescar_niveles()
+	_vista_mini()
+
+
+## En los minijuegos no hay mapa que dibujar: se muestra el panel «Contenido» en su lugar.
+func _vista_mini() -> void:
+	var es_mini := str(Datos.nivel.get("estilo", "")) == "mini" and _etapa == "mundo"
+	_mini_ed.visible = es_mini
+	if es_mini:
+		_esc.visible = false
+		_herr.visible = false
+		_panel_bib.visible = false
+		var sig := "%d:%s" % [Datos.idx, str(Datos.nivel.get("mini", ""))]
+		if sig != _mini_sig:
+			_mini_sig = sig
+			_mini_ed.refrescar()
+	else:
+		_mini_sig = ""
 
 
 func _refrescar_chip() -> void:
@@ -1156,6 +1182,20 @@ func _refrescar_props() -> void:
 		_props_fila.add_child(_grupo("Altura", str(int(s.get("alt", 1))), _ajustar.bind("alt", -1), _ajustar.bind("alt", 1)))
 	if s["t"] == "deco":
 		_props_fila.add_child(_grupo("Tamaño", str(int(s.get("s", 56)) / 12), _ajustar.bind("s", -1), _ajustar.bind("s", 1)))
+		if modo == "2d" and str(Datos.nivel.get("tipo", "")) == "arriba":
+			var dl := LineEdit.new()
+			dl.placeholder_text = "Diálogo al acercarte (personaje del RPG)"
+			dl.custom_minimum_size = Vector2(280, 40)
+			dl.max_length = 120
+			dl.text = str(s.get("dlg", ""))
+			dl.text_changed.connect(func(tx: String):
+				if tx == "":
+					s.erase("dlg")
+				else:
+					s["dlg"] = tx)
+			dl.focus_exited.connect(Datos.confirmar)
+			dl.text_submitted.connect(func(_t): Datos.confirmar(); dl.release_focus())
+			_props_fila.add_child(dl)
 	if s["t"] == "enemy":
 		_props_fila.add_child(_grupo("Recorrido", str(s["r"]), _ajustar.bind("r", -1), _ajustar.bind("r", 1)))
 		_props_fila.add_child(_grupo("Rapidez", str(int(s["sp"]) / 10), _ajustar.bind("sp", -1), _ajustar.bind("sp", 1)))
@@ -1346,7 +1386,8 @@ func _abrir_guia() -> void:
 	v.add_theme_constant_override("separation", 6)
 	sc.add_child(v)
 	var n := 0
-	for p in Recetas.pasos(cat):
+	var lista_pasos: Array = Recetas.pasos_mini() if str(Datos.nivel.get("estilo", "")) == "mini" else Recetas.pasos(cat)
+	for p in lista_pasos:
 		n += 1
 		var b := Button.new()
 		var pronto: bool = p["abre"] == "pronto"
@@ -1379,6 +1420,9 @@ func _ir_paso(abre: String) -> void:
 		"pista":
 			_set_etapa("mundo")
 			_abrir_colores()
+		"contenido":
+			_set_etapa("mundo")
+			_vista_mini()
 		"elementos":
 			_set_etapa("mundo")
 			_abrir_elementos()

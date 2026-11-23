@@ -52,6 +52,8 @@ func _ready() -> void:
 	var r2: Dictionary = Id.recomendar("quiero un shooter con armas")
 	ok(r2["cat"] == "disparos", "idea: shooter")
 	ok(not Id.recomendar("hola")["ok"], "idea vaga pide más datos")
+	ok(Id.recomendar("quiero un juego de preguntas para el colegio")["tipo"] == "quiz", "idea: quiz")
+	ok(Id.recomendar("defensa de torres con oleadas")["tipo"] == "defensa_e", "idea: defensa")
 	var ini: Control = load("res://scripts/inicio.gd").new()
 	add_child(ini)
 	ini.size = Vector2(1280, 720)

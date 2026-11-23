@@ -24,6 +24,17 @@ static func _final(extra_pantallas: Array = []) -> Array:
 	return extra_pantallas + r
 
 
+## Pasos de un minijuego (parejas, ritmo, defensa, granja, novela…): el contenido se escribe en el panel Contenido.
+static func pasos_mini() -> Array:
+	var r: Array = _inicio()
+	r += [
+		_p("contenido", "🧩", "Contenido del juego", "Escribe y amplía lo que hay en el juego: cartas, notas, oleadas, preguntas, guion…", "contenido"),
+		_p("colores", "🎨", "Colores y fondo", "Cielo y colores del fondo del juego.", "pista"),
+		_p("reglas", "📜", "Reglas y vidas", "Vidas, tiempo y tienda.", "reglas"),
+	]
+	return r + _final()
+
+
 ## Pasos por categoría; las categorías nuevas comparten la receta que más se les parece.
 static func pasos(categoria: String, tipo: String = "") -> Array:
 	categoria = {"narrativo": "aventura", "terror": "aventura", "accion": "aventura", "otros": ""}.get(categoria, categoria)
