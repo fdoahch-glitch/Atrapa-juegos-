@@ -74,6 +74,24 @@ func _ready() -> void:
 	_opciones(v, "Tiembla al golpear", [true, false], ["Sí", "No"], bool(Datos.reglas["cam_temblor"]), func(val):
 		Datos.reglas["cam_temblor"] = bool(val)
 		Datos.guardar())
+	_t(v, "🎨 Paleta de colores del juego", 20, Estilo.MORADO, true)
+	_t(v, "Cambia los colores de todo lo de la biblioteca y de tus dibujos (por ejemplo, un árbol verde se vuelve de desierto). Cada objeto puede tener su propia paleta al tocarlo.", 14, Estilo.SUAVE)
+	var pi: Array = [""]
+	var pn: Array = ["Sin paleta (colores originales)"]
+	for q in Datos.PALETAS:
+		pi.append(q[0])
+		pn.append(q[1])
+	_opciones(v, "Paleta global", pi, pn, str(Datos.reglas["paleta"]), func(val):
+		Datos.reglas["paleta"] = val
+		Datos.olvidar_texturas_pal()
+		Datos.guardar())
+	_barra(v, "Fuerza de la paleta", "Suave", "Total", 0.0, 100.0, float(Datos.reglas["paleta_fuerza"]), func(x):
+		Datos.reglas["paleta_fuerza"] = int(x)
+		Datos.olvidar_texturas_pal()
+		Datos.guardar())
+	_opciones(v, "También pintar toda la pantalla", [false, true], ["No", "Sí (fondos y todo)"], bool(Datos.reglas["paleta_todo"]), func(val):
+		Datos.reglas["paleta_todo"] = bool(val)
+		Datos.guardar())
 	_t(v, "Luces y pantalla (este mundo)", 20, Estilo.MORADO, true)
 	_barra(v, "Oscuridad (cueva con linterna)", "Día", "Muy oscuro", 0.0, 0.95, float(Datos.nivel.get("oscuridad", 0.0)), func(x):
 		if x < 0.05:

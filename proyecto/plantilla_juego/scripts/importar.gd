@@ -242,6 +242,9 @@ static func modelo(id: String, alto: float) -> Node3D:
 		Assets3D.f(raiz, "caja", Vector3(0.8, 0.8, 0.8), Color("c084fc"), Vector3(0, 0.4, 0))
 		return raiz
 	# gira el modelo para que mire hacia +Z (como los demás); el juego lo da vuelta al correr
+	var qp: String = Datos.pal_efectiva(Datos.pal_item)
+	if qp != "":
+		Datos.pal_modelo(m, qp, Datos.pal_fuerza())
 	var piv := Node3D.new()
 	piv.add_child(m)
 	m.rotation.y = _giro_frente(m)

@@ -11,6 +11,8 @@ func _ready() -> void:
 		var id := str(a["id"])
 		if not id.begins_with("g:"):
 			continue
+		if FileAccess.file_exists("res://assets/biblioteca/" + id.substr(2) + ".png.bib"):
+			continue
 		var m := Importar.cargar_glb(id)
 		if m == null:
 			print("MAL no carga ", id)

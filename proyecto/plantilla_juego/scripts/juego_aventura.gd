@@ -135,7 +135,9 @@ func _reconstruir() -> void:
 		var cz := (float(it["y"]) + 0.5) * C
 		var nodo: Node3D
 		if Mundo3D.es_modelo(e):
+			Datos.pal_item = str(it.get("pal", ""))
 			nodo = Mundo3D.objeto(e, px / 48.0 * C, px * C)
+			Datos.pal_item = ""
 		else:
 			nodo = Mundo3D.sprite(e, px / 48.0 * C)
 			(nodo as Sprite3D).billboard = BaseMaterial3D.BILLBOARD_FIXED_Y

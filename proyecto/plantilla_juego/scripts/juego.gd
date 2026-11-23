@@ -91,6 +91,20 @@ func iniciar(n: Dictionary, forzar_tactil: bool = false, mostrar_salir: bool = f
 		_filtro.material = mt
 		add_child(_filtro)
 		_filtro.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	if bool(reglas.get("paleta_todo", false)) and Datos.pal_efectiva("") != "":
+		var pf := ColorRect.new()
+		pf.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var psh := Shader.new()
+		psh.code = PALETA_SHADER
+		var pm := ShaderMaterial.new()
+		pm.shader = psh
+		var lut := Datos.pal_lut(Datos.pal_efectiva(""))
+		var li := Image.create_from_data(256, 1, false, Image.FORMAT_RGB8, lut)
+		pm.set_shader_parameter("lut", ImageTexture.create_from_image(li))
+		pm.set_shader_parameter("fuerza", Datos.pal_fuerza())
+		pf.material = pm
+		add_child(pf)
+		pf.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_hud = Capa.new()
 	_hud.al_dibujar = _dibujar_hud
 	add_child(_hud)
@@ -280,6 +294,17 @@ const PART := {
 	"fuego": {"col": [Color("ff7a1a"), Color("ffd23f")], "v": 35.0, "vida": 0.8, "g": -120.0, "t": 6.0},
 	"nieve": {"col": [Color.WHITE], "v": 20.0, "vida": 2.0, "g": 60.0, "t": 3.0},
 	"explosion": {"col": [Color("ff5a36"), Color("ffd23f"), Color.WHITE], "v": 260.0, "vida": 0.6, "g": 200.0, "t": 6.0}}
+const PALETA_SHADER := """shader_type canvas_item;
+uniform sampler2D tex : hint_screen_texture, filter_linear_mipmap;
+uniform sampler2D lut : filter_nearest;
+uniform float fuerza = 0.8;
+void fragment() {
+	vec4 c = texture(tex, SCREEN_UV);
+	float g = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+	vec3 p = texture(lut, vec2(g, 0.5)).rgb;
+	COLOR = vec4(mix(c.rgb, p, fuerza), c.a);
+}
+"""
 const FILTRO_SHADER := """shader_type canvas_item;
 uniform int modo = 0;
 uniform sampler2D tex : hint_screen_texture, filter_linear_mipmap;

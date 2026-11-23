@@ -16,3 +16,10 @@ Las miniaturas se fabrican con `tools/hornear_biblioteca.tscn`.
 
 Se descartaron los modelos de armas de fuego, bombas y similares para mantener la biblioteca apta para niños.
 Este programa no incluye nada de Dino Run: es un proyecto aparte.
+
+## Ampliación de la biblioteca (CC0)
+Modelos y dibujos de dominio público (CC0 1.0), usados sin necesidad de atribución:
+- Kenney (kenney.nl): City Kit Commercial / Industrial / Suburban / Roads, Nature Kit, 3D Road Pack, Foliage Pack.
+- Quaternius (quaternius.com): Ultimate Nature Pack, Stylized Nature MegaKit, Textured Stylized Trees, Animals Pack, Animal Pack Vol.2, Farm Animals, Street Pack.
+- KayKit (Kay Lousberg): Platformer Pack y Mini-Game Variety Pack.
+- Ward727: City Pack (trenes y rieles).

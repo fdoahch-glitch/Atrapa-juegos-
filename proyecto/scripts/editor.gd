@@ -437,7 +437,7 @@ func _defs(que: String) -> Array:
 				r.append({"id": k, "n": Datos.temas[k]["n"], "t": "tema"})
 			r.append({"enc": "Mis fondos"})
 			r.append({"id": "importar", "n": "Importar…", "t": "importar"})
-			var imgs := Importar.listar().filter(func(a): return str(a["id"]).begins_with("u:"))
+			var imgs := Importar.listar_propios().filter(func(a): return str(a["id"]).begins_with("u:"))
 			if not imgs.is_empty():
 				r.append({"id": "fondo_ninguno", "n": "Del tema", "t": "fondo_img", "e": ""})
 				for a in imgs:
@@ -468,6 +468,12 @@ func _defs(que: String) -> Array:
 			var bib := Importar.biblioteca()
 			var por_cat := func(cats: Array) -> Array:
 				return bib.filter(func(a): return str(a.get("cat", "")) in cats and (modo != "2d" or not Importar.es_audio(a["id"])))
+			r.append({"sel": true})
+			if _lib_cat != "":
+				r.append({"enc": _lib_cat})
+				for a in por_cat.call([_lib_cat]):
+					r.append({"id": "bd" + a["id"], "n": a["n"], "t": "deco", "e": a["id"], "s": 64})
+				return r
 			var heroes: Array = por_cat.call(["Personas", "Animales", "Dinosaurios", "Monstruos"])
 			r.append({"enc": "Personajes (héroe)"})
 			for a in heroes:
@@ -520,6 +526,9 @@ func _relleno() -> Control:
 	return c
 
 
+var _lib_cat := ""
+
+
 func _construir_biblioteca() -> void:
 	for c in _rejilla.get_children():
 		_rejilla.remove_child(c)
@@ -527,6 +536,25 @@ func _construir_biblioteca() -> void:
 	var n := 0
 	var tactil := DisplayServer.is_touchscreen_available()
 	for d in _defs(tab):
+		if d.has("sel"):
+			var ob := OptionButton.new()
+			var cats := ["", "Naturaleza", "Rocas", "Ciudad", "Calles", "Trenes", "Plataformas 3D", "Follaje 2D", "Animales", "Elementos", "Vehículos"]
+			var nombres := ["Lo básico", "🌳 Naturaleza", "🪨 Rocas", "🏙 Ciudad", "🛣 Calles", "🚆 Trenes", "🧱 Plataformas 3D", "🍃 Follaje (dibujo 2D)", "🐾 Animales", "📦 Elementos", "🚗 Vehículos"]
+			for i in cats.size():
+				if cats[i] == "Follaje 2D" and modo != "2d":
+					continue
+				ob.add_item(nombres[i], i)
+				if cats[i] == _lib_cat:
+					ob.select(ob.item_count - 1)
+			ob.item_selected.connect(func(k: int):
+				_lib_cat = cats[ob.get_item_id(k)]
+				_construir_biblioteca())
+			ob.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			_rejilla.add_child(ob)
+			_rejilla.add_child(_relleno())
+			_rejilla.add_child(_relleno())
+			n += 3
+			continue
 		if d.has("enc"):
 			while n % 3 != 0:
 				_rejilla.add_child(_relleno())
@@ -1315,6 +1343,31 @@ func _refrescar_props() -> void:
 				s["fx"] = v
 			Datos.confirmar())
 		_props_fila.add_child(of)
+	if ["deco", "enemy", "coin", "star", "gem"].has(str(s["t"])) or (s["t"] == "player" and str(s.get("e", "")) != ""):
+		var op := OptionButton.new()
+		op.custom_minimum_size = Vector2(150, 40)
+		op.focus_mode = Control.FOCUS_NONE
+		op.tooltip_text = "Colores de este objeto: los del juego, los suyos o una paleta"
+		op.add_item("🎨 Colores: del juego", 0)
+		op.add_item("🎨 Colores: originales", 1)
+		var ps := str(s.get("pal", ""))
+		if ps == "no":
+			op.selected = 1
+		for k in Datos.PALETAS.size():
+			op.add_item("🎨 " + str(Datos.PALETAS[k][1]), 2 + k)
+			if Datos.PALETAS[k][0] == ps:
+				op.selected = op.item_count - 1
+		op.item_selected.connect(func(k):
+			var id := op.get_item_id(k)
+			if id == 0:
+				s.erase("pal")
+			elif id == 1:
+				s["pal"] = "no"
+			else:
+				s["pal"] = Datos.PALETAS[id - 2][0]
+			Datos.olvidar_texturas_pal()
+			Datos.confirmar())
+		_props_fila.add_child(op)
 	if not ["plat", "platmov", "player", "goal", "pared", "viga", "valla", "puerta", "boton", "caja"].has(str(s["t"])):
 		var oa := OptionButton.new()
 		oa.custom_minimum_size = Vector2(140, 40)

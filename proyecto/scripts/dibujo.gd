@@ -143,6 +143,12 @@ static func _con_anim(it: Dictionary, t: float) -> Dictionary:
 
 
 static func objeto(ci: CanvasItem, it0: Dictionary, th: Dictionary, t: float, extra: Dictionary = {}) -> void:
+	Datos.pal_item = str(it0.get("pal", ""))
+	_objeto(ci, it0, th, t, extra)
+	Datos.pal_item = ""
+
+
+static func _objeto(ci: CanvasItem, it0: Dictionary, th: Dictionary, t: float, extra: Dictionary = {}) -> void:
 	var it: Dictionary = it0
 	if it0.has("anim") and str(it0["anim"]) != "ninguna" and it0["t"] != "plat":
 		it = _con_anim(it0, t)

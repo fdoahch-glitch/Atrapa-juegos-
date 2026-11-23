@@ -136,3 +136,8 @@ Cada tipo del asistente crea una demo que funciona desde el primer toque y que p
 - 🖌 **Pintar** bloques arrastrando (los bloques pegados se unen solos).
 - 🎞 **Animar una imagen**: hoja de cuadros (columnas, filas y velocidad).
 - Enemigo nuevo: **Vigila** (patrulla y, si te ve de frente, te persigue un rato).
+
+## Biblioteca ampliada y paleta de colores
+- **Biblioteca**: ahora trae unos 900 modelos y dibujos de licencia CC0 (Kenney, Quaternius, KayKit y otros; ver docs/CREDITOS.md). En la pestaña **Biblioteca** hay un selector de categorías: Naturaleza, Rocas, Ciudad, Calles, Trenes, Plataformas 3D, Follaje (dibujo 2D), Animales, Elementos y Vehículos.
+- **🎨 Paleta de colores** (panel 🎬 Efectos): elige una paleta para todo el juego (Desierto, Nieve, Bosque, Noche, Atardecer, Dulces, Océano, Volcán, Retro verde, Blanco y negro) y su fuerza. Todo lo de la biblioteca y tus dibujos cambia de color, en 2D y en 3D. «También pintar toda la pantalla» aplica la paleta a fondos y todo lo demás al jugar.
+- **Paleta por objeto**: toca un objeto en el escenario y elige «Colores: del juego», «originales» o una paleta propia.

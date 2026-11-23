@@ -6,7 +6,7 @@ func ok(c: bool, m: String) -> void:
 	if not c: fallos += 1
 func _ready() -> void:
 	var bib: Array = Importar.biblioteca()
-	ok(bib.size() > 250, "biblioteca tiene %d cosas" % bib.size())
+	ok(bib.size() > 900, "biblioteca tiene %d cosas" % bib.size())
 	var n_glb := 0
 	var mal := 0
 	for a in bib:

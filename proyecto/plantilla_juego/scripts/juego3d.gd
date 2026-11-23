@@ -270,7 +270,9 @@ func _reconstruir() -> void:
 		var lado2 := -1.0 if int(it["y"]) < 7 else 1.0
 		var pos := Vector3(lado2 * 5.0, 0, -float(it["x"]) * CELDA_M)
 		if Mundo3D.es_modelo(e):
+			Datos.pal_item = str(it.get("pal", ""))
 			var mo2 := Mundo3D.objeto(e, px / 48.0 * 2.0, px * 2.0)
+			Datos.pal_item = ""
 			mo2.position = pos
 			_mundo3.add_child(mo2)
 		else:

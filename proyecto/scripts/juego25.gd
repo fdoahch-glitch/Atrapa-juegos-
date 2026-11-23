@@ -75,7 +75,9 @@ func _reconstruir() -> void:
 		var z := -9.0 if nube else -1.6 - float(i % 3) * 0.9
 		var xx := float(d["x"]) + 0.5
 		if Mundo3D.es_modelo(e):
+			Datos.pal_item = str(d.get("pal", ""))
 			var mo := Mundo3D.objeto(e, px / T, px)
+			Datos.pal_item = ""
 			var base := _y3(float(d["y"]) + 1.0) - 0.05
 			if nube:
 				base = _y3(float(d["y"]) + 0.5) - 0.3

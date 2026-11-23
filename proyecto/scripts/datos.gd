@@ -55,7 +55,7 @@ var niveles: Array = []             # copias de todos los niveles (el actual se 
 var idx := 0                        # posición del nivel actual
 var reglas: Dictionary = {}         # reglas del juego completo
 const MAX_NIVELES := 10
-const REGLAS_BASE := {"vidas": 3, "tiempo": 0, "meta": "meta", "pts_coin": 1, "pts_gem": 3, "pts_star": 5, "pts_enemy": 2, "titulo": true, "final": "¡Ganaste el juego!", "musica": "", "mascota": "", "poder": "escudo", "tienda": false, "jugadores": 1, "heroe2": "", "plataforma": "windows", "categoria": "", "subtipo": "", "rend": {}, "dificultad": "normal", "elegir_dificultad": false, "misiones": false, "revivir": 0, "modo_prueba": false, "arma": "pistola", "espera": false, "logros": true, "sin_fin": false, "fis": {}, "mec": {}, "sonidos": {}, "fx": {}, "cam_suave": 100, "cam_temblor": true, "trans": "fundido", "idioma": "es", "creditos": ""}
+const REGLAS_BASE := {"vidas": 3, "tiempo": 0, "meta": "meta", "pts_coin": 1, "pts_gem": 3, "pts_star": 5, "pts_enemy": 2, "titulo": true, "final": "¡Ganaste el juego!", "musica": "", "mascota": "", "poder": "escudo", "tienda": false, "jugadores": 1, "heroe2": "", "plataforma": "windows", "categoria": "", "subtipo": "", "rend": {}, "dificultad": "normal", "elegir_dificultad": false, "misiones": false, "revivir": 0, "modo_prueba": false, "arma": "pistola", "espera": false, "logros": true, "sin_fin": false, "fis": {}, "mec": {}, "sonidos": {}, "fx": {}, "cam_suave": 100, "cam_temblor": true, "trans": "fundido", "idioma": "es", "creditos": "", "paleta": "", "paleta_fuerza": 80, "paleta_todo": false}
 var historial: Array[String] = []
 var futuro: Array[String] = []
 var _actual := ""
@@ -79,7 +79,7 @@ func limpiar_emoji(s: String) -> String:
 	return r.strip_edges()
 
 
-func textura(e: String) -> Texture2D:
+func _textura_base(e: String) -> Texture2D:
 	if e == "":
 		return null
 	if _cache_tex.has(e):
@@ -113,6 +113,149 @@ func textura(e: String) -> Texture2D:
 
 func olvidar_textura(e: String) -> void:
 	_cache_tex.erase(e)
+	for k in _cache_pal.keys():
+		if str(k).begins_with(e + "|"):
+			_cache_pal.erase(k)
+
+
+# ------------------------------------------------------------ paleta de colores
+## Cada paleta: id, nombre y 5 colores de lo más oscuro a lo más claro.
+const PALETAS := [
+	["desierto", "🏜 Desierto", ["3b2314", "8a4b2a", "c9833f", "e8c78b", "fff1d0"]],
+	["nieve", "❄ Nieve", ["1b2a4a", "4a6fa5", "9ec5e8", "dcefff", "ffffff"]],
+	["bosque", "🌲 Bosque", ["10281a", "24572f", "4a9a45", "a8d86a", "f2ffd0"]],
+	["noche", "🌙 Noche", ["070718", "1c1b4f", "4b3f9e", "8a7bdc", "d9d0ff"]],
+	["atardecer", "🌅 Atardecer", ["2a0f3a", "8a2a5a", "e8553a", "ffb347", "fff0c0"]],
+	["dulces", "🍬 Dulces", ["5a1a4a", "d6459a", "ff9ad0", "ffd6ec", "fffaf5"]],
+	["oceano", "🌊 Océano", ["031a33", "0b4f8a", "1fa3c4", "8fe3e0", "f0ffff"]],
+	["volcan", "🌋 Volcán", ["1a0505", "6a1000", "d62e00", "ff9a1f", "ffe9a0"]],
+	["gameboy", "🎮 Retro verde", ["0f380f", "306230", "8bac0f", "9bbc0f", "c8e07a"]],
+	["bn", "⚫ Blanco y negro", ["000000", "444444", "888888", "cccccc", "ffffff"]],
+]
+var _cache_pal := {}
+var _cache_lut := {}
+## Paleta de un objeto puesto en pantalla (la fija Dibujo.objeto mientras dibuja).
+var pal_item := ""
+
+
+func olvidar_texturas_pal() -> void:
+	_cache_pal.clear()
+
+
+func pal_efectiva(del_objeto: String = "") -> String:
+	var q := del_objeto
+	if q == "no":
+		return ""
+	if q == "" or not PALETAS.any(func(c): return c[0] == q):
+		q = str(reglas.get("paleta", ""))
+	return q if PALETAS.any(func(c): return c[0] == q) else ""
+
+
+func pal_fuerza() -> float:
+	return clampf(float(reglas.get("paleta_fuerza", 80)) / 100.0, 0.0, 1.0)
+
+
+## 256 colores (r, g, b seguidos) que van del oscuro al claro de la paleta.
+func pal_lut(id: String) -> PackedByteArray:
+	if _cache_lut.has(id):
+		return _cache_lut[id]
+	var cols: Array = []
+	for p in PALETAS:
+		if p[0] == id:
+			for h in p[2]:
+				cols.append(Color(str(h)))
+	var lut := PackedByteArray()
+	lut.resize(768)
+	if cols.is_empty():
+		for i in 256:
+			lut[i * 3] = i
+			lut[i * 3 + 1] = i
+			lut[i * 3 + 2] = i
+	else:
+		for i in 256:
+			var t := float(i) / 255.0 * float(cols.size() - 1)
+			var k := mini(int(t), cols.size() - 2)
+			var c: Color = (cols[k] as Color).lerp(cols[k + 1], t - float(k))
+			lut[i * 3] = int(c.r * 255.0)
+			lut[i * 3 + 1] = int(c.g * 255.0)
+			lut[i * 3 + 2] = int(c.b * 255.0)
+	_cache_lut[id] = lut
+	return lut
+
+
+## Pasa los colores de una imagen a la paleta (el brillo manda; `fuerza` 0..1 mezcla con el original).
+func pal_imagen(img: Image, id: String, fuerza: float) -> Image:
+	var im := img.duplicate() as Image
+	if im.is_compressed():
+		im.decompress()
+	im.convert(Image.FORMAT_RGBA8)
+	var d := im.get_data()
+	var lut := pal_lut(id)
+	var k := int(clampf(fuerza, 0.0, 1.0) * 256.0)
+	var n := d.size()
+	var i := 0
+	while i < n:
+		if d[i + 3] > 0:
+			var r: int = d[i]
+			var g: int = d[i + 1]
+			var b: int = d[i + 2]
+			var j := ((r * 77 + g * 150 + b * 29) >> 8) * 3
+			d[i] = (r * (256 - k) + lut[j] * k) >> 8
+			d[i + 1] = (g * (256 - k) + lut[j + 1] * k) >> 8
+			d[i + 2] = (b * (256 - k) + lut[j + 2] * k) >> 8
+		i += 4
+	im.set_data(im.get_width(), im.get_height(), false, Image.FORMAT_RGBA8, d)
+	return im
+
+
+func pal_color(c: Color, id: String, fuerza: float) -> Color:
+	var lut := pal_lut(id)
+	var j := int(clampf(c.get_luminance(), 0.0, 1.0) * 255.0) * 3
+	return c.lerp(Color(lut[j] / 255.0, lut[j + 1] / 255.0, lut[j + 2] / 255.0, c.a), fuerza)
+
+
+## Cambia los colores de un modelo 3D a la paleta (colores y texturas de sus materiales).
+func pal_modelo(raiz: Node, id: String, fuerza: float) -> void:
+	var texs := {}
+	for m in raiz.find_children("*", "MeshInstance3D", true, false):
+		var mi := m as MeshInstance3D
+		if mi.mesh == null:
+			continue
+		for s in mi.mesh.get_surface_count():
+			var mat := mi.get_active_material(s)
+			if not (mat is BaseMaterial3D):
+				continue
+			var nm := (mat as BaseMaterial3D).duplicate() as BaseMaterial3D
+			nm.albedo_color = pal_color(nm.albedo_color, id, fuerza)
+			var t := nm.albedo_texture
+			if t != null:
+				var key := t.get_rid().get_id()
+				if not texs.has(key):
+					var im := t.get_image()
+					texs[key] = ImageTexture.create_from_image(pal_imagen(im, id, fuerza)) if im != null else t
+				nm.albedo_texture = texs[key]
+			mi.set_surface_override_material(s, nm)
+
+
+func textura(e: String) -> Texture2D:
+	var base := _textura_base(e)
+	if base == null:
+		return null
+	var q := pal_efectiva(pal_item)
+	if q == "":
+		return base
+	if base.get_width() * base.get_height() > 1500000:
+		return base
+	var f := pal_fuerza()
+	var key := "%s|%s|%d" % [e, q, int(f * 100.0)]
+	if _cache_pal.has(key):
+		return _cache_pal[key]
+	var img := base.get_image()
+	var res: Texture2D = base
+	if img != null:
+		res = ImageTexture.create_from_image(pal_imagen(img, q, f))
+	_cache_pal[key] = res
+	return res
 
 
 ## Ajusta la ventana/pantalla del juego exportado según lo elegido al crearlo.
@@ -736,6 +879,8 @@ func normalizar(n: Dictionary) -> Dictionary:
 			it.erase("fx")
 		if it.has("ia") and not COMPORTAMIENTOS.any(func(c): return c[0] == str(it["ia"])):
 			it.erase("ia")
+		if it.has("pal") and str(it["pal"]) != "no" and not PALETAS.any(func(c): return c[0] == str(it["pal"])):
+			it.erase("pal")
 		if it.has("anim") and not ANIM_OBJ.any(func(c): return c[0] == str(it["anim"])):
 			it.erase("anim")
 		if not it.has("id"):
@@ -926,6 +1071,9 @@ func reglas_completas(r: Dictionary) -> Dictionary:
 	o["sonidos"] = sfx_normal(r.get("sonidos", {}))
 	o["fx"] = fx_normal(r.get("fx", {}))
 	o["cam_suave"] = clampi(int(o["cam_suave"]), 30, 300)
+	o["paleta_fuerza"] = clampi(int(o["paleta_fuerza"]), 0, 100)
+	if str(o["paleta"]) != "" and not PALETAS.any(func(q): return q[0] == str(o["paleta"])):
+		o["paleta"] = ""
 	if not TRANSICIONES.any(func(p): return p[0] == str(o["trans"])):
 		o["trans"] = "fundido"
 	if not ["es", "en"].has(str(o["idioma"])):
