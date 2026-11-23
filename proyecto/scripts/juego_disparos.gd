@@ -3,14 +3,25 @@ extends "res://scripts/juego_arriba.gd"
 ## (o con clic) hacia donde quieres. Cada enemigo que tocas con una bala suma puntos.
 
 const VEL_BALA := 520.0
-const ALCANCE := 640.0
-const ESPERA := 0.22
 const PUNTOS_ENEMIGO := 50
+# espera entre disparos, balas por disparo, abanico (grados), alcance, velocidad, color
+const ARMAS := {
+	"pistola": {"espera": 0.24, "n": 1, "abre": 0.0, "alcance": 640.0, "vel": 520.0},
+	"rafaga": {"espera": 0.08, "n": 1, "abre": 6.0, "alcance": 560.0, "vel": 600.0},
+	"escopeta": {"espera": 0.7, "n": 5, "abre": 30.0, "alcance": 320.0, "vel": 480.0},
+	"rifle": {"espera": 0.5, "n": 1, "abre": 0.0, "alcance": 1100.0, "vel": 900.0},
+}
+var _arma: Dictionary = ARMAS["pistola"]
 
 var balas: Array = []
 var _apunta := Vector2(1, 0)
 var _enfria := 0.0
 var _clic_dir := Vector2.ZERO
+
+
+func iniciar(n: Dictionary, forzar_tactil: bool = false, mostrar_salir: bool = false) -> void:
+	super.iniciar(n, forzar_tactil, mostrar_salir)
+	_arma = ARMAS.get(str(reglas.get("arma", "pistola")), ARMAS["pistola"])
 
 
 func resetear() -> void:
@@ -37,8 +48,13 @@ func _input(ev: InputEvent) -> void:
 func _disparar(dir: Vector2) -> void:
 	if _enfria > 0.0:
 		return
-	_enfria = ESPERA
-	balas.append({"p": _centro(), "d": dir.normalized(), "r": 0.0})
+	_enfria = float(_arma["espera"])
+	var k := int(_arma["n"])
+	for i in k:
+		var ang := 0.0 if k == 1 else deg_to_rad((float(i) / float(k - 1) - 0.5) * float(_arma["abre"]))
+		if k == 1 and float(_arma["abre"]) > 0.0:
+			ang = deg_to_rad(randf_range(-0.5, 0.5) * float(_arma["abre"]))
+		balas.append({"p": _centro(), "d": dir.normalized().rotated(ang), "r": 0.0})
 	_sonido.tocar(620.0, 0.06, "cuadrada")
 
 
@@ -52,9 +68,9 @@ func _actualizar(dt: float) -> void:
 		return
 	var vivas: Array = []
 	for b in balas:
-		b["p"] += b["d"] * VEL_BALA * dt
-		b["r"] += VEL_BALA * dt
-		var impacto: bool = b["r"] > ALCANCE
+		b["p"] += b["d"] * float(_arma["vel"]) * dt
+		b["r"] += float(_arma["vel"]) * dt
+		var impacto: bool = b["r"] > float(_arma["alcance"])
 		var pc: Rect2 = Rect2(b["p"] - Vector2(6, 6), Vector2(12, 12))
 		for w in plats:
 			if pc.intersects(w):

@@ -100,3 +100,10 @@ Botón **Colores** (arriba): cielo, colinas, tierra y pasto de este mundo, con s
 - **Nuevas categorías**: Disparos (shooter desde arriba, Espacio o clic para disparar), Corredor 2D para celular (corre solo, tú saltas), Mundo libre, Narrativo y Otros géneros. Los tipos marcados «Pronto» aún no tienen juego.
 - **🧭 Guía**: botón en la barra del editor; muestra los pasos de tu categoría en orden y abre cada panel.
 - **💡 Cuéntame tu idea**: primera tarjeta al elegir categoría. Escribes de qué trata y recomienda categoría, enemigos, premios, puntuación y calidad (FSR, FPS) según la plataforma. Funciona sin internet.
+
+## Pista, elementos, armas y logros
+- **Curvas, subidas y bajadas** (mundos 3D): en «Colores» → *Curvas, subidas y bajadas* agregas tramos (desde % hasta % del recorrido) con curva izquierda/derecha y subida/bajada. La pista, la cámara y el personaje siguen la forma.
+- **🌍 Elementos**: lista de todo lo del mundo. Reemplaza el personaje, obstáculos y premios por tus modelos, activa o desactiva adornos y fija su alto en metros; el tamaño real del personaje se pone en metros.
+- **Calidad**: en Rendimiento, botones Baja / Media / Alta (FSR, imagen, bordes suaves, sombras y FPS de un toque).
+- **Armas** (Reglas): pistola, ráfaga, escopeta o rifle para los juegos de disparos.
+- **Salón de espera** (Reglas): cuenta 3-2-1 antes de cada nivel. **Logros**: medallas que se guardan y se ven desde la portada.

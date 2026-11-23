@@ -23,7 +23,7 @@ const DIFICULTADES := {
 
 
 static func leer() -> Dictionary:
-	var d := {"dificultad": "", "fosiles": 0, "minutos": 0.0, "rank": [], "skin": "", "skins": [], "accesorios": [], "puestos": [], "dia": 0, "hechas": [], "ficha_vista": 0}
+	var d := {"dificultad": "", "fosiles": 0, "minutos": 0.0, "rank": [], "skin": "", "skins": [], "accesorios": [], "puestos": [], "dia": 0, "hechas": [], "ficha_vista": 0, "logros": []}
 	if FileAccess.file_exists(RUTA):
 		var r = JSON.parse_string(FileAccess.get_file_as_string(RUTA))
 		if r is Dictionary:
@@ -182,3 +182,39 @@ static func gastar(cantidad: int) -> bool:
 	t["monedas"] = int(t["monedas"]) - cantidad
 	Tienda.guardar(t)
 	return true
+
+
+# ------------------------------------------------------------------ logros (medallas)
+const LOGROS := [
+	{"id": "primera", "emoji": "🎮", "n": "Primera partida", "txt": "Termina una partida."},
+	{"id": "gano", "emoji": "🏁", "n": "¡Llegaste a la meta!", "txt": "Gana un nivel."},
+	{"id": "p100", "emoji": "💯", "n": "100 puntos", "txt": "Consigue 100 puntos en una partida."},
+	{"id": "p500", "emoji": "🌟", "n": "500 puntos", "txt": "Consigue 500 puntos en una partida."},
+	{"id": "gemas", "emoji": "💎", "n": "Cazador de gemas", "txt": "Recoge 3 gemas en una partida."},
+	{"id": "monedas", "emoji": "🪙", "n": "Bolsillos llenos", "txt": "Recoge 20 monedas en una partida."},
+	{"id": "perfecto", "emoji": "🛡", "n": "Sin un rasguño", "txt": "Gana un nivel sin perder vidas."},
+]
+
+
+## Revisa la partida que acaba de terminar y devuelve los logros nuevos (ya guardados).
+static func logros_nuevos(stats: Dictionary, gano: bool, vidas_perdidas: int) -> Array:
+	var d := leer()
+	var tiene: Array = d["logros"]
+	var cond := {
+		"primera": true,
+		"gano": gano,
+		"p100": int(stats.get("puntos", 0)) >= 100,
+		"p500": int(stats.get("puntos", 0)) >= 500,
+		"gemas": int(stats.get("gemas", 0)) >= 3,
+		"monedas": int(stats.get("monedas", 0)) >= 20,
+		"perfecto": gano and vidas_perdidas == 0,
+	}
+	var nuevos: Array = []
+	for l in LOGROS:
+		if cond.get(l["id"], false) and not tiene.has(l["id"]):
+			tiene.append(l["id"])
+			nuevos.append(l)
+	if nuevos.size() > 0:
+		d["logros"] = tiene
+		guardar(d)
+	return nuevos

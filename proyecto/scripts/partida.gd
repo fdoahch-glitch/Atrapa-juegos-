@@ -288,6 +288,8 @@ func _mostrar_titulo() -> void:
 		_boton_info(caja, "Bitácora", "📖", _mostrar_bitacora)
 	if (rr.get("skins", []) as Array).size() + (rr.get("accesorios", []) as Array).size() > 0:
 		_boton_info(caja, "Vestuario", "🎩", _mostrar_vestuario)
+	if bool(rr.get("logros", true)):
+		_boton_info(caja, "Logros", "🏅", _mostrar_logros)
 	_boton_info(caja, "Récords", "🏆", _mostrar_records)
 	if con_salir:
 		var e := Button.new()
@@ -305,6 +307,37 @@ func _mostrar_titulo() -> void:
 
 # ------------------------------------------------------------------ niveles
 func _empezar(i: int) -> void:
+	if bool(proy["reglas"].get("espera", false)):
+		await _salon_espera(i)
+	_empezar_ya(i)
+
+
+## Salón de espera: pantalla con el nombre del mundo y una cuenta regresiva 3-2-1.
+func _salon_espera(i: int) -> void:
+	_limpiar()
+	var fondo := ColorRect.new()
+	fondo.color = Color(0.1, 0.08, 0.3)
+	add_child(fondo)
+	fondo.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_panel = fondo
+	var l := Label.new()
+	l.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.add_theme_font_size_override("font_size", 64)
+	l.add_theme_color_override("font_color", Color.WHITE)
+	fondo.add_child(l)
+	var nom := str(proy["niveles"][i].get("name", ""))
+	for k in [3, 2, 1]:
+		if not is_inside_tree():
+			return
+		l.text = "%s\n\n%d" % [nom, k]
+		await get_tree().create_timer(0.8).timeout
+	l.text = "¡Ya!"
+	await get_tree().create_timer(0.4).timeout
+
+
+func _empezar_ya(i: int) -> void:
 	_limpiar()
 	idx = i
 	var n: Dictionary = (proy["niveles"][idx] as Dictionary).duplicate(true)
@@ -341,6 +374,11 @@ func _al_terminar(gano: bool, icono: String, titulo: String, sub: String, j: Con
 		var hechas: Array = Progreso_.cerrar_carrera(r, j.stats.merged({"puntos": j.puntos}, true), j.t)
 		if hechas.size() > 0:
 			sub += "\nMisión cumplida: " + "\n".join(hechas)
+	if bool(r.get("logros", true)) and "stats" in j:
+		var perdidas: int = maxi(0, int(r.get("vidas", 3)) - int(j.vidas))
+		var nu: Array = Progreso_.logros_nuevos(j.stats.merged({"puntos": j.puntos}, true), gano, perdidas)
+		if nu.size() > 0:
+			sub += "\n🏅 Logro: " + ", ".join(nu.map(func(l): return str(l["emoji"]) + " " + str(l["n"])))
 	var pos := Progreso_.anotar_record(str(proy["niveles"][0].get("name", "Juego")), j.puntos) if j.puntos > 0 else 0
 	if pos == 1 and j.puntos > 0:
 		sub += "\n🏅 ¡Nuevo récord!"
@@ -643,6 +681,16 @@ func _mostrar_bitacora() -> void:
 				falta += " y %d min" % int(f["min"])
 			l.append(falta)
 	_hoja("Bitácora", l)
+
+
+func _mostrar_logros() -> void:
+	var tiene: Array = Progreso_.leer()["logros"]
+	var l: Array = []
+	for g in Progreso_.LOGROS:
+		l.append(("%s %s — %s" % [g["emoji"], g["n"], g["txt"]]) if tiene.has(g["id"]) else "🔒 %s — %s" % [g["n"], g["txt"]])
+	l.append("")
+	l.append("%d de %d medallas" % [tiene.size(), Progreso_.LOGROS.size()])
+	_hoja("Logros", l)
 
 
 func _mostrar_records() -> void:

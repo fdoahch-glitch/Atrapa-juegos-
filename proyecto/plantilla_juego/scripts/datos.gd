@@ -54,7 +54,7 @@ var niveles: Array = []             # copias de todos los niveles (el actual se 
 var idx := 0                        # posición del nivel actual
 var reglas: Dictionary = {}         # reglas del juego completo
 const MAX_NIVELES := 10
-const REGLAS_BASE := {"vidas": 3, "tiempo": 0, "meta": "meta", "pts_coin": 1, "pts_gem": 3, "pts_star": 5, "pts_enemy": 2, "titulo": true, "final": "¡Ganaste el juego!", "musica": "", "mascota": "", "poder": "escudo", "tienda": false, "jugadores": 1, "heroe2": "", "plataforma": "windows", "categoria": "", "subtipo": "", "rend": {}, "dificultad": "normal", "elegir_dificultad": false, "misiones": false, "revivir": 0, "modo_prueba": false}
+const REGLAS_BASE := {"vidas": 3, "tiempo": 0, "meta": "meta", "pts_coin": 1, "pts_gem": 3, "pts_star": 5, "pts_enemy": 2, "titulo": true, "final": "¡Ganaste el juego!", "musica": "", "mascota": "", "poder": "escudo", "tienda": false, "jugadores": 1, "heroe2": "", "plataforma": "windows", "categoria": "", "subtipo": "", "rend": {}, "dificultad": "normal", "elegir_dificultad": false, "misiones": false, "revivir": 0, "modo_prueba": false, "arma": "pistola", "espera": false, "logros": true}
 var historial: Array[String] = []
 var futuro: Array[String] = []
 var _actual := ""
@@ -544,6 +544,21 @@ func normalizar(n: Dictionary) -> Dictionary:
 		n.erase("obstaculos")
 	if not (n.get("premios", {}) is Dictionary) or (n.get("premios", {}) as Dictionary).is_empty():
 		n.erase("premios")
+	if n.has("hero_alto"):
+		n["hero_alto"] = clampf(float(n["hero_alto"]), 0.5, 6.0)
+		if is_equal_approx(float(n["hero_alto"]), 1.7):
+			n.erase("hero_alto")
+	var pt: Array = []
+	if n.get("pista", []) is Array:
+		for tr in n.get("pista", []):
+			if tr is Dictionary and tr.get("d", []) is Array and tr["d"].size() == 2:
+				var a := clampf(float(tr["d"][0]), 0.0, 99.0)
+				var b := clampf(float(tr["d"][1]), a + 1.0, 100.0)
+				pt.append({"d": [a, b], "curva": clampf(float(tr.get("curva", 0.0)), -1.0, 1.0), "subida": clampf(float(tr.get("subida", 0.0)), -1.0, 1.0)})
+	if pt.is_empty():
+		n.erase("pista")
+	else:
+		n["pista"] = pt
 	if bool(n.get("autocorrer", false)):
 		n["autocorrer"] = true
 	else:
@@ -651,6 +666,10 @@ func reglas_completas(r: Dictionary) -> Dictionary:
 	if not ["facil", "normal", "dificil", "extrema"].has(str(o["dificultad"])):
 		o["dificultad"] = "normal"
 	o["revivir"] = clampi(int(o["revivir"]), 0, 9999)
+	if not ["pistola", "rafaga", "escopeta", "rifle"].has(str(o["arma"])):
+		o["arma"] = "pistola"
+	o["espera"] = bool(o["espera"])
+	o["logros"] = bool(o["logros"])
 	# fichas de colección, skins y accesorios (opcionales)
 	var col: Array = []
 	for it in (r.get("coleccion", []) if r.get("coleccion", []) is Array else []):
@@ -789,7 +808,7 @@ func agregar_nivel(copiar: bool = false) -> bool:
 			it["id"] = nuevo_id()
 	else:
 		n = nivel_en_blanco()
-		for k in ["name", "modo", "disp", "orient", "tipo", "theme", "hero", "paleta", "clima", "hora", "perseguidor", "densidad", "decorado", "obstaculos", "premios", "autocorrer"]:
+		for k in ["name", "modo", "disp", "orient", "tipo", "theme", "hero", "paleta", "clima", "hora", "perseguidor", "densidad", "decorado", "obstaculos", "premios", "autocorrer", "pista", "hero_alto"]:
 			if nivel.has(k) or n.has(k):
 				n[k] = nivel.get(k, n.get(k))
 		n = normalizar(n)

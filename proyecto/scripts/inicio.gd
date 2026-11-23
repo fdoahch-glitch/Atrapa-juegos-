@@ -226,8 +226,8 @@ func _mostrar_orientacion() -> void:
 
 
 func _mostrar_categorias() -> void:
-	var lista: Array = [{"id": "_idea", "emoji": "💡", "titulo": "Cuéntame tu idea", "txt": "Dime de qué se trata y te recomiendo cómo hacerlo.", "color": Color("f59e0b")}]
-	lista.append_array(Categorias.CATEGORIAS)
+	var lista: Array = Categorias.CATEGORIAS.duplicate()
+	lista.append({"id": "_idea", "emoji": "💡", "titulo": "Cuéntame tu idea", "txt": "Dime de qué se trata y te recomiendo cómo hacerlo.", "color": Color("f59e0b")})
 	_eleccion("¿Qué categoría de juego quieres crear?", "", lista, func(o):
 		if o["id"] == "_idea":
 			_mostrar_idea()

@@ -6,6 +6,7 @@ const PanelRend := preload("res://scripts/panel_rendimiento.gd")
 const PanelExportar := preload("res://scripts/panel_exportar.gd")
 const PanelColores := preload("res://scripts/panel_colores.gd")
 const Categorias := preload("res://scripts/categorias.gd")
+const PanelElementos := preload("res://scripts/panel_elementos.gd")
 const Recetas := preload("res://scripts/recetas.gd")
 const PersonajesPanel := preload("res://scripts/panel_personajes.gd")
 const PortadaEd := preload("res://scripts/portada_editor.gd")
@@ -173,6 +174,11 @@ func _construir() -> void:
 	b_guia.pressed.connect(_abrir_guia)
 	fila.add_child(b_guia)
 	_textos_barra.append([b_guia, " Guía"])
+	var b_elem := _boton(" Elementos", "🌍", c_claro)
+	b_elem.tooltip_text = "Lista de todo lo que tiene este mundo: reemplazar, activar o desactivar"
+	b_elem.pressed.connect(_abrir_elementos)
+	fila.add_child(b_elem)
+	_textos_barra.append([b_elem, " Elementos"])
 	var b_tipo := _boton(" Tipo de juego", "🎮", c_claro)
 	b_tipo.pressed.connect(_abrir_tipos)
 	fila.add_child(b_tipo)
@@ -901,6 +907,9 @@ func _abrir_reglas() -> void:
 	_regla_fila(v, "El jugador elige la dificultad", _regla_opciones("elegir_dificultad", [[false, "No"], [true, "Sí"]]))
 	_regla_fila(v, "Misiones del día", _regla_opciones("misiones", [[false, "No"], [true, "Sí"]]))
 	_regla_fila(v, "Revivir al perder (monedas)", _regla_paso("revivir", 0, 500, 10, func(x): return "No" if x == 0 else str(x)))
+	_regla_fila(v, "Salón de espera (cuenta 3-2-1 antes de empezar)", _regla_opciones("espera", [[false, "No"], [true, "Sí"]]))
+	_regla_fila(v, "Logros (medallas al jugar)", _regla_opciones("logros", [[true, "Sí"], [false, "No"]]))
+	_regla_fila(v, "Arma (juegos de disparos)", _regla_opciones("arma", [["pistola", "Pistola"], ["rafaga", "Ráfaga"], ["escopeta", "Escopeta"], ["rifle", "Rifle"]]))
 	_regla_fila(v, "Modo prueba (todo desbloqueado)", _regla_opciones("modo_prueba", [[false, "No"], [true, "Sí"]]))
 	var ganar := Label.new()
 	ganar.text = "Para ganar el nivel"
@@ -1370,6 +1379,9 @@ func _ir_paso(abre: String) -> void:
 		"pista":
 			_set_etapa("mundo")
 			_abrir_colores()
+		"elementos":
+			_set_etapa("mundo")
+			_abrir_elementos()
 		"reglas":
 			_abrir_reglas()
 		"rendimiento":
@@ -1378,6 +1390,18 @@ func _ir_paso(abre: String) -> void:
 			_abrir_exportar()
 		"tipos":
 			_abrir_tipos()
+
+
+func _abrir_elementos() -> void:
+	_cerrar_modal()
+	var pe := PanelElementos.new()
+	add_child(pe)
+	move_child(_tut, get_child_count() - 1)
+	_modal = pe
+	pe.cerrar.connect(_cerrar_modal)
+	pe.cambiado.connect(func():
+		_esc.queue_redraw()
+		_refrescar_niveles())
 
 
 func _cerrar_modal() -> void:

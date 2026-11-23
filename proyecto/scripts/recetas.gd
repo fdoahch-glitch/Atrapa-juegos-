@@ -16,7 +16,8 @@ static func _inicio() -> Array:
 
 static func _final(extra_pantallas: Array = []) -> Array:
 	var r: Array = [
-		_p("pantallas", "🏆", "Pantallas finales", "¿Qué pasa cuando ganas, pierdes o consigues un logro?", "reglas"),
+		_p("espera", "⏳", "Salón de espera", "Cuenta regresiva antes de empezar (en Reglas).", "reglas"),
+		_p("pantallas", "🏆", "Pantallas finales y logros", "Qué pasa cuando ganas, pierdes o consigues una medalla (en Reglas).", "reglas"),
 		_p("rendimiento", "⚡", "Calidad y rendimiento", "¿En qué aparatos va a jugarse? Calidad, FSR y límite de imágenes por segundo.", "rendimiento"),
 		_p("exportar", "🚀", "Exportar", "Crea el programa (.exe), la app o la página web.", "exportar"),
 	]
@@ -39,11 +40,12 @@ static func _pasos(categoria: String, tipo: String = "") -> Array:
 				_p("objetos_pista", "🚧", "Objetos de la pista", "Obstáculos, monedas, turbos y meta. Cada obstáculo puede ser un modelo tuyo.", "objetos"),
 				_p("laterales", "🌳", "Decorado de los lados", "¿Qué hay a los costados? Árboles, casas, edificios, rocas…", "deco"),
 				_p("fondos", "🖼", "Fondos y cielo", "El paisaje de fondo y los elementos del cielo.", "fondos"),
-				_p("curvas", "↪", "Curvas, subidas y bajadas", "Giros a izquierda y derecha, pendientes e inclinación de la pista.", "pronto"),
+				_p("elementos", "🌍", "Elementos del mundo", "Lista de todo lo del mundo: reemplaza o activa y desactiva modelos, tamaño real del personaje.", "elementos"),
+				_p("curvas", "↪", "Curvas, subidas y bajadas", "Giros a izquierda y derecha y subidas o bajadas (al final del panel de colores y ambiente).", "pista"),
 				_p("fisica", "⚙", "Física y velocidad", "Velocidad, salto, vidas, qué pasa al chocar y cómo se pierde.", "reglas"),
 				_p("puntos", "⭐", "Puntuación y recompensas", "Monedas, estrellas, tienda, vestuario y misiones.", "reglas"),
 			]
-			r += _final([_p("seleccion", "🚗", "Selección de vehículo", "Pantalla para elegir tu vehículo antes de correr.", "reglas")])
+			r += _final([_p("seleccion", "🚗", "Selección de vehículo", "Pantalla para elegir tu vehículo o personaje antes de correr (tienda y personajes jugables, en Reglas).", "reglas")])
 		"plataformas":
 			r += [
 				_p("heroe", "🐱", "Personaje", "¿Quién salta? Elige su diseño o importa el tuyo.", "personajes"),
@@ -71,7 +73,7 @@ static func _pasos(categoria: String, tipo: String = "") -> Array:
 				_p("heroe", "🤖", "Tu personaje", "¿Quién dispara? Diseño, color y accesorios.", "personajes"),
 				_p("mapa", "🏙", "Mapa", "Paredes, edificios y zonas del lugar donde se pelea.", "objetos"),
 				_p("enemigos", "👾", "Enemigos", "¿Quiénes te atacan y cuántos hay?", "objetos"),
-				_p("armas", "🔫", "Armas y munición", "Tipo de arma, daño y velocidad de disparo.", "pronto"),
+				_p("armas", "🔫", "Armas", "Pistola, ráfaga, escopeta o rifle (en Reglas).", "reglas"),
 				_p("deco", "🌆", "Decorado y texturas", "Colores y detalles del lugar.", "deco"),
 				_p("fondos", "🖼", "Fondos", "El paisaje alrededor del mapa.", "fondos"),
 				_p("reglas", "📜", "Reglas y puntuación", "Vidas, puntos por enemigo, premios y tienda.", "reglas"),

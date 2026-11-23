@@ -18,6 +18,27 @@ const PERFILES := {
 }
 
 
+const CALIDADES := [
+	{"id": "baja", "nombre": "Baja", "txt": "Imagen al 60 %, sin bordes suaves ni sombras, 30 FPS. Para celulares viejos."},
+	{"id": "media", "nombre": "Media", "txt": "Imagen al 85 % con FSR 1, bordes 2×, 60 FPS."},
+	{"id": "alta", "nombre": "Alta", "txt": "Imagen al 100 % con FSR 2.2, bordes 4×, sombras y brillo."},
+]
+
+
+## Ajustes de un nivel de calidad. El motor gráfico depende de la plataforma (en celular/web siempre Compatibilidad).
+static func calidad(id: String, plataforma: String) -> Dictionary:
+	var base := recomendado(plataforma)
+	var pc := plataforma in ["windows", "linux"]
+	match id:
+		"baja":
+			base.merge({"escalado": "bilinear", "escala": 0.6, "msaa": 0, "fps": 30, "bloom": false, "sombras": false}, true)
+		"media":
+			base.merge({"escalado": "fsr1" if pc else "bilinear", "escala": 0.85, "msaa": 2 if pc else 0, "fps": 60, "bloom": false, "sombras": false}, true)
+		_:
+			base.merge({"escalado": "fsr2" if pc else "fsr1", "escala": 1.0, "msaa": 4 if pc else 2, "fps": 60 if pc else 30, "bloom": pc, "sombras": pc}, true)
+	return normal(base)
+
+
 static func recomendado(plataforma: String) -> Dictionary:
 	var p: Dictionary = PERFILES.get(plataforma, PERFILES["windows"]).duplicate()
 	p.erase("nombre")

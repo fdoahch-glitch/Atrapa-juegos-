@@ -129,6 +129,74 @@ func _dibujar_mundo(_ci: CanvasItem) -> void:
 
 
 # ------------------------------------------------------------------ mundo 3D
+# ------------------------------------------------------------------ curvas y subidas
+## Tramos de pista: [{"d":[desde%,hasta%], "curva":-1..1, "subida":-1..1}]. Cada tramo mueve la pista hacia un lado o
+## hacia arriba de forma suave y el cambio se queda (así se pueden encadenar curvas en S y colinas).
+func _tramos() -> Array:
+	var r: Variant = nivel.get("pista", [])
+	return r if r is Array else []
+
+
+func _ss(x: float) -> float:
+	x = clampf(x, 0.0, 1.0)
+	return x * x * (3.0 - 2.0 * x)
+
+
+func _xo(d: float) -> float:
+	var r := 0.0
+	for tr in _tramos():
+		var a := float(tr["d"][0]) / 100.0 * fin_z
+		var b := float(tr["d"][1]) / 100.0 * fin_z
+		r += float(tr.get("curva", 0.0)) * 14.0 * _ss((d - a) / maxf(b - a, 1.0))
+	return r
+
+
+func _yo(d: float) -> float:
+	var r := 0.0
+	for tr in _tramos():
+		var a := float(tr["d"][0]) / 100.0 * fin_z
+		var b := float(tr["d"][1]) / 100.0 * fin_z
+		r += float(tr.get("subida", 0.0)) * 7.0 * _ss((d - a) / maxf(b - a, 1.0))
+	return r
+
+
+## Mueve y gira un nodo ya puesto en (x, y, -d) para que siga la pista.
+func _ajustar(n: Node3D) -> void:
+	var d := -n.position.z
+	var lado := absf(n.position.x) > 5.0   # el decorado de los lados queda en el suelo; sólo la pista sube
+	n.position.x += _xo(d)
+	if not lado:
+		n.position.y += _yo(d)
+
+
+func _pista_con_curvas() -> void:
+	var pl: Array = tema["plat"]
+	# quitar la pista recta y poner tramos cortos que siguen la curva
+	for c in _mundo3.get_children():
+		if c.has_meta("via"):
+			c.queue_free()
+	var largo := fin_z + 60.0
+	var d := -20.0
+	while d < largo:
+		var paso := 3.0
+		var mid := d + paso / 2.0
+		var a := (_xo(mid + 0.5) - _xo(mid - 0.5))
+		var b := (_yo(mid + 0.5) - _yo(mid - 0.5))
+		var largo_seg := paso * 1.25
+		var cuerpo := Mundo3D.caja(Vector3(7.0, 0.3, largo_seg), pl[0], Vector3.ZERO)
+		var borde1 := Mundo3D.caja(Vector3(0.18, 0.4, largo_seg), pl[1], Vector3(-3.55, 0.2, 0))
+		var borde2 := Mundo3D.caja(Vector3(0.18, 0.4, largo_seg), pl[1], Vector3(3.55, 0.2, 0))
+		var seg := Node3D.new()
+		seg.add_child(cuerpo)
+		seg.add_child(borde1)
+		seg.add_child(borde2)
+		seg.position = Vector3(_xo(mid), _yo(mid) - 0.15, -mid)
+		seg.rotation = Vector3(atan(b), atan2(-a, 1.0), 0.0)
+		seg.set_meta("fijo", true)
+		_mundo3.add_child(seg)
+		d += paso
+
+
 func _reconstruir() -> void:
 	if _mundo3:
 		_mundo3.queue_free()
@@ -137,10 +205,16 @@ func _reconstruir() -> void:
 	var pl: Array = tema["plat"]
 	var largo := fin_z + 90.0
 	# suelo y pista
-	_mundo3.add_child(Mundo3D.caja(Vector3(300, 0.2, largo + 200.0), (tema["cerca"] as Color).darkened(0.3), Vector3(0, -0.35, -largo / 2.0 + 60.0)))
-	_mundo3.add_child(Mundo3D.caja(Vector3(7.0, 0.3, largo + 100.0), pl[0], Vector3(0, -0.15, -largo / 2.0 + 20.0)))
+	var suelo := Mundo3D.caja(Vector3(900, 0.2, largo + 200.0), (tema["cerca"] as Color).darkened(0.3), Vector3(0, -0.35, -largo / 2.0 + 60.0))
+	suelo.set_meta("fijo", true)
+	_mundo3.add_child(suelo)
+	var via1 := Mundo3D.caja(Vector3(7.0, 0.3, largo + 100.0), pl[0], Vector3(0, -0.15, -largo / 2.0 + 20.0))
+	via1.set_meta("via", true)
+	_mundo3.add_child(via1)
 	for lx in [-3.55, 3.55]:
-		_mundo3.add_child(Mundo3D.caja(Vector3(0.18, 0.4, largo + 100.0), pl[1], Vector3(lx, 0.05, -largo / 2.0 + 20.0)))
+		var via2 := Mundo3D.caja(Vector3(0.18, 0.4, largo + 100.0), pl[1], Vector3(lx, 0.05, -largo / 2.0 + 20.0))
+		via2.set_meta("via", true)
+		_mundo3.add_child(via2)
 	for lx in [-1.1, 1.1]:
 		var z := 0.0
 		while z < fin_z + 40.0:
@@ -160,6 +234,7 @@ func _reconstruir() -> void:
 	_mundo3.add_child(bandera)
 	# horizonte (sigue a la cámara para que parezca infinito)
 	_horizonte = Node3D.new()
+	_horizonte.set_meta("fijo", true)
 	_mundo3.add_child(_horizonte)
 	_horizonte.add_child(Mundo3D.colinas(tema["lejos"], 0.0, 3.0, 5.5, 22.0, -260.0, 260.0))
 	_horizonte.add_child(Mundo3D.colinas(tema["cerca"], 30.0, 0.6, 2.4, 14.0, -200.0, 200.0, 40.0))
@@ -229,6 +304,11 @@ func _reconstruir() -> void:
 		nodo.position = Vector3((p["lane"] - 1) * ANCHO_CARRIL, 1.0, -p["z"])
 		_mundo3.add_child(nodo)
 		p["nodo"] = nodo
+	if _tramos().size() > 0:
+		_pista_con_curvas()
+		for c in _mundo3.get_children():
+			if c is Node3D and not c.has_meta("fijo") and not c.has_meta("via"):
+				_ajustar(c)
 	# héroe
 	_sombra = MeshInstance3D.new()
 	var cm := CylinderMesh.new()
@@ -239,7 +319,7 @@ func _reconstruir() -> void:
 	_sombra.material_override = Mundo3D.mat(Color(0, 0, 0, 0.35), 0.0, true)
 	_sombra.material_override.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	_mundo3.add_child(_sombra)
-	_s_jug = Mundo3D.objeto(str(nivel["hero"]), 1.7)
+	_s_jug = Mundo3D.objeto(str(nivel["hero"]), clampf(float(nivel.get("hero_alto", 1.7)), 0.5, 6.0))
 	if _s_jug is Sprite3D:
 		(_s_jug as Sprite3D).pixel_size *= 1.6 / 1.7
 		(_s_jug as Sprite3D).billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
@@ -430,7 +510,7 @@ func _actualizar(dt: float) -> void:
 	rapidez = minf(VEL_MAX * _vel_k, VEL0 * _vel_k + dist * 0.012 * _vel_k)
 	dist += rapidez * dt
 	if _amb:
-		_amb.tick(dt, dist, px)
+		_amb.tick(dt, dist, px + _xo(dist))
 		if _amb.sobrevivio:
 			_amb.sobrevivio = false
 			stats["perseguidor"] = 1
@@ -541,35 +621,39 @@ func _herir() -> void:
 func _sincronizar() -> void:
 	var cz := -dist
 	var pm := (px + px2) / 2.0 if j2 else px
-	_cam3.position = Vector3(pm * 0.6, 3.5, cz + 6.2)
-	_cam3.look_at(Vector3(pm * 0.45, 1.2, cz - 9.0), Vector3.UP)
-	_horizonte.position = Vector3(0, 0, cz - 120.0)
+	var hx := _xo(dist)
+	var hy := _yo(dist)
+	var ax := _xo(dist + 9.0)
+	var ay := _yo(dist + 9.0)
+	_cam3.position = Vector3(pm * 0.6 + _xo(maxf(dist - 6.2, 0.0)), 3.5 + _yo(maxf(dist - 6.2, 0.0)), cz + 6.2)
+	_cam3.look_at(Vector3(pm * 0.45 + ax, 1.2 + ay, cz - 9.0), Vector3.UP)
+	_horizonte.position = Vector3(hx, hy, cz - 120.0)
 	var bote := sin(t * 15.0) * 0.07 if py <= 0.01 and agachado <= 0.0 else 0.0
 	var escala_y := 0.55 if agachado > 0.0 else 1.0
 	if _s_jug is Sprite3D:
-		_s_jug.position = Vector3(px, py + 0.72 * escala_y + 0.05 + bote, cz)
+		_s_jug.position = Vector3(px + hx, hy + py + 0.72 * escala_y + 0.05 + bote, cz)
 	else:
-		_s_jug.position = Vector3(px, py + bote, cz)
+		_s_jug.position = Vector3(px + hx, hy + py + bote, cz)
 		Assets3D.animar(_s_jug, t, 1.2 if py <= 0.01 else 0.4)
 	_s_jug.scale = Vector3(1.0, escala_y, 1.0)
-	_mascota_3d(_mundo3, Vector3(px, py, cz), Vector3(1.15 if px < 1.0 else -1.15, 0.0, 0.9))
+	_mascota_3d(_mundo3, Vector3(px + hx, hy + py, cz), Vector3(1.15 if px < 1.0 else -1.15, 0.0, 0.9))
 	_s_jug.visible = not (inv > 0.0 and int(t * 14.0) % 2 == 1)
 	if _s_jug2:
 		var esc2 := 0.55 if agachado2 > 0.0 else 1.0
 		var bote2 := sin(t * 15.0 + 1.0) * 0.07 if py2 <= 0.01 and agachado2 <= 0.0 else 0.0
 		if _s_jug2 is Sprite3D:
-			_s_jug2.position = Vector3(px2, py2 + 0.72 * esc2 + 0.05 + bote2, cz)
+			_s_jug2.position = Vector3(px2 + hx, hy + py2 + 0.72 * esc2 + 0.05 + bote2, cz)
 		else:
-			_s_jug2.position = Vector3(px2, py2 + bote2, cz)
+			_s_jug2.position = Vector3(px2 + hx, hy + py2 + bote2, cz)
 			Assets3D.animar(_s_jug2, t + 0.5, 1.2 if py2 <= 0.01 else 0.4)
 		_s_jug2.scale = Vector3(1.0, esc2, 1.0)
 		_s_jug2.visible = _s_jug.visible
-	_sombra.position = Vector3(px, 0.02, cz)
+	_sombra.position = Vector3(px + hx, hy + 0.02, cz)
 	_sombra.scale = Vector3.ONE * clampf(1.0 - py * 0.18, 0.4, 1.0)
 	for p in premios:
 		var nodo: Node3D = p["nodo"]
 		nodo.visible = not p["got"]
-		nodo.position.y = 1.0 + sin(t * 4.0 + p["z"]) * 0.1
+		nodo.position.y = 1.0 + _yo(p["z"]) + sin(t * 4.0 + p["z"]) * 0.1
 		if p["t"] == "coin":
 			nodo.rotation.y = t * 3.5
 

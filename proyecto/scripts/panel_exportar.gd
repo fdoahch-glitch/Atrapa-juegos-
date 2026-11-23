@@ -41,7 +41,7 @@ func _ready() -> void:
 	v.add_theme_constant_override("separation", 10)
 	sc.add_child(v)
 
-	_texto(v, "Exportar tu juego", 30, Estilo.TINTA)
+	_texto(v, "Crear .exe y exportar tu juego", 30, Estilo.TINTA)
 	var n_mundos: int = Datos.niveles.size()
 	var nombre := str(Datos.reglas.get("titulo_juego", "")) if str(Datos.reglas.get("titulo_juego", "")) != "" else str(Datos.nivel.get("name", "Mi juego"))
 	_texto(v, "«%s» · %d mundo%s. Se exportan TODOS los mundos, con sus personajes, sonidos y dibujos." % [nombre, n_mundos, "" if n_mundos == 1 else "s"], 16, Estilo.SUAVE)

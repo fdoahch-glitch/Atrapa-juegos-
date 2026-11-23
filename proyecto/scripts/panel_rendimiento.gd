@@ -33,6 +33,26 @@ func _ready() -> void:
 	var plataforma := str(Datos.reglas.get("plataforma", "windows"))
 	var perf: Dictionary = Rend.PERFILES.get(plataforma, Rend.PERFILES["windows"])
 	_texto(v, "Tu juego es para %s. %s" % [perf["nombre"], perf["nota"]], 17, Estilo.SUAVE)
+	# ---- niveles de calidad (un toque cambia todo)
+	_texto(v, "Nivel de calidad", 20, Estilo.TINTA)
+	var nivs := HBoxContainer.new()
+	nivs.add_theme_constant_override("separation", 8)
+	v.add_child(nivs)
+	for q in Rend.CALIDADES:
+		var bq := Button.new()
+		bq.text = str(q["nombre"])
+		bq.tooltip_text = str(q["txt"])
+		bq.custom_minimum_size = Vector2(0, 46)
+		bq.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		Estilo.pintar(bq, Estilo.TURQUESA)
+		var qid: String = q["id"]
+		bq.pressed.connect(func():
+			Datos.reglas["rend"] = Rend.calidad(qid, plataforma)
+			Datos.guardar()
+			corregido.emit()
+			cerrar.emit())
+		nivs.add_child(bq)
+	_texto(v, "Baja: celulares viejos · Media: celulares y PC normales · Alta: PC con tarjeta gráfica (usa FSR 2.2).", 15, Estilo.SUAVE)
 	# ---- opciones
 	var r: Dictionary = Datos.reglas["rend"]
 	_ops = {}

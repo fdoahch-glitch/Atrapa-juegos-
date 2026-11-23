@@ -43,6 +43,7 @@ func _ready() -> void:
 		_opcion(v, "Perseguidor (te alcanza si chocas)", "perseguidor", [[false, "No"], [true, "Sí"]])
 		_opcion(v, "Cantidad de objetos", "densidad", [[0.5, "Pocos"], [1.0, "Normal"], [1.5, "Muchos"]])
 		_objetos(v)
+		_tramos(v)
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 8)
 	v.add_child(h)
@@ -163,6 +164,90 @@ func _opcion(padre: Control, nombre: String, clave: String, ops: Array) -> void:
 		Datos.guardar()
 		cambiado.emit())
 	f.add_child(ob)
+
+
+## Curvas, subidas y bajadas: una lista de tramos, cada uno entre dos puntos de la pista (en %).
+func _tramos(v: VBoxContainer) -> void:
+	_texto(v, "Curvas, subidas y bajadas", 20, Estilo.TINTA)
+	_texto(v, "Cada tramo dobla o sube la pista entre dos puntos (en % del recorrido). Se ve al jugar.", 14, Estilo.SUAVE)
+	var caja := VBoxContainer.new()
+	caja.add_theme_constant_override("separation", 6)
+	v.add_child(caja)
+	var pintar := func() -> void: pass
+	var lista: Array = Datos.nivel.get("pista", []).duplicate(true) if Datos.nivel.get("pista", []) is Array else []
+	var guardar := func() -> void:
+		if lista.is_empty():
+			Datos.nivel.erase("pista")
+		else:
+			Datos.nivel["pista"] = lista.duplicate(true)
+		Datos.guardar()
+		cambiado.emit()
+	var rehacer: Array = [Callable()]
+	pintar = func() -> void:
+		for c in caja.get_children():
+			c.queue_free()
+		for i in lista.size():
+			var tr: Dictionary = lista[i]
+			var f := HFlowContainer.new()
+			f.add_theme_constant_override("h_separation", 6)
+			caja.add_child(f)
+			var oc := OptionButton.new()
+			var curvas := [["Recta", 0.0], ["Curva izq. suave", -0.5], ["Curva izq. fuerte", -1.0], ["Curva der. suave", 0.5], ["Curva der. fuerte", 1.0]]
+			var sel := 0
+			for k in curvas.size():
+				oc.add_item(curvas[k][0], k)
+				if is_equal_approx(float(curvas[k][1]), float(tr["curva"])):
+					sel = k
+			oc.selected = sel
+			oc.item_selected.connect(func(k):
+				lista[i]["curva"] = curvas[k][1]
+				guardar.call())
+			f.add_child(oc)
+			var os := OptionButton.new()
+			var subs := [["Plana", 0.0], ["Subida", 1.0], ["Subida suave", 0.5], ["Bajada", -1.0], ["Bajada suave", -0.5]]
+			var sel2 := 0
+			for k in subs.size():
+				os.add_item(subs[k][0], k)
+				if is_equal_approx(float(subs[k][1]), float(tr["subida"])):
+					sel2 = k
+			os.selected = sel2
+			os.item_selected.connect(func(k):
+				lista[i]["subida"] = subs[k][1]
+				guardar.call())
+			f.add_child(os)
+			for j in 2:
+				var sb := SpinBox.new()
+				sb.min_value = 0
+				sb.max_value = 100
+				sb.step = 5
+				sb.suffix = "%"
+				sb.value = float(tr["d"][j])
+				sb.value_changed.connect(func(x):
+					lista[i]["d"][j] = x
+					if float(lista[i]["d"][1]) <= float(lista[i]["d"][0]):
+						lista[i]["d"][1] = minf(100.0, float(lista[i]["d"][0]) + 5.0)
+					guardar.call())
+				f.add_child(sb)
+			var bd := Button.new()
+			bd.text = "🗑"
+			bd.pressed.connect(func():
+				lista.remove_at(i)
+				guardar.call()
+				rehacer[0].call())
+			f.add_child(bd)
+	rehacer[0] = pintar
+	pintar.call()
+	var ba := Button.new()
+	ba.text = "  ➕ Agregar tramo"
+	ba.custom_minimum_size = Vector2(0, 44)
+	ba.pressed.connect(func():
+		var ult := 10.0
+		if lista.size() > 0:
+			ult = minf(float(lista[-1]["d"][1]), 85.0)
+		lista.append({"d": [ult, ult + 15.0], "curva": 0.5, "subida": 0.0})
+		guardar.call()
+		pintar.call())
+	v.add_child(ba)
 
 
 func _aplicar() -> void:
