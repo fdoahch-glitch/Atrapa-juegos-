@@ -1,33 +1,8 @@
-# Perfil de compilación de Estudio de Juegos (recortado: 2D + 3D básico, sin editor)
-optimize = "size"
+# Perfil COMPLETO de Atrapa Juegos Studio: todo Godot 4.4.1 (2D, 3D, física 2D y 3D con Jolt,
+# navegación, GridMap, CSG, ruido, video, multijugador, formatos de imagen y audio, etc.).
+# Lo único que se deja fuera es C# (mono). Para la web se usa custom_web.py (recortado, pesa menos).
+optimize = "speed"
 lto = "none"
 debug_symbols = False
-disable_3d = False
-disable_advanced_gui = False
-modules_enabled_by_default = False
-module_gdscript_enabled = True
-module_freetype_enabled = True
-module_svg_enabled = True
-module_text_server_adv_enabled = True
-module_text_server_fb_enabled = True
-module_regex_enabled = True
-module_jpg_enabled = True
-module_webp_enabled = True
-module_vorbis_enabled = True
-module_ogg_enabled = True
-module_godot_physics_2d_enabled = True
-module_navigation_enabled = False
-module_minimp3_enabled = True
-module_gridmap_enabled = False
-module_gltf_enabled = True        # importar modelos .glb en tiempo de ejecución
-module_csg_enabled = False
-module_zip_enabled = True
-module_mbedtls_enabled = True
-module_websocket_enabled = False
-module_multiplayer_enabled = False
-module_enet_enabled = False
-module_webrtc_enabled = False
-module_upnp_enabled = False
-module_openxr_enabled = False
-module_mono_enabled = False
 deprecated = False
+module_mono_enabled = False

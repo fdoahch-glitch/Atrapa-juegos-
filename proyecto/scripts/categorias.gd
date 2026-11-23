@@ -14,6 +14,8 @@ const CATEGORIAS := [
 	{"id": "carreras", "emoji": "🏎", "titulo": "Carreras", "txt": "Velocidad, curvas y obstáculos.", "color": Color("ef4444"), "tipos": [
 		{"id": "subway", "emoji": "🏃", "titulo": "Corredor infinito", "txt": "Tres carriles, saltos y monedas. Como Subway Surfers.", "ok": true,
 			"modo": "3d", "tipo": "corredor", "theme": "dia", "hero": "🐱"},
+		{"id": "corredor2d", "emoji": "🏃", "titulo": "Corredor 2D (celular)", "txt": "Corre solo hacia adelante y tú saltas. Como Run, pero en 2D.", "ok": true,
+			"modo": "2d", "tipo": "plataformas", "estilo": "corredor2d", "theme": "dia", "hero": "🐱"},
 		{"id": "pista", "emoji": "🏁", "titulo": "Carreras de pista", "txt": "Vueltas a un circuito contra otros. Como Mario Kart.", "ok": true,
 			"modo": "2d", "tipo": "arriba", "estilo": "carrera", "theme": "dia", "hero": "🐱"},
 		{"id": "pista3d", "emoji": "🏁", "titulo": "Carreras 3D", "txt": "Como Mario Kart: ves la pista desde atrás del auto.", "ok": true,
@@ -40,6 +42,33 @@ const CATEGORIAS := [
 			"modo": "2d", "tipo": "arriba", "theme": "desierto", "hero": "🤖"},
 		{"id": "accion_3d", "emoji": "🎯", "titulo": "Acción en 3D", "txt": "Corre y salta por un mundo en 3D lleno de peligros.", "ok": true,
 			"modo": "3d", "tipo": "aventura", "theme": "atardecer", "hero": "🤖"},
+	]},
+	{"id": "disparos", "emoji": "🔫", "titulo": "Disparos (shooter)", "txt": "Dispara a enemigos desde arriba, en 2D.", "color": Color("0ea5e9"), "tipos": [
+		{"id": "shooter2d", "emoji": "🔫", "titulo": "Shooter desde arriba", "txt": "Muévete, apunta y dispara con Espacio o clic.", "ok": true,
+			"modo": "2d", "tipo": "arriba", "estilo": "disparos", "theme": "desierto", "hero": "🤖"},
+		{"id": "shooter_ciudad", "emoji": "🏙", "titulo": "Shooter en la ciudad", "txt": "Lo mismo, de noche entre edificios.", "ok": true,
+			"modo": "2d", "tipo": "arriba", "estilo": "disparos", "theme": "noche", "hero": "🤖"},
+		{"id": "shooter3d", "emoji": "🎯", "titulo": "Shooter 1ª/3ª persona (3D)", "txt": "Disparos en 3D con cámara en primera o tercera persona.", "ok": false,
+			"modo": "3d", "tipo": "aventura", "theme": "noche", "hero": "🤖"},
+	]},
+	{"id": "mundo_libre", "emoji": "🌎", "titulo": "Mundo libre", "txt": "Un mundo abierto para explorar a tu manera.", "color": Color("16a34a"), "tipos": [
+		{"id": "selva", "emoji": "🌴", "titulo": "Selva y aventura 3D", "txt": "Camina por una selva: árboles, caminos, barro y tesoros.", "ok": true,
+			"modo": "3d", "tipo": "aventura", "theme": "bosque", "hero": "🧙"},
+		{"id": "ciudad_abierta", "emoji": "🏙", "titulo": "Ciudad abierta", "txt": "Edificios, calles y vehículos para recorrer libremente.", "ok": false,
+			"modo": "3d", "tipo": "aventura", "theme": "dia", "hero": "🧙"},
+	]},
+	{"id": "narrativo", "emoji": "📖", "titulo": "Narrativo", "txt": "Historias con personajes y decisiones.", "color": Color("db2777"), "tipos": [
+		{"id": "cuento", "emoji": "📖", "titulo": "Cuento jugable", "txt": "Mundos con portada y personajes, uno tras otro, como un cuento.", "ok": true,
+			"modo": "2d", "tipo": "arriba", "theme": "bosque", "hero": "🧙"},
+		{"id": "dialogos", "emoji": "💬", "titulo": "Novela con diálogos", "txt": "Conversaciones y elecciones que cambian el final.", "ok": false,
+			"modo": "2d", "tipo": "arriba", "theme": "dia", "hero": "🧙"},
+	]},
+	{"id": "otros", "emoji": "🧩", "titulo": "Otros géneros", "txt": "Puzzles, ritmo, deportes, estrategia y más.", "color": Color("64748b"), "tipos": [
+		{"id": "puzzle", "emoji": "🧩", "titulo": "Puzzles", "txt": "Piezas, lógica y rompecabezas.", "ok": false, "modo": "2d", "tipo": "plataformas", "theme": "dia", "hero": "🐱"},
+		{"id": "ritmo", "emoji": "🎵", "titulo": "Ritmo y música", "txt": "Toca al compás de la música.", "ok": false, "modo": "2d", "tipo": "plataformas", "theme": "noche", "hero": "🐱"},
+		{"id": "deportes", "emoji": "⚽", "titulo": "Deportes", "txt": "Fútbol, básquetbol y más.", "ok": false, "modo": "2d", "tipo": "plataformas", "theme": "dia", "hero": "🐱"},
+		{"id": "defensa", "emoji": "🏰", "titulo": "Defensa de torres", "txt": "Coloca defensas y detén las oleadas.", "ok": false, "modo": "2d", "tipo": "arriba", "theme": "dia", "hero": "🤖"},
+		{"id": "granja", "emoji": "🌾", "titulo": "Granja y simulación", "txt": "Cultiva, construye y cuida tu mundo.", "ok": false, "modo": "2d", "tipo": "arriba", "theme": "dia", "hero": "🧑‍🌾"},
 	]},
 	{"id": "terror", "emoji": "👻", "titulo": "Terror", "txt": "Oscuridad, sustos y misterio (apto para niños).", "color": Color("6d28d9"), "tipos": [
 		{"id": "terror3d", "emoji": "👻", "titulo": "Misterio en 3D", "txt": "Explora un mundo de noche lleno de fantasmas.", "ok": true,

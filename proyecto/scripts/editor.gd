@@ -5,6 +5,8 @@ extends Control
 const PanelRend := preload("res://scripts/panel_rendimiento.gd")
 const PanelExportar := preload("res://scripts/panel_exportar.gd")
 const PanelColores := preload("res://scripts/panel_colores.gd")
+const Categorias := preload("res://scripts/categorias.gd")
+const Recetas := preload("res://scripts/recetas.gd")
 const PersonajesPanel := preload("res://scripts/panel_personajes.gd")
 const PortadaEd := preload("res://scripts/portada_editor.gd")
 const Estilo := preload("res://scripts/estilo.gd")
@@ -166,6 +168,11 @@ func _construir() -> void:
 	b_inicio.pressed.connect(func(): volver.emit())
 	fila.add_child(b_inicio)
 	_textos_barra.append([b_inicio, " Inicio"])
+	var b_guia := _boton(" Guía", "🧭", c_claro)
+	b_guia.tooltip_text = "Los pasos para crear este tipo de juego"
+	b_guia.pressed.connect(_abrir_guia)
+	fila.add_child(b_guia)
+	_textos_barra.append([b_guia, " Guía"])
 	var b_tipo := _boton(" Tipo de juego", "🎮", c_claro)
 	b_tipo.pressed.connect(_abrir_tipos)
 	fila.add_child(b_tipo)
@@ -1293,6 +1300,84 @@ func _abrir_colores() -> void:
 	pc.cambiado.connect(func():
 		_esc.queue_redraw()
 		_refrescar_niveles())
+
+
+## Guía por pasos: según la categoría del juego, lista las secciones en orden y abre cada panel.
+func _abrir_guia() -> void:
+	_cerrar_modal()
+	var fondo := ColorRect.new()
+	fondo.color = Color(0.08, 0.06, 0.23, 0.62)
+	add_child(fondo)
+	fondo.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_modal = fondo
+	move_child(_tut, get_child_count() - 1)
+	var centro := CenterContainer.new()
+	fondo.add_child(centro)
+	centro.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(minf(600.0, size.x - 24.0), 0)
+	panel.add_theme_stylebox_override("panel", Estilo.caja(Color.WHITE, 26, 0, Color.TRANSPARENT, 22))
+	centro.add_child(panel)
+	var v0 := VBoxContainer.new()
+	v0.add_theme_constant_override("separation", 8)
+	panel.add_child(v0)
+	var cat := str(Datos.reglas.get("categoria", ""))
+	var info: Dictionary = Categorias.categoria(cat)
+	var tit := Label.new()
+	tit.text = "🧭 Pasos de tu juego" + (" · " + str(info.get("titulo", "")) if info.size() > 0 else "")
+	tit.add_theme_font_size_override("font_size", 26)
+	tit.add_theme_color_override("font_color", Estilo.TINTA)
+	v0.add_child(tit)
+	var sc := ScrollContainer.new()
+	sc.custom_minimum_size = Vector2(0, minf(520.0, maxf(240.0, size.y - 200.0)))
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	v0.add_child(sc)
+	var v := VBoxContainer.new()
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.add_theme_constant_override("separation", 6)
+	sc.add_child(v)
+	var n := 0
+	for p in Recetas.pasos(cat):
+		n += 1
+		var b := Button.new()
+		var pronto: bool = p["abre"] == "pronto"
+		b.text = "%d. %s %s%s\n    %s" % [n, p["emoji"], p["titulo"], "  (pronto)" if pronto else "", p["pregunta"]]
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.custom_minimum_size = Vector2(0, 62)
+		b.add_theme_font_size_override("font_size", 16)
+		b.disabled = pronto
+		var abre: String = p["abre"]
+		b.pressed.connect(func():
+			_cerrar_modal()
+			_ir_paso(abre))
+		v.add_child(b)
+	var cerrar := Button.new()
+	cerrar.text = "Cerrar"
+	cerrar.custom_minimum_size = Vector2(0, 44)
+	cerrar.pressed.connect(_cerrar_modal)
+	v0.add_child(cerrar)
+
+
+func _ir_paso(abre: String) -> void:
+	match abre:
+		"portada":
+			_set_etapa("portada")
+		"personajes":
+			_set_etapa("personajes")
+		"fondos", "objetos", "deco", "lib", "mis":
+			_set_etapa("mundo")
+			_cambiar_tab(abre)
+		"pista":
+			_set_etapa("mundo")
+			_abrir_colores()
+		"reglas":
+			_abrir_reglas()
+		"rendimiento":
+			_abrir_rendimiento()
+		"exportar":
+			_abrir_exportar()
+		"tipos":
+			_abrir_tipos()
 
 
 func _cerrar_modal() -> void:

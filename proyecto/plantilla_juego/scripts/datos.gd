@@ -255,7 +255,7 @@ func nivel_pelea(tema: String = "dia") -> Dictionary:
 
 ## Texto corto del estilo de un nivel (Carreras, Go-karts, Lucha…); "" si no tiene.
 func nombre_estilo(n: Dictionary) -> String:
-	return {"carrera": "Carreras de pista", "kart": "Go-karts", "pelea": "Lucha 2D"}.get(str(n.get("estilo", "")), "")
+	return {"carrera": "Carreras de pista", "kart": "Go-karts", "pelea": "Lucha 2D", "disparos": "Disparos desde arriba"}.get(str(n.get("estilo", "")), "")
 
 
 func nivel_inicial() -> Dictionary:
@@ -275,6 +275,39 @@ func nivel_inicial() -> Dictionary:
 	for d in [[3, 11, "🌳", 64], [5, 11, "🌸", 34], [8, 11, "🍄", 34], [14, 11, "🌻", 46], [8, 3, "☁️", 70], [20, 2, "☁️", 70]]:
 		add.call({"t": "deco", "x": d[0], "y": d[1], "e": d[2], "s": d[3]})
 	return {"name": "Mi primer juego", "theme": "dia", "hero": "🐱", "cols": 30, "rows": FILAS, "items": items}
+
+
+## Corredor 2D lateral: el personaje corre solo hacia la derecha; tú saltas pinchos y enemigos.
+func nivel_corredor2d() -> Dictionary:
+	var items: Array = []
+	var add := func(o: Dictionary) -> void:
+		o["id"] = nuevo_id()
+		items.append(o)
+	add.call({"t": "plat", "x": 0, "y": 12, "w": 90, "h": 2})
+	add.call({"t": "player", "x": 1, "y": 11})
+	var x := 10
+	var k := 0
+	while x < 84:
+		match k % 4:
+			0:
+				add.call({"t": "spike", "x": x, "y": 11})
+				add.call({"t": "coin", "x": x, "y": 8})
+			1:
+				add.call({"t": "enemy", "x": x, "y": 11, "e": "🐌", "r": 2, "sp": 40})
+			2:
+				add.call({"t": "spike", "x": x, "y": 11})
+				add.call({"t": "spike", "x": x + 1, "y": 11})
+				add.call({"t": "star", "x": x, "y": 7})
+			3:
+				add.call({"t": "coin", "x": x, "y": 10})
+				add.call({"t": "coin", "x": x + 1, "y": 9})
+				add.call({"t": "coin", "x": x + 2, "y": 10})
+		x += 7
+		k += 1
+	add.call({"t": "goal", "x": 88, "y": 11})
+	for d in [[4, 11, "🌳", 64], [14, 11, "🌸", 34], [30, 11, "🍄", 34], [50, 11, "🌻", 46], [20, 3, "☁️", 70], [60, 2, "☁️", 70]]:
+		add.call({"t": "deco", "x": d[0], "y": d[1], "e": d[2], "s": d[3]})
+	return {"name": "Mi corredor", "modo": "2d", "tipo": "plataformas", "autocorrer": true, "theme": "dia", "hero": "🐱", "cols": 90, "rows": FILAS, "items": items}
 
 
 ## Tipo de juego de un nivel: "plataformas", "25d", "arriba", "aventura" o "corredor".
@@ -457,7 +490,7 @@ func normalizar(n: Dictionary) -> Dictionary:
 	n["tipo"] = str(n.get("tipo", "")) if ["corredor", "aventura", "plataformas", "arriba"].has(str(n.get("tipo", ""))) else ("corredor" if str(n.get("modo", "2d")) == "3d" else "plataformas")
 	n["modo"] = str(n.get("modo", "2d")) if ["2d", "25d", "3d"].has(str(n.get("modo", "2d"))) else "2d"
 	var est := str(n.get("estilo", ""))
-	if not ((est in ["carrera", "kart"] and n["tipo"] == "arriba" and n["modo"] == "2d") or (est == "pelea" and n["tipo"] == "plataformas" and n["modo"] == "2d")):
+	if not ((est in ["carrera", "kart", "disparos"] and n["tipo"] == "arriba" and n["modo"] == "2d") or (est == "pelea" and n["tipo"] == "plataformas" and n["modo"] == "2d")):
 		est = ""
 	if est == "":
 		n.erase("estilo")
@@ -511,6 +544,10 @@ func normalizar(n: Dictionary) -> Dictionary:
 		n.erase("obstaculos")
 	if not (n.get("premios", {}) is Dictionary) or (n.get("premios", {}) as Dictionary).is_empty():
 		n.erase("premios")
+	if bool(n.get("autocorrer", false)):
+		n["autocorrer"] = true
+	else:
+		n.erase("autocorrer")
 	if n.has("densidad"):
 		n["densidad"] = clampf(float(n["densidad"]), 0.2, 2.5)
 		if is_equal_approx(float(n["densidad"]), 1.0):
@@ -752,7 +789,7 @@ func agregar_nivel(copiar: bool = false) -> bool:
 			it["id"] = nuevo_id()
 	else:
 		n = nivel_en_blanco()
-		for k in ["name", "modo", "disp", "orient", "tipo", "theme", "hero", "paleta", "clima", "hora", "perseguidor", "densidad", "decorado", "obstaculos", "premios"]:
+		for k in ["name", "modo", "disp", "orient", "tipo", "theme", "hero", "paleta", "clima", "hora", "perseguidor", "densidad", "decorado", "obstaculos", "premios", "autocorrer"]:
 			if nivel.has(k) or n.has(k):
 				n[k] = nivel.get(k, n.get(k))
 		n = normalizar(n)

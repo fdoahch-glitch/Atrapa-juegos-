@@ -94,3 +94,9 @@ Botón **Colores** (arriba): cielo, colinas, tierra y pasto de este mundo, con s
 - «Adorno de los lados»: elige varios modelos y salen repartidos a ambos lados en vez de los árboles del tema (`decorado: [{e, alto, dist:[min,max]}]`).
 - `premios: {"gem": "g:fosil.glb"}` cambia el dibujo de moneda, estrella o gema por un modelo.
 - Un obstáculo alto con modelo propio solo choca por debajo de su altura real: una roca baja se puede saltar.
+
+## Categorías, guía y asistente de ideas
+- **Motor completo**: el .exe y el APK se compilan con todo Godot 4.4.1 (3D con física, navegación, GridMap, CSG, ruido, video…). Sólo la versión web usa un perfil recortado para pesar poco (`custom_web.py`).
+- **Nuevas categorías**: Disparos (shooter desde arriba, Espacio o clic para disparar), Corredor 2D para celular (corre solo, tú saltas), Mundo libre, Narrativo y Otros géneros. Los tipos marcados «Pronto» aún no tienen juego.
+- **🧭 Guía**: botón en la barra del editor; muestra los pasos de tu categoría en orden y abre cada panel.
+- **💡 Cuéntame tu idea**: primera tarjeta al elegir categoría. Escribes de qué trata y recomienda categoría, enemigos, premios, puntuación y calidad (FSR, FPS) según la plataforma. Funciona sin internet.

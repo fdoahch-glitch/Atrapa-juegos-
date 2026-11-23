@@ -59,6 +59,11 @@ func _mostrar_inicio() -> void:
 			n = Datos.nivel_carrera(est == "kart")
 			if bool(cfg.get("vista3d", false)):
 				n["vista3d"] = true
+		elif est == "disparos":
+			n = Datos.nivel_arriba()
+			n["estilo"] = "disparos"
+		elif est == "corredor2d":
+			n = Datos.nivel_corredor2d()
 		elif est == "pelea":
 			n = Datos.nivel_pelea(str(cfg.get("theme", "dia")))
 		elif modo == "3d" and tipo == "aventura":
@@ -71,6 +76,8 @@ func _mostrar_inicio() -> void:
 			n = Datos.nivel_inicial()
 		n["modo"] = str(n.get("modo", modo)) if est != "" else modo
 		n["tipo"] = str(n.get("tipo", tipo)) if est != "" else tipo
+		if est == "disparos":
+			n["tipo"] = "arriba"
 		n["theme"] = str(cfg.get("theme", n.get("theme", "dia")))
 		n["hero"] = str(cfg.get("hero", n.get("hero", "🐱")))
 		n["name"] = "Mundo 1"

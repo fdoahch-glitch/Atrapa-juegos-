@@ -430,7 +430,7 @@ func _actualizar(dt: float) -> void:
 		return
 	inv = maxf(0.0, inv - dt)
 	var izq := Input.is_key_pressed(KEY_LEFT) or Input.is_key_pressed(KEY_A) or _pulsado("izq")
-	var der := Input.is_key_pressed(KEY_RIGHT) or Input.is_key_pressed(KEY_D) or _pulsado("der")
+	var der := Input.is_key_pressed(KEY_RIGHT) or Input.is_key_pressed(KEY_D) or _pulsado("der") or bool(nivel.get("autocorrer", false))
 	var sost := Input.is_key_pressed(KEY_UP) or Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_SPACE) or _pulsado("salto")
 	var dir := (1.0 if der else 0.0) - (1.0 if izq else 0.0)
 	vel.x += (dir * MOVER - vel.x) * minf(1.0, dt * (16.0 if suelo else 9.0))

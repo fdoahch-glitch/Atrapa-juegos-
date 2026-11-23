@@ -24,7 +24,7 @@ jobs:
       - run: pip install scons
       - run: |
           cp parche/version.py fuente/version.py
-          cp custom.py fuente/custom.py
+          cp custom_web.py fuente/custom.py
       - working-directory: fuente
         run: scons platform=web target=template_release threads=no -j4
       - uses: actions/upload-artifact@v4

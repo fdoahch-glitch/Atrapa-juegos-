@@ -19,9 +19,14 @@ func _ready() -> void:
 	panel.custom_minimum_size = Vector2(minf(520.0, maxf(320.0, size.x - 30.0)), 0)
 	panel.add_theme_stylebox_override("panel", Estilo.caja(Color.WHITE, 26, 0, Color.TRANSPARENT, 22))
 	centro.add_child(panel)
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(0, minf(660.0, maxf(300.0, size.y - 60.0)))
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	panel.add_child(scroll)
 	var v := VBoxContainer.new()
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.add_theme_constant_override("separation", 10)
-	panel.add_child(v)
+	scroll.add_child(v)
 	_texto(v, "Colores de este mundo", 28, Estilo.TINTA)
 	_texto(v, "Toca un color para cambiarlo. Se ve al instante en el mundo.", 15, Estilo.SUAVE)
 	var t: Dictionary = Datos.tema_de(Datos.nivel)

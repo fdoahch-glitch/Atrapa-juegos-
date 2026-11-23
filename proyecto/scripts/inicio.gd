@@ -10,6 +10,7 @@ signal abierto   # se cargó un juego desde un archivo (.atrapa.json)
 const Paquete := preload("res://scripts/paquete.gd")
 const Estilo := preload("res://scripts/estilo.gd")
 const EditorHtml := preload("res://scripts/editor_html.gd")
+const Idea := preload("res://scripts/idea.gd")
 const Categorias := preload("res://scripts/categorias.gd")
 
 var _scroll: ScrollContainer
@@ -225,10 +226,63 @@ func _mostrar_orientacion() -> void:
 
 
 func _mostrar_categorias() -> void:
-	_eleccion("¿Qué categoría de juego quieres crear?", "", Categorias.CATEGORIAS, func(o):
+	var lista: Array = [{"id": "_idea", "emoji": "💡", "titulo": "Cuéntame tu idea", "txt": "Dime de qué se trata y te recomiendo cómo hacerlo.", "color": Color("f59e0b")}]
+	lista.append_array(Categorias.CATEGORIAS)
+	_eleccion("¿Qué categoría de juego quieres crear?", "", lista, func(o):
+		if o["id"] == "_idea":
+			_mostrar_idea()
+			return
 		_cfg["categoria"] = o["id"]
 		_mostrar_tipos(o), func():
 		_mostrar_orientacion() if _cfg["plataforma"] == "android" else _mostrar_plataformas(), 220)
+
+
+func _mostrar_idea() -> void:
+	_en_portada = false
+	var v := _nueva_pantalla()
+	_etiqueta(v, "💡 ¿De qué se trata tu juego?", 36)
+	var ed := TextEdit.new()
+	ed.placeholder_text = "Ej: un juego de celular tipo Run pero en 2D donde un dinosaurio esquiva rocas"
+	ed.custom_minimum_size = Vector2(minf(720.0, size.x - 40.0), 110)
+	ed.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
+	v.add_child(ed)
+	var res := Label.new()
+	res.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	res.add_theme_font_size_override("font_size", 19)
+	res.add_theme_color_override("font_color", Color.WHITE)
+	v.add_child(res)
+	var fila := HBoxContainer.new()
+	fila.add_theme_constant_override("separation", 10)
+	v.add_child(fila)
+	var volver := Button.new()
+	volver.text = "← Volver"
+	volver.custom_minimum_size = Vector2(130, 50)
+	volver.pressed.connect(_mostrar_categorias)
+	fila.add_child(volver)
+	var pensar := Button.new()
+	pensar.text = "Recomiéndame"
+	pensar.custom_minimum_size = Vector2(190, 50)
+	fila.add_child(pensar)
+	var crear := Button.new()
+	crear.text = "Crear con esta idea"
+	crear.custom_minimum_size = Vector2(220, 50)
+	crear.visible = false
+	fila.add_child(crear)
+	var rec: Array = [{}]
+	pensar.pressed.connect(func():
+		var r: Dictionary = Idea.recomendar(ed.text, str(_cfg.get("plataforma", "windows")))
+		rec[0] = r
+		res.text = str(r["texto"])
+		crear.visible = bool(r.get("ok", false)))
+	crear.pressed.connect(func():
+		var r: Dictionary = rec[0]
+		_cfg["categoria"] = str(r["cat"])
+		var o: Dictionary = Categorias.tipo(str(r["cat"]), str(r["tipo"]))
+		_cfg["subtipo"] = str(o["id"])
+		var salida: Dictionary = _cfg.duplicate()
+		salida.merge(o, true)
+		salida["nombre"] = str(o["titulo"])
+		crear_juego.emit(salida))
 
 
 func _mostrar_tipos(cat: Dictionary) -> void:
