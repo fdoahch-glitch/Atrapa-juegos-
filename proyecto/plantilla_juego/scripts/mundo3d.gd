@@ -230,3 +230,36 @@ static func visor(padre: Control) -> Array:
 	padre.move_child(cont, 0)
 	cont.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	return [cont, raiz]
+
+
+## Repite un mismo objeto muchas veces con MultiMesh: una sola llamada de dibujo
+## por pieza en vez de un nodo por árbol. `lugares` son las posiciones/giros/escalas.
+static func repetir(proto: Node3D, lugares: Array) -> Node3D:
+	var raiz := Node3D.new()
+	raiz.name = "Repetidos"
+	_repetir_nodo(proto, Transform3D.IDENTITY, lugares, raiz)
+	proto.queue_free()
+	return raiz
+
+
+static func _repetir_nodo(n: Node, xf: Transform3D, lugares: Array, raiz: Node3D) -> void:
+	var mi := n as MeshInstance3D
+	if mi != null and mi.mesh != null:
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = mi.mesh
+		mm.instance_count = lugares.size()
+		for k in lugares.size():
+			mm.set_instance_transform(k, (lugares[k] as Transform3D) * xf)
+		var mmi := MultiMeshInstance3D.new()
+		mmi.multimesh = mm
+		mmi.material_override = mi.material_override
+		for s in mi.mesh.get_surface_count():
+			if mi.get_surface_override_material(s) != null and mmi.material_override == null:
+				mmi.material_override = mi.get_surface_override_material(s)
+		raiz.add_child(mmi)
+	for c in n.get_children():
+		var xc := xf
+		if c is Node3D:
+			xc = xf * (c as Node3D).transform
+		_repetir_nodo(c, xc, lugares, raiz)

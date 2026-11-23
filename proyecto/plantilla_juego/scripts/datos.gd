@@ -55,7 +55,7 @@ var niveles: Array = []             # copias de todos los niveles (el actual se 
 var idx := 0                        # posición del nivel actual
 var reglas: Dictionary = {}         # reglas del juego completo
 const MAX_NIVELES := 10
-const REGLAS_BASE := {"vidas": 3, "tiempo": 0, "meta": "meta", "pts_coin": 1, "pts_gem": 3, "pts_star": 5, "pts_enemy": 2, "titulo": true, "final": "¡Ganaste el juego!", "musica": "", "mascota": "", "poder": "escudo", "tienda": false, "jugadores": 1, "heroe2": "", "plataforma": "windows", "categoria": "", "subtipo": "", "rend": {}, "dificultad": "normal", "elegir_dificultad": false, "misiones": false, "revivir": 0, "modo_prueba": false, "arma": "pistola", "espera": false, "logros": true, "sin_fin": false, "fis": {}, "mec": {}, "sonidos": {}, "fx": {}, "cam_suave": 100, "cam_zoom": 100, "cam_temblor": true, "trans": "fundido", "idioma": "es", "creditos": "", "paleta": "", "paleta_fuerza": 80, "paleta_todo": false, "minimapa": false, "inclinar": false, "prefabs": []}
+const REGLAS_BASE := {"vidas": 3, "tiempo": 0, "meta": "meta", "pts_coin": 1, "pts_gem": 3, "pts_star": 5, "pts_enemy": 2, "titulo": true, "final": "¡Ganaste el juego!", "musica": "", "mascota": "", "poder": "escudo", "tienda": false, "jugadores": 1, "heroe2": "", "plataforma": "windows", "categoria": "", "subtipo": "", "rend": {}, "dificultad": "normal", "elegir_dificultad": false, "misiones": false, "revivir": 0, "modo_prueba": false, "arma": "pistola", "espera": false, "logros": true, "sin_fin": false, "fis": {}, "mec": {}, "sonidos": {}, "fx": {}, "cam_suave": 100, "cam_zoom": 100, "cam_temblor": true, "trans": "fundido", "idioma": "es", "creditos": "", "paleta": "", "paleta_fuerza": 80, "paleta_todo": false, "minimapa": false, "inclinar": false, "prefabs": [], "autotile": false, "en_linea": false, "red_modo": "", "red_ip": "127.0.0.1", "red_puerto": 24680}
 var historial: Array[String] = []
 var futuro: Array[String] = []
 var _actual := ""
@@ -896,6 +896,21 @@ func normalizar(n: Dictionary) -> Dictionary:
 		n.erase("eventos")
 	else:
 		n["eventos"] = evs
+	var progs: Array = []
+	if n.get("programa") is Array:
+		for pr in n["programa"]:
+			if not (pr is Dictionary) or not BLOQ_CUANDO.any(func(c): return c[0] == str(pr.get("cuando", ""))):
+				continue
+			var pasos: Array = []
+			if pr.get("pasos") is Array:
+				for st in pr["pasos"]:
+					if st is Dictionary and BLOQ_PASOS.any(func(c): return c[0] == str(st.get("b", ""))) and pasos.size() < BLOQ_MAX:
+						pasos.append({"b": str(st["b"]), "txt": str(st.get("txt", "")).left(80), "v": clampi(int(st.get("v", 1)), 0, 9999)})
+			progs.append({"cuando": str(pr["cuando"]), "n": clampi(int(pr.get("n", 1)), 1, 9999), "pasos": pasos})
+	if progs.is_empty():
+		n.erase("programa")
+	else:
+		n["programa"] = progs.slice(0, 12)
 	if float(n.get("oscuridad", 0.0)) <= 0.0:
 		n.erase("oscuridad")
 	else:
@@ -918,6 +933,12 @@ const FX_EVENTOS := [["recoger", "Al recoger un premio", "chispas"], ["saltar", 
 ## Eventos: «si pasa esto, haz aquello».
 const EVENTOS_SI := [["monedas", "Recojo monedas"], ["enemigos", "Derroto enemigos"], ["puntos", "Llego a puntos"], ["tiempo", "Pasan segundos"], ["llave", "Recojo una llave"], ["boton", "Piso un botón"]]
 const EVENTOS_HAZ := [["mensaje", "Mostrar un mensaje"], ["puertas", "Abrir las puertas"], ["meta", "Mostrar la meta"], ["vida", "Dar una vida"], ["puntos", "Dar puntos"], ["efecto", "Lanzar partículas"], ["ganar", "Ganar el nivel"], ["perder", "Perder el nivel"]]
+## Bloques visuales (estilo Scratch): «cuando…» abre una pila y los bloques de abajo se hacen en orden.
+const BLOQ_CUANDO := [["inicio", "Al empezar el nivel"], ["monedas", "Recojo monedas"], ["enemigos", "Derroto enemigos"], ["puntos", "Llego a puntos"], ["tiempo", "Pasan segundos"], ["llave", "Recojo una llave"], ["boton", "Piso un botón"]]
+## [id, texto, color, tipo de dato: "" nada | "txt" texto | "num" número]
+const BLOQ_PASOS := [["mensaje", "Decir", "ffb703", "txt"], ["esperar", "Esperar (segundos)", "4dabf7", "num"], ["puertas", "Abrir las puertas", "8e6bff", ""], ["meta", "Mostrar la meta", "8e6bff", ""], ["vida", "Dar vidas", "ef476f", "num"], ["puntos", "Dar puntos", "ef476f", "num"], ["efecto", "Lanzar partículas", "06d6a0", ""], ["repetir", "Repetir veces lo de abajo", "ff8fab", "num"], ["ganar", "Ganar el nivel", "2ecc71", ""], ["perder", "Perder el nivel", "e74c3c", ""]]
+const BLOQ_MAX := 40
+
 const ZONAS := [["agua", "Agua (se nada)"], ["hielo", "Hielo (resbala)"], ["viento", "Viento (empuja)"], ["corriente", "Corriente de aire (sube)"], ["lava", "Lava (quema)"]]
 const RUTAS := [["vaiven", "Sube y baja"], ["diagonal", "Diagonal"], ["circulo", "Círculo"], ["cuadro", "Rectángulo"]]
 const FILTROS := [["", "Ninguno"], ["bn", "Blanco y negro"], ["sepia", "Sepia"], ["retro", "Pixelado retro"], ["vineta", "Viñeta"], ["frio", "Frío"], ["calido", "Cálido"], ["ondas", "Ondas (mareado)"], ["crt", "Televisor antiguo"], ["dibujo", "Dibujo animado"], ["neon", "Neón brillante"], ["agua", "Bajo el agua"]]
@@ -952,25 +973,55 @@ const TRAD := {"¡Jugar!": "Play!", "Jugar otra vez": "Play again", "Siguiente n
 	"¡Llegaste a la meta!": "You reached the goal!", "¡Casi! Faltaron premios": "So close! Items missing", "Continuar": "Continue", "Pausa": "Paused", "Salir": "Quit", "Créditos": "Credits",
 	"Volumen": "Volume", "Sonido": "Sound", "¡Puerta abierta!": "Door opened!", "Necesitas una llave": "You need a key", "¡Tienes una llave!": "You got a key!",
 	"¡Se abrieron las puertas!": "The doors opened!", "¡Apareció la meta!": "The goal appeared!", "¡Perdiste!": "You lost!", "¡Ganaste el juego!": "You won the game!",
-	"Nuevo récord": "New record", "Logro": "Achievement", "Misión cumplida": "Mission complete", "¡Muy bien!": "Well done!", "¡Algo pasó!": "Something happened!"}
+	"Nuevo récord": "New record", "Logro": "Achievement", "Misión cumplida": "Mission complete", "¡Muy bien!": "Well done!", "¡Algo pasó!": "Something happened!", "¡Tu mascota te protegió!": "Your pet protected you!", "No se pudo abrir la conexión en línea": "Could not open the online connection"}
+
+
+## Más idiomas: cada frase en español → [portugués, francés]. El inglés está en TRAD.
+const TRAD_EXTRA := {
+	"¡Jugar!": ["Jogar!", "Jouer !"], "Jugar otra vez": ["Jogar de novo", "Rejouer"], "Siguiente nivel": ["Próximo nível", "Niveau suivant"],
+	"Reintentar": ["Tentar de novo", "Réessayer"], "Volver al inicio": ["Voltar ao início", "Retour au début"], "Editar": ["Editar", "Modifier"],
+	"Elegir personaje": ["Escolher personagem", "Choisir un personnage"], "Tienda de mascotas": ["Loja de mascotes", "Boutique d'animaux"],
+	"Misiones del día": ["Missões do dia", "Missions du jour"], "Bitácora": ["Diário", "Journal"], "Vestuario": ["Guarda-roupa", "Garde-robe"],
+	"Logros": ["Conquistas", "Succès"], "Récords": ["Recordes", "Records"], "¡Nivel completado!": ["Nível completo!", "Niveau terminé !"],
+	"Puntos": ["Pontos", "Points"], "¡Ups! Se acabaron las vidas": ["Ops! Acabaram as vidas", "Oups ! Plus de vies"], "¡Se acabó el tiempo!": ["O tempo acabou!", "Le temps est écoulé !"],
+	"¡Llegaste a la meta!": ["Você chegou à meta!", "Tu as atteint le but !"], "¡Casi! Faltaron premios": ["Quase! Faltaram prêmios", "Presque ! Il manquait des trésors"],
+	"Continuar": ["Continuar", "Continuer"], "Pausa": ["Pausa", "Pause"], "Salir": ["Sair", "Quitter"], "Créditos": ["Créditos", "Crédits"],
+	"Volumen": ["Volume", "Volume"], "Sonido": ["Som", "Son"], "¡Puerta abierta!": ["Porta aberta!", "Porte ouverte !"], "Necesitas una llave": ["Você precisa de uma chave", "Il te faut une clé"],
+	"¡Tienes una llave!": ["Você pegou uma chave!", "Tu as une clé !"], "¡Se abrieron las puertas!": ["As portas se abriram!", "Les portes se sont ouvertes !"],
+	"¡Apareció la meta!": ["A meta apareceu!", "Le but est apparu !"], "¡Perdiste!": ["Você perdeu!", "Perdu !"], "¡Ganaste el juego!": ["Você ganhou o jogo!", "Tu as gagné le jeu !"],
+	"Nuevo récord": ["Novo recorde", "Nouveau record"], "Logro": ["Conquista", "Succès"], "Misión cumplida": ["Missão cumprida", "Mission accomplie"],
+	"¡Muy bien!": ["Muito bem!", "Très bien !"], "¡Algo pasó!": ["Algo aconteceu!", "Il s'est passé quelque chose !"],
+	"¡Tu mascota te protegió!": ["Seu mascote te protegeu!", "Ta mascotte t'a protégé !"], "No se pudo abrir la conexión en línea": ["Não foi possível abrir a conexão online", "Impossible d'ouvrir la connexion en ligne"]}
+const TRAD_RE_EXTRA := {
+	"pt": [["Recogiste (\\d+) de (\\d+) premios", "Você pegou $1 de $2 prêmios"], ["Te faltan (\\d+) premios para abrir la meta", "Faltam $1 prêmios para abrir a meta"],
+		["Te faltaron (\\d+) premios para ganar", "Faltaram $1 prêmios para ganhar"], ["¡Nivel (\\d+) completado!", "Nível $1 completo!"], ["Nivel (\\d+) de (\\d+)", "Nível $1 de $2"],
+		["Vuelta (\\d+)", "Volta $1"], ["(\\d+) niveles", "$1 níveis"], ["\\+(\\d+) monedas", "+$1 moedas"]],
+	"fr": [["Recogiste (\\d+) de (\\d+) premios", "Tu as ramassé $1 trésors sur $2"], ["Te faltan (\\d+) premios para abrir la meta", "Il manque $1 trésors pour ouvrir le but"],
+		["Te faltaron (\\d+) premios para ganar", "Il te manquait $1 trésors pour gagner"], ["¡Nivel (\\d+) completado!", "Niveau $1 terminé !"], ["Nivel (\\d+) de (\\d+)", "Niveau $1 sur $2"],
+		["Vuelta (\\d+)", "Tour $1"], ["(\\d+) niveles", "$1 niveaux"], ["\\+(\\d+) monedas", "+$1 pièces"]]}
+const IDIOMAS := [["es", "Español"], ["en", "English"], ["pt", "Português"], ["fr", "Français"]]
 
 
 func traducir(s: String, idioma: String) -> String:
-	if idioma != "en" or s == "":
+	if idioma == "es" or s == "" or not IDIOMAS.any(func(i): return i[0] == idioma):
 		return s
 	var r := s
-	for par in TRAD_RE:
+	var pares: Array = TRAD_RE if idioma == "en" else TRAD_RE_EXTRA[idioma]
+	for par in pares:
 		var re := RegEx.create_from_string(str(par[0]))
 		r = re.sub(r, str(par[1]), true)
-	var claves: Array = TRAD.keys()
+	var claves: Array = TRAD.keys() if idioma == "en" else TRAD_EXTRA.keys()
 	claves.sort_custom(func(a, b): return str(a).length() > str(b).length())
 	for k in claves:
-		r = r.replace(str(k), str(TRAD[k]))
+		if idioma == "en":
+			r = r.replace(str(k), str(TRAD[k]))
+		else:
+			r = r.replace(str(k), str(TRAD_EXTRA[k][0 if idioma == "pt" else 1]))
 	return r
 
 
 func traducir_arbol(n: Node, idioma: String) -> void:
-	if idioma != "en":
+	if idioma == "es":
 		return
 	if n is Button:
 		(n as Button).text = traducir((n as Button).text, idioma)
@@ -1081,7 +1132,7 @@ func reglas_completas(r: Dictionary) -> Dictionary:
 		o["paleta"] = ""
 	if not TRANSICIONES.any(func(p): return p[0] == str(o["trans"])):
 		o["trans"] = "fundido"
-	if not ["es", "en"].has(str(o["idioma"])):
+	if not IDIOMAS.any(func(i): return i[0] == str(o["idioma"])):
 		o["idioma"] = "es"
 	o["creditos"] = str(o["creditos"]).left(300)
 	o["fis"] = fis_normal(r.get("fis", {}))
@@ -1244,7 +1295,7 @@ func agregar_nivel(copiar: bool = false) -> bool:
 			it["id"] = nuevo_id()
 	else:
 		n = nivel_en_blanco()
-		for k in ["name", "modo", "disp", "orient", "tipo", "theme", "hero", "paleta", "clima", "hora", "perseguidor", "densidad", "decorado", "obstaculos", "premios", "autocorrer", "pista", "hero_alto", "mini", "mini_cfg", "camara", "trio", "eventos", "oscuridad", "filtro"]:
+		for k in ["name", "modo", "disp", "orient", "tipo", "theme", "hero", "paleta", "clima", "hora", "perseguidor", "densidad", "decorado", "obstaculos", "premios", "autocorrer", "pista", "hero_alto", "mini", "mini_cfg", "camara", "trio", "eventos", "programa", "oscuridad", "filtro"]:
 			if nivel.has(k) or n.has(k):
 				n[k] = nivel.get(k, n.get(k))
 		n = normalizar(n)

@@ -9,6 +9,8 @@ const Dibujo := preload("res://scripts/dibujo.gd")
 const Capa := preload("res://scripts/capa.gd")
 const Sonido := preload("res://scripts/sonido.gd")
 const Estilo := preload("res://scripts/estilo.gd")
+const Terreno := preload("res://scripts/terreno.gd")
+const Red := preload("res://scripts/red.gd")
 
 const T := 48
 const PW := 0.62
@@ -26,6 +28,9 @@ var con_salir := false
 var tactil := false
 
 var _mundo: Node2D
+var _terreno: TileMapLayer
+var _red: Node
+var _prog: Array = []
 var _hud: Node2D
 var _sonido: Node
 var _fin: Control
@@ -571,8 +576,13 @@ func resetear() -> void:
 		var e2: Dictionary = (ev as Dictionary).duplicate()
 		e2["hecho"] = false
 		_eventos.append(e2)
-	_meta_oculta = _eventos.any(func(e): return e["haz"] == "meta")
+	_prog = []
+	for pr in nivel.get("programa", []):
+		_prog.append({"cuando": str(pr["cuando"]), "n": int(pr["n"]), "pasos": _bloques_aplanar(pr["pasos"]), "i": 0, "espera": 0.0, "estado": 0})
+	_meta_oculta = _eventos.any(func(e): return e["haz"] == "meta") or _prog.any(func(p): return (p["pasos"] as Array).any(func(s): return s["b"] == "meta"))
 	_aplicar_reglas()
+	if _red == null:
+		_red_armar()
 	var pl: Dictionary = {"x": 1, "y": Datos.FILAS - 3}
 	for it in nivel["items"]:
 		var c: Dictionary = it.duplicate()
@@ -640,7 +650,46 @@ func resetear() -> void:
 	escala = _escala()
 	cam = maxf(0.0, inicio.x - size.x / escala / 2.0)
 	camy = 0.0
+	_terreno_armar()
 	_pw_construir()
+
+
+func _nivel_clave() -> int:
+	return int(str(nivel.get("nombre", "")).hash() & 0x7fffffff)
+
+
+## Multijugador en línea: crear sala o unirse (desde las reglas o por la línea de comandos).
+func _red_armar() -> void:
+	var modo := str(reglas.get("red_modo", ""))
+	var ip := str(reglas.get("red_ip", "127.0.0.1"))
+	for a in OS.get_cmdline_user_args():
+		if a == "--sala":
+			modo = "crear"
+		elif a.begins_with("--unir="):
+			modo = "unirse"
+			ip = a.substr(7)
+	if not bool(reglas.get("en_linea", false)) and modo == "":
+		return
+	if modo != "crear" and modo != "unirse":
+		return
+	_red = Red.new()
+	add_child(_red)
+	var e: int = _red.crear(int(reglas.get("red_puerto", Red.PUERTO))) if modo == "crear" else _red.unirse(ip, int(reglas.get("red_puerto", Red.PUERTO)))
+	if e != OK:
+		_red.queue_free()
+		_red = null
+		_decir("No se pudo abrir la conexión en línea")
+
+
+## Terrenos con autotile (TileMapLayer de Godot): bordes e hierba que se ajustan solos.
+func _terreno_armar() -> void:
+	if _terreno != null:
+		_terreno.queue_free()
+		_terreno = null
+	if not bool(reglas.get("autotile", false)) or plats.is_empty():
+		return
+	_terreno = Terreno.capa(plats, T, tema)
+	_mundo.add_child(_terreno)
 
 
 # ------------------------------------------------------------------ física real de Godot
@@ -985,6 +1034,8 @@ var _acum := 0.0
 
 
 func _avanzar(delta: float) -> void:
+	if _red != null and _red.toca_enviar():
+		_red.enviar({"x": pos.x, "y": pos.y, "c": cara, "n": _nivel_clave()})
 	if _menu_pausa != null:
 		return
 	_pw_vigilar()
@@ -1420,6 +1471,7 @@ func _parts_tick(dt: float) -> void:
 	_parts = _parts.filter(func(q): return q["vida"] > 0.0)
 	if estado == "jugar":
 		_eventos_tick()
+		_programa_tick(dt)
 
 
 func _eventos_tick() -> void:
@@ -1437,6 +1489,54 @@ func _eventos_tick() -> void:
 		if ok:
 			ev["hecho"] = true
 			_hacer_evento(ev)
+
+
+## «Repetir N veces» repite los bloques de abajo; aquí se expande a una lista simple.
+func _bloques_aplanar(pasos: Array) -> Array:
+	var sal: Array = []
+	var i := 0
+	while i < pasos.size():
+		var s: Dictionary = pasos[i]
+		if str(s["b"]) == "repetir":
+			var resto: Array = pasos.slice(i + 1)
+			var veces := clampi(int(s["v"]), 1, 20)
+			for k in veces:
+				for r in resto:
+					if str(r["b"]) != "repetir" and sal.size() < 400:
+						sal.append(r)
+			break
+		sal.append(s)
+		i += 1
+	return sal
+
+
+func _programa_tick(dt: float) -> void:
+	for pr in _prog:
+		if int(pr["estado"]) == 0:
+			var ok := false
+			match str(pr["cuando"]):
+				"inicio": ok = true
+				"monedas": ok = _n_mon >= int(pr["n"])
+				"enemigos": ok = _n_ene >= int(pr["n"])
+				"puntos": ok = puntos >= int(pr["n"])
+				"tiempo": ok = t >= float(pr["n"])
+				"llave": ok = _n_llaves >= int(pr["n"])
+				"boton": ok = _boton_hecho
+			if ok:
+				pr["estado"] = 1
+		if int(pr["estado"]) != 1:
+			continue
+		pr["espera"] = maxf(0.0, float(pr["espera"]) - dt)
+		var pasos: Array = pr["pasos"]
+		while float(pr["espera"]) <= 0.0 and int(pr["i"]) < pasos.size() and estado == "jugar":
+			var st: Dictionary = pasos[int(pr["i"])]
+			pr["i"] = int(pr["i"]) + 1
+			if str(st["b"]) == "esperar":
+				pr["espera"] = float(maxi(1, int(st["v"])))
+			else:
+				_hacer_evento({"haz": str(st["b"]), "txt": str(st.get("txt", "")), "v": int(st.get("v", 1))})
+		if int(pr["i"]) >= pasos.size():
+			pr["estado"] = 2
 
 
 func _hacer_evento(ev: Dictionary) -> void:
@@ -1695,8 +1795,9 @@ func _dibujar_mundo(ci: CanvasItem) -> void:
 		ci.draw_arc(Vector2(cx, pos.y + PH * T / 2.0), T * 0.7, -1.2 if cara > 0.0 else 1.94, 1.2 if cara > 0.0 else 4.34, 14, Color(1, 1, 1, 0.9), 6.0)
 	for d in decos:
 		Dibujo.objeto(ci, d, tema, t)
-	for p in items_plat:
-		Dibujo.objeto(ci, p, tema, t)
+	if _terreno == null:
+		for p in items_plat:
+			Dibujo.objeto(ci, p, tema, t)
 	for s in pinchos:
 		Dibujo.objeto(ci, s, tema, t)
 	for r in resortes:
@@ -1713,6 +1814,8 @@ func _dibujar_mundo(ci: CanvasItem) -> void:
 		Dibujo.objeto(ci, m["it"], tema, t)
 	for ru in rutas:
 		Dibujo.objeto(ci, ru["it"], tema, t)
+	if _red != null:
+		_red.dibujar(ci, T, _nivel_clave())
 	for pu in puentes:
 		Dibujo.objeto(ci, pu["it"], tema, t)
 	for pe in pendulos:

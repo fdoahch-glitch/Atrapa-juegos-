@@ -169,3 +169,10 @@ Cada tipo del asistente crea una demo que funciona desde el primer toque y que p
 - **Aventura 3D, corredor 3D y pelea** usan cuerpos reales de Godot (CharacterBody3D/2D, Area3D) con el modo anterior como respaldo.
 - **Cuerda**: el héroe se agarra en el aire, se mece (empuja la cuerda), trepa con ↑/↓ y se suelta con Espacio con impulso.
 - **Cuerpos animados**: plataformas móviles, rutas, puentes, cajas y puertas tienen un cuerpo físico que sostiene ruedas y pelotas.
+
+## Terrenos, red, bloques e idiomas
+- **Terreno autotile** (Efectos → «Terreno que une los bloques solo»): usa un TileMapLayer de Godot con terrenos; bordes e hierba se ajustan solos.
+- **MultiMesh**: en el corredor 3D los árboles del lateral se dibujan con MultiMeshInstance3D (pocas llamadas de dibujo).
+- **En línea (ENet)**: Efectos → «Jugar en línea». Una persona crea la sala y las demás ponen su dirección (puerto 24680; en internet hay que abrir ese puerto UDP). También con `-- --sala` y `-- --unir=IP`. Se ven como fantasmas de colores.
+- **Bloques** (botón 🧩 Bloques): pilas de colores «cuando… → haz…» con esperar y repetir; sin escribir código.
+- **Idiomas**: español, English, Português y Français.

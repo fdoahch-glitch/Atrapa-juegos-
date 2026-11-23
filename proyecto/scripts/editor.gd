@@ -15,6 +15,7 @@ const PanelCreador := preload("res://scripts/panel_creador.gd")
 const PanelHoja := preload("res://scripts/panel_hoja.gd")
 const PanelEfectos := preload("res://scripts/panel_efectos.gd")
 const PanelEventos := preload("res://scripts/panel_eventos.gd")
+const PanelBloques := preload("res://scripts/panel_bloques.gd")
 const Recetas := preload("res://scripts/recetas.gd")
 const PersonajesPanel := preload("res://scripts/panel_personajes.gd")
 const PortadaEd := preload("res://scripts/portada_editor.gd")
@@ -810,7 +811,7 @@ func _refrescar_niveles() -> void:
 		be.tooltip_text = ex[2]
 		be.pressed.connect(_ir_paso.bind(ex[3]))
 		_niveles_fila.add_child(be)
-	for tb2 in [[" Eventos", "⚡", "Si pasa esto, haz aquello", "eventos"], [" Efectos", "🎬", "Sonidos, partículas, cámara, luces y filtros", "efectos"]]:
+	for tb2 in [[" Eventos", "⚡", "Si pasa esto, haz aquello", "eventos"], [" Bloques", "🧩", "Programa apilando bloques de colores", "bloques"], [" Efectos", "🎬", "Sonidos, partículas, cámara, luces y filtros", "efectos"]]:
 		var be2 := _boton(tb2[0], tb2[1])
 		be2.custom_minimum_size.y = 40
 		be2.tooltip_text = tb2[2]
@@ -1750,8 +1751,8 @@ func _ir_paso(abre: String) -> void:
 			_abrir_juego(abre)
 		"hoja":
 			_abrir_modal_simple(PanelHoja.new())
-		"eventos", "efectos":
-			_abrir_modal_simple(PanelEventos.new() if abre == "eventos" else PanelEfectos.new())
+		"eventos", "efectos", "bloques":
+			_abrir_modal_simple(PanelEventos.new() if abre == "eventos" else (PanelBloques.new() if abre == "bloques" else PanelEfectos.new()))
 		"trazado":
 			_set_etapa("mundo")
 			_abrir_pista()

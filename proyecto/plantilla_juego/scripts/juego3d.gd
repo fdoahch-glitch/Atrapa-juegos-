@@ -246,6 +246,7 @@ func _reconstruir() -> void:
 	var arbol: String = AUTO_ARBOL.get(str(nivel["theme"]), "arbol")
 	var z2 := 3.0
 	var i := 0
+	var lugares_auto: Array = []
 	while z2 < fin_z + 60.0:
 		var lado := -1.0 if i % 2 == 0 else 1.0
 		var mo: Node3D
@@ -257,12 +258,20 @@ func _reconstruir() -> void:
 			var rng: Array = d.get("dist", [5.5, 11.0])
 			dist_lado = float(rng[0]) + (float(rng[1]) - float(rng[0])) * float((i * 13) % 10) / 10.0
 		else:
-			mo = Assets3D.construir(arbol, 3.0 + float(i % 3) * 0.8)
+			var esc := (3.0 + float(i % 3) * 0.8) / 3.0
+			lugares_auto.append(Transform3D(Basis(Vector3.UP, deg_to_rad(float((i * 53) % 90))).scaled(Vector3.ONE * esc), Vector3(lado * dist_lado, 0, -z2 - float((i * 5) % 3))))
+			z2 += 7.0 / dens
+			i += 1
+			continue
 		mo.position = Vector3(lado * dist_lado, 0, -z2 - float((i * 5) % 3))
 		mo.rotation_degrees.y = float((i * 53) % 360) if dec.size() > 0 else float((i * 53) % 90)
 		_mundo3.add_child(mo)
 		z2 += (7.0 if dec.is_empty() else 3.2) / dens
 		i += 1
+	if not lugares_auto.is_empty():
+		var rep := Mundo3D.repetir(Assets3D.construir(arbol, 3.0), lugares_auto)
+		rep.name = "ArbolesRepetidos"
+		_mundo3.add_child(rep)
 	# decoración puesta por el niño
 	for it in nivel["items"]:
 		if str(it["t"]) != "deco":

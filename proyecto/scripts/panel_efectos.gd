@@ -77,6 +77,20 @@ func _ready() -> void:
 	_opciones(v, "Tiembla al golpear", [true, false], ["Sí", "No"], bool(Datos.reglas["cam_temblor"]), func(val):
 		Datos.reglas["cam_temblor"] = bool(val)
 		Datos.guardar())
+	_opciones(v, "Terreno que une los bloques solo (autotile)", [false, true], ["No", "Sí"], bool(Datos.reglas.get("autotile", false)), func(val):
+		Datos.reglas["autotile"] = bool(val)
+		Datos.guardar())
+	_opciones(v, "Jugar en línea con amigos", ["", "crear", "unirse"], ["No", "Crear sala", "Unirse a una sala"], str(Datos.reglas.get("red_modo", "")), func(val):
+		Datos.reglas["red_modo"] = str(val)
+		Datos.reglas["en_linea"] = str(val) != ""
+		Datos.guardar())
+	var ip := LineEdit.new()
+	ip.placeholder_text = "Dirección de la sala (ej. 192.168.1.20)"
+	ip.text = str(Datos.reglas.get("red_ip", "127.0.0.1"))
+	ip.text_changed.connect(func(s: String):
+		Datos.reglas["red_ip"] = s.strip_edges()
+		Datos.guardar())
+	v.add_child(ip)
 	_opciones(v, "Minimapa (vista en pequeño)", [false, true], ["No", "Sí"], bool(Datos.reglas.get("minimapa", false)), func(val):
 		Datos.reglas["minimapa"] = bool(val)
 		Datos.guardar())
@@ -128,7 +142,7 @@ func _ready() -> void:
 	_opciones(v, "Transición entre niveles", ti, tn, str(Datos.reglas["trans"]), func(val):
 		Datos.reglas["trans"] = val
 		Datos.guardar())
-	_opciones(v, "Idioma de los textos del juego", ["es", "en"], ["Español", "English"], str(Datos.reglas["idioma"]), func(val):
+	_opciones(v, "Idioma de los textos del juego", ["es", "en", "pt", "fr"], ["Español", "English", "Português", "Français"], str(Datos.reglas["idioma"]), func(val):
 		Datos.reglas["idioma"] = val
 		Datos.guardar())
 	_t(v, "Créditos (se ven en el menú de pausa)", 16, Estilo.TINTA, false)
