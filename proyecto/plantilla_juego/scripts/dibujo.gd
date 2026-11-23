@@ -196,6 +196,28 @@ static func _objeto(ci: CanvasItem, it0: Dictionary, th: Dictionary, t: float, e
 			for k in range(0, int(it.get("w", 3))):
 				ci.draw_rect(Rect2(x + k * T + 4, y + 4, 8, T * 0.4 - 8), Color("b45309"))
 			ci.draw_arc(Vector2(x + wm / 2.0, y + T * 0.2), 6.0, 0.0, TAU, 12, Color(1, 1, 1, 0.6), 2.0)
+		"puente":
+			var wp: float = float(it.get("w", 4)) * T
+			var tz: float = sin(t * 60.0) * 2.0 if it.get("tiembla", false) else 0.0
+			var cy: float = y + float(it.get("fall", 0.0)) * 60.0
+			if float(it.get("fall", 0.0)) < 40.0:
+				for k in range(0, int(it.get("w", 4))):
+					ci.draw_rect(Rect2(x + k * T + 2 + tz, cy, T - 4, T * 0.4), Color("a16207"))
+					ci.draw_rect(Rect2(x + k * T + 2 + tz, cy, T - 4, T * 0.4), Color("422006"), false, 2.0)
+				ci.draw_line(Vector2(x, cy + 2), Vector2(x + wp, cy + 2), Color("fde68a"), 2.0)
+		"pendulo":
+			var ax: float = x + T / 2.0
+			var ay: float = y
+			var largo: float = float(it.get("r", 3)) * T
+			var ang: float = float(it.get("ang", 0.0))
+			var bp := Vector2(ax + sin(ang) * largo, ay + cos(ang) * largo)
+			ci.draw_line(Vector2(ax, ay), bp, Color("6b7280"), 4.0)
+			ci.draw_circle(Vector2(ax, ay), 7.0, Color("374151"))
+			ci.draw_circle(bp, T * 0.55, Color("374151"))
+			ci.draw_circle(bp, T * 0.42, Color("6b7280"))
+			for k in 8:
+				var a := TAU * float(k) / 8.0
+				ci.draw_line(bp + Vector2(cos(a), sin(a)) * T * 0.5, bp + Vector2(cos(a), sin(a)) * T * 0.72, Color("d1d5db"), 4.0)
 		"caja":
 			ci.draw_rect(Rect2(x + 2, y + 2, T - 4, T - 4), Color("a16207"))
 			ci.draw_rect(Rect2(x + 2, y + 2, T - 4, T - 4), Color("422006"), false, 3.0)

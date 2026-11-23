@@ -21,6 +21,7 @@ const RESORTE := 1300.0
 var nivel: Dictionary = {}
 var tema: Dictionary = {}
 var escala := 1.0
+var camy := 0.0
 var con_salir := false
 var tactil := false
 
@@ -273,6 +274,8 @@ var llaves: Array = []
 var puertas: Array = []
 var botones: Array = []
 var moviles: Array = []
+var puentes: Array = []
+var pendulos: Array = []
 var cajas: Array = []
 var _n_llaves := 0
 var _llaves_disp := 0
@@ -527,6 +530,8 @@ func resetear() -> void:
 	puertas = []
 	botones = []
 	moviles = []
+	puentes = []
+	pendulos = []
 	cajas = []
 	_n_llaves = 0
 	_llaves_disp = 0
@@ -578,6 +583,11 @@ func resetear() -> void:
 				var wm := int(it.get("w", 3))
 				moviles.append({"it": c, "px": float(it["x"]) * T, "x0": float(it["x"]) * T, "dir": 1.0, "r": float(it.get("r", 3)) * T, "sp": float(it.get("sp", 60)),
 					"rect": Rect2(float(it["x"]) * T, float(it["y"]) * T, wm * T, T * 0.4), "dx": 0.0})
+			"puente":
+				var wp := int(it.get("w", 4))
+				puentes.append({"it": c, "rect": Rect2(float(it["x"]) * T, float(it["y"]) * T, wp * T, T * 0.4), "r0": Rect2(float(it["x"]) * T, float(it["y"]) * T, wp * T, T * 0.4), "est": 0, "t": 0.0, "vy": 0.0})
+			"pendulo":
+				pendulos.append({"it": c, "ax": (float(it["x"]) + 0.5) * T, "ay": float(it["y"]) * T, "largo": float(it.get("r", 3)) * T, "sp": float(it.get("sp", 60)) / 60.0, "ang": 0.0, "bx": 0.0, "by": 0.0})
 			"caja":
 				cajas.append({"it": c, "r": Rect2(float(it["x"]) * T, float(it["y"]) * T, T, T), "vy": 0.0})
 			"player":
@@ -591,8 +601,9 @@ func resetear() -> void:
 	suelo = false
 	coyote = 0.0
 	buffer = 0.0
-	escala = maxf(0.1, size.y / (Datos.FILAS * T))
+	escala = _escala()
 	cam = maxf(0.0, inicio.x - size.x / escala / 2.0)
+	camy = 0.0
 
 
 # ------------------------------------------------------------------ entrada
@@ -690,15 +701,19 @@ func _avanzar(delta: float) -> void:
 
 func _process(delta: float) -> void:
 	_avanzar(delta)
-	escala = maxf(0.1, size.y / (Datos.FILAS * T))
+	escala = _escala()
 	_mundo.scale = Vector2(escala, escala)
 	var sac := Vector2.ZERO
 	if _temblor > 0.0 and bool(reglas.get("cam_temblor", true)):
 		sac = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * _temblor * 22.0
-	_mundo.position = Vector2(-cam * escala, 0.0) + sac
+	_mundo.position = Vector2(-cam * escala, -camy * escala) + sac
 	queue_redraw()
 	_mundo.queue_redraw()
 	_hud.queue_redraw()
+
+
+func _escala() -> float:
+	return maxf(0.1, size.y / (Datos.FILAS * T)) * clampf(float(reglas.get("cam_zoom", 100)) / 100.0, 1.0, 2.0)
 
 
 func _caja() -> Rect2:
@@ -714,6 +729,10 @@ func _actualizar(dt: float) -> void:
 	var vista := size.x / escala
 	var objetivo := (ancho - vista) / 2.0 if ancho <= vista else clampf(pos.x + pw / 2.0 - vista / 2.0, 0.0, ancho - vista)
 	cam += (objetivo - cam) * minf(1.0, dt * 8.0 * float(reglas.get("cam_suave", 100)) / 100.0)
+	var vista_y := size.y / escala
+	var alto_m := float(Datos.FILAS) * T
+	var objy := (alto_m - vista_y) / 2.0 if alto_m <= vista_y else clampf(pos.y + ph / 2.0 - vista_y / 2.0, 0.0, alto_m - vista_y)
+	camy += (objy - camy) * minf(1.0, dt * 8.0)
 	_temblor = maxf(0.0, _temblor - dt)
 	_parts_tick(dt)
 	for r in resortes:
@@ -958,7 +977,7 @@ func _draw() -> void:
 
 ## Plataformas fijas y bloques creados por el mago.
 func _todas_plats() -> Array:
-	if _bloques.is_empty() and puertas.is_empty() and moviles.is_empty() and cajas.is_empty():
+	if _bloques.is_empty() and puertas.is_empty() and moviles.is_empty() and cajas.is_empty() and puentes.is_empty():
 		return plats
 	var r: Array = _estaticas(null)
 	for cj in cajas:
@@ -976,6 +995,9 @@ func _estaticas(excepto: Variant) -> Array:
 			r.append(Rect2(float(d["x"]) * T + 6, float(d["y"]) * T, T - 12, T * 2))
 	for m in moviles:
 		r.append(m["rect"])
+	for pu in puentes:
+		if int(pu["est"]) != 2:
+			r.append(pu["rect"])
 	for cj in cajas:
 		if cj != excepto:
 			r.append(cj["r"])
@@ -1102,6 +1124,37 @@ func _objetos_vivos(dt: float) -> void:
 		m["it"]["x"] = m["px"] / T
 		if encima:
 			pos.x += m["dx"]
+	# puentes: se rompen poco después de pisarlos y vuelven a salir
+	for pu in puentes:
+		var rp: Rect2 = pu["rect"]
+		if int(pu["est"]) == 0:
+			var pisa: bool = suelo and absf(pos.y + PH * T - rp.position.y) < 6.0 and pos.x + PW * T > rp.position.x and pos.x < rp.end.x
+			if pisa:
+				pu["est"] = 1
+				pu["t"] = 0.0
+		elif int(pu["est"]) == 1:
+			pu["t"] = float(pu["t"]) + dt
+			if float(pu["t"]) > 0.6:
+				pu["est"] = 2
+				pu["t"] = 0.0
+				pu["vy"] = 0.0
+				_sfx("golpe")
+		else:
+			pu["t"] = float(pu["t"]) + dt
+			pu["vy"] = float(pu["vy"]) + g * dt
+			if float(pu["t"]) > 3.0:
+				pu["est"] = 0
+				pu["rect"] = pu["r0"]
+		pu["it"]["fall"] = float(pu["vy"]) * 0.2 if int(pu["est"]) == 2 else 0.0
+		pu["it"]["tiembla"] = int(pu["est"]) == 1
+	# péndulos: bola con pinchos que balancea y hace daño
+	for pe in pendulos:
+		pe["ang"] = sin(t * float(pe["sp"]) * 1.6) * 1.15
+		pe["bx"] = float(pe["ax"]) + sin(float(pe["ang"])) * float(pe["largo"])
+		pe["by"] = float(pe["ay"]) + cos(float(pe["ang"])) * float(pe["largo"])
+		pe["it"]["ang"] = pe["ang"]
+		if Vector2(pe["bx"], pe["by"]).distance_to(Vector2(pos.x + PW * T / 2.0, pos.y + PH * T / 2.0)) < T * 0.55 + PW * T / 2.0:
+			_herir()
 	# cajas: caen y se empujan
 	for cj in cajas:
 		cj["vy"] = minf(cj["vy"] + g * dt, 900.0)
@@ -1266,6 +1319,10 @@ func _dibujar_mundo(ci: CanvasItem) -> void:
 		Dibujo.objeto(ci, b, tema, t)
 	for m in moviles:
 		Dibujo.objeto(ci, m["it"], tema, t)
+	for pu in puentes:
+		Dibujo.objeto(ci, pu["it"], tema, t)
+	for pe in pendulos:
+		Dibujo.objeto(ci, pe["it"], tema, t)
 	for cj in cajas:
 		Dibujo.objeto(ci, cj["it"], tema, t)
 	for d in puertas:
@@ -1301,7 +1358,7 @@ func _dibujar_oscuridad(ci: CanvasItem) -> void:
 		_luz_tex.fill_to = Vector2(1.0, 0.5)
 		_luz_tex.width = 256
 		_luz_tex.height = 256
-	var c := Vector2((pos.x + PW * T / 2.0 - cam) * escala, (pos.y + PH * T / 2.0) * escala)
+	var c := Vector2((pos.x + PW * T / 2.0 - cam) * escala, (pos.y + PH * T / 2.0 - camy) * escala)
 	var R := 4.5 * T * escala
 	var col := Color(0, 0, 0, osc)
 	ci.draw_texture_rect(_luz_tex, Rect2(c - Vector2(R, R), Vector2(R, R) * 2.0), false, col)

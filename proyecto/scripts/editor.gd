@@ -445,7 +445,7 @@ func _defs(que: String) -> Array:
 		"objetos":
 			var lista := [["plat", "Plataforma"], ["coin", "Moneda"], ["star", "Estrella"], ["gem", "Gema"], ["spike", "Pinchos"], ["spring", "Resorte"], ["goal", "Meta"], ["player", "Inicio"]]
 			if modo == "2d" and str(Datos.nivel.get("tipo", "")) != "arriba" and str(Datos.nivel.get("estilo", "")) == "":
-				lista += [["llave", "Llave"], ["puerta", "Puerta"], ["boton", "Botón"], ["platmov", "Plataforma móvil"], ["caja", "Caja empujable"]]
+				lista += [["llave", "Llave"], ["puerta", "Puerta"], ["boton", "Botón"], ["platmov", "Plataforma móvil"], ["puente", "Puente que se cae"], ["pendulo", "Péndulo"], ["caja", "Caja empujable"]]
 			if modo == "2d" and str(Datos.nivel.get("tipo", "")) == "arriba":
 				lista = [["plat", "Pared"], ["coin", "Moneda"], ["star", "Estrella"], ["gem", "Gema"], ["spike", "Pinchos"], ["goal", "Meta"], ["player", "Inicio"]]
 			if str(Datos.nivel.get("estilo", "")) in ["carrera", "kart"]:
@@ -1282,12 +1282,12 @@ func _refrescar_props() -> void:
 		_props_caja.visible = false
 		return
 	_props_caja.visible = true
-	var nombres := {"plat": "Plataforma", "coin": "Moneda", "star": "Estrella", "gem": "Gema", "spike": "Pinchos", "spring": "Resorte", "goal": "Meta", "llave": "Llave", "puerta": "Puerta", "boton": "Botón", "platmov": "Plataforma móvil", "caja": "Caja", "enemy": "Enemigo", "deco": "Decoración", "player": "Inicio"}
+	var nombres := {"plat": "Plataforma", "coin": "Moneda", "star": "Estrella", "gem": "Gema", "spike": "Pinchos", "spring": "Resorte", "goal": "Meta", "llave": "Llave", "puerta": "Puerta", "boton": "Botón", "platmov": "Plataforma móvil", "puente": "Puente que se cae", "pendulo": "Péndulo", "caja": "Caja", "enemy": "Enemigo", "deco": "Decoración", "player": "Inicio"}
 	var l := Label.new()
 	l.text = nombres.get(s["t"], "")
 	l.add_theme_font_size_override("font_size", 20)
 	_props_fila.add_child(l)
-	if s["t"] == "plat" or s["t"] == "platmov":
+	if s["t"] in ["plat", "platmov", "puente"]:
 		_props_fila.add_child(_grupo("Ancho", str(s["w"]), _ajustar.bind("w", -1), _ajustar.bind("w", 1)))
 		_props_fila.add_child(_grupo("Alto", str(s["h"]), _ajustar.bind("h", -1), _ajustar.bind("h", 1)))
 	if s["t"] == "plat" and modo == "3d":
@@ -1308,7 +1308,7 @@ func _refrescar_props() -> void:
 			dl.focus_exited.connect(Datos.confirmar)
 			dl.text_submitted.connect(func(_t): Datos.confirmar(); dl.release_focus())
 			_props_fila.add_child(dl)
-	if s["t"] == "enemy" or s["t"] == "platmov":
+	if s["t"] in ["enemy", "platmov", "pendulo"]:
 		_props_fila.add_child(_grupo("Recorrido", str(s["r"]), _ajustar.bind("r", -1), _ajustar.bind("r", 1)))
 		_props_fila.add_child(_grupo("Rapidez", str(int(s["sp"]) / 10), _ajustar.bind("sp", -1), _ajustar.bind("sp", 1)))
 	if s["t"] == "enemy" and modo == "2d" and str(Datos.nivel.get("tipo", "")) != "arriba":
@@ -1368,7 +1368,7 @@ func _refrescar_props() -> void:
 			Datos.olvidar_texturas_pal()
 			Datos.confirmar())
 		_props_fila.add_child(op)
-	if not ["plat", "platmov", "player", "goal", "pared", "viga", "valla", "puerta", "boton", "caja"].has(str(s["t"])):
+	if not ["plat", "platmov", "puente", "pendulo", "player", "goal", "pared", "viga", "valla", "puerta", "boton", "caja"].has(str(s["t"])):
 		var oa := OptionButton.new()
 		oa.custom_minimum_size = Vector2(140, 40)
 		oa.focus_mode = Control.FOCUS_NONE

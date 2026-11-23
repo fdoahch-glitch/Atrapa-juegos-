@@ -159,7 +159,7 @@ func _dibujar_mundo(ci: CanvasItem) -> void:
 		ci.draw_dashed_line(Vector2(r.end.x, r.position.y), r.end, col, 3.0 * px, 8.0 * px)
 		ci.draw_dashed_line(r.end, Vector2(r.position.x, r.end.y), col, 3.0 * px, 8.0 * px)
 		ci.draw_dashed_line(Vector2(r.position.x, r.end.y), r.position, col, 3.0 * px, 8.0 * px)
-		if sel["t"] == "plat" or sel["t"] == "platmov":
+		if sel["t"] in ["plat", "platmov", "puente"]:
 			ci.draw_circle(r.end, 11.0 * px, Color.WHITE)
 			ci.draw_arc(r.end, 11.0 * px, 0.0, TAU, 20, col, 3.0 * px)
 		if sel["t"] == "enemy" and not vert:
@@ -204,7 +204,7 @@ func _dibujar_fantasma(ci: CanvasItem) -> void:
 	it = _m(it)
 	var extra := {}
 	match d["t"]:
-		"plat", "platmov":
+		"plat", "platmov", "puente":
 			it["w"] = 3
 			it["h"] = 1
 		"enemy":
@@ -279,7 +279,7 @@ func _bajar(p: Vector2) -> void:
 		_drag = {"modo": "borrar"}
 		seleccionado.emit(null)
 		return
-	if sel != null and (sel["t"] == "plat" or sel["t"] == "platmov") and c.distance_to(Datos.caja_de(sel).end) < 0.55:
+	if sel != null and (sel["t"] in ["plat", "platmov", "puente"]) and c.distance_to(Datos.caja_de(sel).end) < 0.55:
 		_drag = {"modo": "estirar", "it": sel}
 		return
 	var h2 = Datos.objeto_en(c)
@@ -331,8 +331,8 @@ func _mover(p: Vector2) -> void:
 		"mover":
 			var it2: Dictionary = _drag["it"]
 			var b := Datos.caja_de(it2)
-			var ancho := int(it2["w"]) if (it2["t"] == "plat" or it2["t"] == "platmov") else 1
-			var alto := int(it2["h"]) if (it2["t"] == "plat" or it2["t"] == "platmov") else 1
+			var ancho := int(it2["w"]) if (it2["t"] in ["plat", "platmov", "puente"]) else 1
+			var alto := int(it2["h"]) if (it2["t"] in ["plat", "platmov", "puente"]) else 1
 			var nx := clampi(roundi(c.x - _drag["dx"]), 0, cols - ancho)
 			var ny := clampi(roundi(c.y - _drag["dy"]), 0, Datos.FILAS - alto)
 			if Datos.es_corredor() and Datos.TIPOS_PISTA.has(str(it2["t"])):

@@ -55,7 +55,7 @@ var niveles: Array = []             # copias de todos los niveles (el actual se 
 var idx := 0                        # posición del nivel actual
 var reglas: Dictionary = {}         # reglas del juego completo
 const MAX_NIVELES := 10
-const REGLAS_BASE := {"vidas": 3, "tiempo": 0, "meta": "meta", "pts_coin": 1, "pts_gem": 3, "pts_star": 5, "pts_enemy": 2, "titulo": true, "final": "¡Ganaste el juego!", "musica": "", "mascota": "", "poder": "escudo", "tienda": false, "jugadores": 1, "heroe2": "", "plataforma": "windows", "categoria": "", "subtipo": "", "rend": {}, "dificultad": "normal", "elegir_dificultad": false, "misiones": false, "revivir": 0, "modo_prueba": false, "arma": "pistola", "espera": false, "logros": true, "sin_fin": false, "fis": {}, "mec": {}, "sonidos": {}, "fx": {}, "cam_suave": 100, "cam_temblor": true, "trans": "fundido", "idioma": "es", "creditos": "", "paleta": "", "paleta_fuerza": 80, "paleta_todo": false}
+const REGLAS_BASE := {"vidas": 3, "tiempo": 0, "meta": "meta", "pts_coin": 1, "pts_gem": 3, "pts_star": 5, "pts_enemy": 2, "titulo": true, "final": "¡Ganaste el juego!", "musica": "", "mascota": "", "poder": "escudo", "tienda": false, "jugadores": 1, "heroe2": "", "plataforma": "windows", "categoria": "", "subtipo": "", "rend": {}, "dificultad": "normal", "elegir_dificultad": false, "misiones": false, "revivir": 0, "modo_prueba": false, "arma": "pistola", "espera": false, "logros": true, "sin_fin": false, "fis": {}, "mec": {}, "sonidos": {}, "fx": {}, "cam_suave": 100, "cam_zoom": 100, "cam_temblor": true, "trans": "fundido", "idioma": "es", "creditos": "", "paleta": "", "paleta_fuerza": 80, "paleta_todo": false}
 var historial: Array[String] = []
 var futuro: Array[String] = []
 var _actual := ""
@@ -870,7 +870,7 @@ func normalizar(n: Dictionary) -> Dictionary:
 					it[k] = int(it[k])
 				else:
 					it.erase(k)
-		if ["plat", "pared", "viga", "valla"].has(str(it["t"])):
+		if ["plat", "puente", "pared", "viga", "valla"].has(str(it["t"])):
 			it["w"] = maxi(1, int(it.get("w", 1)))
 			it["h"] = maxi(1, int(it.get("h", 1)))
 		if ["deco", "enemy"].has(str(it["t"])) and str(it.get("e", "")) == "":
@@ -1071,6 +1071,7 @@ func reglas_completas(r: Dictionary) -> Dictionary:
 	o["sonidos"] = sfx_normal(r.get("sonidos", {}))
 	o["fx"] = fx_normal(r.get("fx", {}))
 	o["cam_suave"] = clampi(int(o["cam_suave"]), 30, 300)
+	o["cam_zoom"] = clampi(int(o["cam_zoom"]), 100, 200)
 	o["paleta_fuerza"] = clampi(int(o["paleta_fuerza"]), 0, 100)
 	if str(o["paleta"]) != "" and not PALETAS.any(func(q): return q[0] == str(o["paleta"])):
 		o["paleta"] = ""
@@ -1376,7 +1377,7 @@ func cargar_guardado() -> void:
 
 
 # ---------------------------------------------------------------- objetos
-const CAPAS := {"deco": 0, "plat": 1, "platmov": 1, "caja": 2, "puerta": 2, "boton": 2, "llave": 3, "spike": 2, "spring": 2, "valla": 2, "pared": 2, "viga": 2, "coin": 3, "star": 3, "gem": 3, "goal": 3, "enemy": 3, "player": 4}
+const CAPAS := {"deco": 0, "plat": 1, "platmov": 1, "puente": 1, "pendulo": 2, "caja": 2, "puerta": 2, "boton": 2, "llave": 3, "spike": 2, "spring": 2, "valla": 2, "pared": 2, "viga": 2, "coin": 3, "star": 3, "gem": 3, "goal": 3, "enemy": 3, "player": 4}
 
 # Modo 3D (corredor): la pista se ve desde arriba; el corredor avanza hacia la derecha.
 # Tres carriles: arriba = izquierda, centro, abajo = derecha.
@@ -1415,7 +1416,7 @@ func capa(it: Dictionary) -> int:
 
 ## Rectángulo del objeto en celdas (para tocar/seleccionar).
 func caja_de(it: Dictionary) -> Rect2:
-	if it["t"] == "plat" or it["t"] == "platmov":
+	if it["t"] == "plat" or it["t"] == "platmov" or it["t"] == "puente":
 		return Rect2(it["x"], it["y"], it.get("w", 3), it.get("h", 1))
 	if it["t"] == "puerta":
 		return Rect2(it["x"], it["y"], 1, 2)
@@ -1461,6 +1462,12 @@ func colocar(def: Dictionary, cx: int, cy: int) -> Dictionary:
 		"plat":
 			o["w"] = mini(3, nivel["cols"] - cx)
 			o["h"] = 1
+		"puente":
+			o["w"] = mini(4, nivel["cols"] - cx)
+			o["h"] = 1
+		"pendulo":
+			o["r"] = 3
+			o["sp"] = 60
 		"platmov":
 			o["w"] = mini(3, nivel["cols"] - cx)
 			o["h"] = 1

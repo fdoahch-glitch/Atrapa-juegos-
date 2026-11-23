@@ -57,6 +57,8 @@ func _ready() -> void:
 	for id in ["g:SN_CommonTree_1.glb", "g:Com_building_a.glb", "g:Q_Cow.glb", "g:KP_platform_2x2x2_green.glb", "g:NK_tree_oak.glb", "g:Tren_locomotive_blue_industrial.glb", "g:TS_Birch_4.glb"]:
 		var x: Node3D = Importar.modelo(id, 1.5)
 		ok(x != null and x.find_children("*", "MeshInstance3D", true, false).size() > 0, "carga con paleta " + id)
+	var vaca: Node3D = Importar.modelo("g:Q_Cow.glb", 1.5)
+	ok(vaca != null and vaca.find_children("*", "AnimationPlayer", true, false).size() > 0, "los animales ahora traen animación")
 	# partida con paleta en pantalla: abre el juego
 	Datos.reglas["paleta_todo"] = true
 	var n := Datos.normalizar(Datos.nivel_inicial())

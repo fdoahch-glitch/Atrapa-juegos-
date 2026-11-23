@@ -71,6 +71,9 @@ func _ready() -> void:
 	_barra(v, "Suavidad al seguirte", "Brusca", "Muy suave", 30.0, 300.0, float(Datos.reglas["cam_suave"]), func(x):
 		Datos.reglas["cam_suave"] = int(x)
 		Datos.guardar())
+	_barra(v, "Acercar la cámara (zoom)", "Todo el nivel", "Muy cerca", 100.0, 200.0, float(Datos.reglas["cam_zoom"]), func(x):
+		Datos.reglas["cam_zoom"] = int(x)
+		Datos.guardar())
 	_opciones(v, "Tiembla al golpear", [true, false], ["Sí", "No"], bool(Datos.reglas["cam_temblor"]), func(val):
 		Datos.reglas["cam_temblor"] = bool(val)
 		Datos.guardar())

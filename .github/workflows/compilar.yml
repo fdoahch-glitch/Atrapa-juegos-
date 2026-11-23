@@ -45,8 +45,21 @@ jobs:
           scons platform=android target=template_release arch=arm64 -j4
           scons platform=android target=template_release arch=arm32 -j4
           scons platform=android target=template_release arch=arm64 generate_android_binaries=yes -j4
+      - name: Plantillas de Android (gradle)
+        working-directory: fuente/platform/android/java
+        run: |
+          ls -R lib/libs 2>/dev/null | head -20 || true
+          ./gradlew generateGodotTemplates || true
+          cd ../../..
+          find . -name "android_release.apk" -o -name "android_source.zip" | head
+          ls -la bin
       - uses: actions/upload-artifact@v4
-        with: { name: plantilla-android, path: fuente/bin/android_release.apk }
+        with:
+          name: plantilla-android
+          path: |
+            fuente/bin/*.apk
+            fuente/bin/*.zip
+          if-no-files-found: warn
   ensamblar:
     needs: [windows, web]
     runs-on: ubuntu-latest
