@@ -349,6 +349,9 @@ func _salon_espera(i: int) -> void:
 	await get_tree().create_timer(0.4).timeout
 
 
+var vuelta := 0
+
+
 func _empezar_ya(i: int) -> void:
 	_limpiar()
 	idx = i
@@ -367,6 +370,8 @@ func _empezar_ya(i: int) -> void:
 	j.puntos_base = puntos_acum
 	var cant: int = proy["niveles"].size()
 	j.etiqueta_nivel = "Nivel %d de %d" % [idx + 1, cant] if cant > 1 else ""
+	if bool(proy["reglas"].get("sin_fin", false)):
+		j.etiqueta_nivel = "Vuelta %d" % (vuelta + 1)
 	j.salir.connect(func(): salir.emit())
 	j.nivel_terminado.connect(_al_terminar.bind(j))
 	j.iniciar(n, tactil, con_salir)
@@ -390,10 +395,10 @@ func _al_terminar(gano: bool, icono: String, titulo: String, sub: String, j: Con
 		var perdidas: int = maxi(0, int(r.get("vidas", 3)) - int(j.vidas))
 		var nu: Array = Progreso_.logros_nuevos(j.stats.merged({"puntos": j.puntos}, true), gano, perdidas)
 		if nu.size() > 0:
-			sub += "\n🏅 Logro: " + ", ".join(nu.map(func(l): return str(l["emoji"]) + " " + str(l["n"])))
+			sub += "\nLogro: " + ", ".join(nu.map(func(l): return str(l["n"])))
 	var pos := Progreso_.anotar_record(str(proy["niveles"][0].get("name", "Juego")), j.puntos) if j.puntos > 0 else 0
 	if pos == 1 and j.puntos > 0:
-		sub += "\n🏅 ¡Nuevo récord!"
+		sub += "\n¡Nuevo récord!"
 	if not gano and int(r.get("revivir", 0)) > 0 and j.has_method("revivir"):
 		var costo := int(r["revivir"])
 		if int(Tienda.leer()["monedas"]) >= costo:
@@ -402,6 +407,12 @@ func _al_terminar(gano: bool, icono: String, titulo: String, sub: String, j: Con
 					_panel.queue_free()
 					_panel = null
 					j.revivir(), true])
+	if gano and bool(r.get("sin_fin", false)):
+		# pista sin fin: al llegar al final empieza otra vuelta, sumando puntos, hasta que pierdas
+		puntos_acum = j.puntos
+		vuelta += 1
+		_empezar_ya(idx)
+		return
 	if gano:
 		puntos_acum = j.puntos
 		if idx < cant - 1:
@@ -415,7 +426,7 @@ func _al_terminar(gano: bool, icono: String, titulo: String, sub: String, j: Con
 			sub = "Puntos: %d" % puntos_acum
 			botones.append(["Jugar otra vez", "🔁", _reiniciar, true])
 	else:
-		botones.append(["Reintentar", "🔁", func(): _empezar(idx), true])
+		botones.append(["Reintentar", "🔁", func(): puntos_acum = 0; vuelta = 0; _empezar(idx), true])
 		if cant > 1 or bool(proy["reglas"]["titulo"]):
 			botones.append(["Volver al inicio", "🏠", _reiniciar, false])
 	_mostrar_panel(icono, titulo, sub, botones)
@@ -423,6 +434,7 @@ func _al_terminar(gano: bool, icono: String, titulo: String, sub: String, j: Con
 
 func _reiniciar() -> void:
 	puntos_acum = 0
+	vuelta = 0
 	if bool(proy["reglas"]["titulo"]):
 		idx = 0
 		_mostrar_titulo()
@@ -453,7 +465,7 @@ func _mostrar_panel(icono: String, titulo: String, sub: String, botones: Array) 
 	var ancho := minf(560.0, maxf(240.0, size.x - 40.0))
 	for par in [[titulo, 36, 1.0], [sub, 22, 0.9]]:
 		var l := Label.new()
-		l.text = par[0]
+		l.text = Datos.limpiar_emoji(str(par[0]))
 		l.add_theme_font_size_override("font_size", par[1])
 		l.add_theme_color_override("font_color", Color(1, 1, 1, par[2]))
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -675,7 +687,7 @@ func _mostrar_misiones() -> void:
 	var hechas: Array = Progreso_.hechas_hoy()
 	var l: Array = []
 	for m in Progreso_.misiones_hoy(proy["reglas"]):
-		l.append(("✅ " if hechas.has(m["txt"]) else "⬜ ") + "%s  (+%d)" % [m["txt"], int(m["premio"])])
+		l.append(("[x] " if hechas.has(m["txt"]) else "[ ] ") + "%s  (+%d)" % [m["txt"], int(m["premio"])])
 	_hoja("Misiones de hoy", l)
 
 
@@ -684,11 +696,11 @@ func _mostrar_bitacora() -> void:
 	var l: Array = ["Fósiles: %d   ·   Minutos jugados: %d" % [int(d["fosiles"]), int(float(d["minutos"]))], ""]
 	for f in proy["reglas"].get("coleccion", []):
 		if Progreso_.ficha_abierta(f):
-			l.append("🦖 %s — %s" % [f["n"], f["sub"]])
+			l.append("%s — %s" % [f["n"], f["sub"]])
 			for x in f["lineas"]:
 				l.append("    " + str(x))
 		else:
-			var falta := "🔒 %s — necesitas %d fósiles" % ["???", int(f["req"])]
+			var falta := "(bloqueado) %s — necesitas %d fósiles" % ["???", int(f["req"])]
 			if int(f["min"]) > 0:
 				falta += " y %d min" % int(f["min"])
 			l.append(falta)
@@ -699,7 +711,7 @@ func _mostrar_logros() -> void:
 	var tiene: Array = Progreso_.leer()["logros"]
 	var l: Array = []
 	for g in Progreso_.LOGROS:
-		l.append(("%s %s — %s" % [g["emoji"], g["n"], g["txt"]]) if tiene.has(g["id"]) else "🔒 %s — %s" % [g["n"], g["txt"]])
+		l.append(("%s — %s" % [g["n"], g["txt"]]) if tiene.has(g["id"]) else "(bloqueado) %s — %s" % [g["n"], g["txt"]])
 	l.append("")
 	l.append("%d de %d medallas" % [tiene.size(), Progreso_.LOGROS.size()])
 	_hoja("Logros", l)

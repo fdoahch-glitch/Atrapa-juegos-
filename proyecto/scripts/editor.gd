@@ -329,6 +329,7 @@ func _construir() -> void:
 	_niveles_fila.offset_right = -12
 	_niveles_fila.offset_top = 64
 	_objetivos["niveles"] = _niveles_fila
+	_niveles_fila.resized.connect(_acomodar_lienzo)
 	# etiqueta "colocando..."
 	_chip_caja = CenterContainer.new()
 	_chip_caja.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -724,9 +725,9 @@ func _refrescar_niveles() -> void:
 			Estilo.pintar(b, Estilo.MORADO)
 		b.pressed.connect(_ir_nivel.bind(i))
 		_niveles_fila.add_child(b)
-	var mas := _boton("", "➕", null, Color.WHITE, 44)
+	var mas := _boton(" Mundo nuevo", "➕", Estilo.VERDE)
 	mas.custom_minimum_size.y = 40
-	mas.tooltip_text = "Nivel nuevo"
+	mas.tooltip_text = "Crea el Mundo %d y se abre para trabajar ahí" % (n + 1)
 	mas.disabled = n >= Datos.MAX_NIVELES
 	mas.pressed.connect(func(): _agregar_nivel(false))
 	_niveles_fila.add_child(mas)
@@ -742,11 +743,65 @@ func _refrescar_niveles() -> void:
 		del.tooltip_text = "Borrar este nivel"
 		del.pressed.connect(_borrar_nivel)
 		_niveles_fila.add_child(del)
+	# botones según el tipo de juego
+	var esmini := str(Datos.nivel.get("estilo", "")) == "mini"
+	var extra: Array = []
+	if Datos.es_corredor() or Datos.nivel.has("pista"):
+		extra.append([" Pista", "🛣", "Curvas, subidas y ambiente de la pista", "pista"])
+	if not esmini:
+		extra.append([" Elementos", "🌍", "Lista de todo lo del mundo", "elementos"])
+	else:
+		extra.append([" Contenido", "📝", "Edita el contenido del minijuego", "contenido"])
+	for ex in extra:
+		var be := _boton(ex[0], ex[1])
+		be.custom_minimum_size.y = 40
+		be.tooltip_text = ex[2]
+		be.pressed.connect(_ir_paso.bind(ex[3]))
+		_niveles_fila.add_child(be)
 	var reg := _boton(" Reglas", "⚙", Estilo.TURQUESA)
 	reg.custom_minimum_size.y = 40
 	reg.tooltip_text = "Vidas, tiempo, puntos y más"
 	reg.pressed.connect(_abrir_reglas)
 	_niveles_fila.add_child(reg)
+
+
+## El lienzo empieza debajo de las barras de botones, para que nada quede tapado.
+func _acomodar_lienzo() -> void:
+	if _esc == null or _niveles_fila == null:
+		return
+	_esc.offset_top = _niveles_fila.position.y + _niveles_fila.size.y + 6.0
+
+
+## Cuadro de arriba de Reglas: dice con palabras cuándo se gana, cuándo se pierde y si la pista termina.
+func _reglas_resumen(v: VBoxContainer) -> void:
+	var r: Dictionary = Datos.reglas
+	var corre: bool = Datos.es_corredor() or Datos.nivel.has("pista")
+	var mini: bool = str(Datos.nivel.get("estilo", "")) == "mini"
+	var gana := ""
+	var pierde := ""
+	if mini:
+		gana = "Cumples el objetivo del minijuego (puntos, metas o respuestas, según el contenido)."
+		pierde = "Se acaban tus intentos, vidas o el tiempo."
+	elif str(Datos.nivel.get("estilo", "")) == "supervivencia":
+		gana = "Aguantas %d segundos con vida." % int(Datos.nivel.get("aguantar", 45))
+		pierde = "Te quedas sin vidas."
+	elif bool(r.get("sin_fin", false)) and corre:
+		gana = "No se gana: la pista no termina. Cada vuelta suma puntos y se hace más difícil."
+		pierde = "Chocas y te quedas sin vidas. Tu meta es batir tu récord."
+	else:
+		match str(r.get("meta", "meta")):
+			"mitad": gana = "Recoges la mitad de los premios y llegas a la meta."
+			"todo": gana = "Recoges todos los premios y llegas a la meta."
+			_: gana = "Llegas a la meta."
+		pierde = "Te quedas sin vidas" + (" o se acaba el tiempo (%d:%02d)." % [int(r["tiempo"]) / 60, int(r["tiempo"]) % 60] if int(r["tiempo"]) > 0 else ".")
+	var caja := PanelContainer.new()
+	caja.add_theme_stylebox_override("panel", Estilo.caja(Color("eef0ff"), 16, 0, Color.TRANSPARENT, 12))
+	var l := Label.new()
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.add_theme_color_override("font_color", Estilo.TINTA)
+	l.text = "Cómo se gana: %s\nCómo se pierde: %s\nPista: %s" % [gana, pierde, ("sin fin" if bool(r.get("sin_fin", false)) else "con meta al final") if corre else "no aplica"]
+	caja.add_child(l)
+	v.add_child(caja)
 
 
 func _abrir_rendimiento() -> void:
@@ -906,6 +961,9 @@ func _abrir_reglas() -> void:
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.add_theme_constant_override("separation", 10)
 	scroll.add_child(v)
+	_reglas_resumen(v)
+	if Datos.es_corredor() or Datos.nivel.has("pista"):
+		_regla_fila(v, "Pista", _regla_opciones("sin_fin", [[false, "Con meta"], [true, "Sin fin (como Dino Run)"]]))
 	_regla_fila(v, "Vidas", _regla_paso("vidas", 1, 9, 1, func(x): return str(x)))
 	_regla_fila(v, "Tiempo por nivel", _regla_paso("tiempo", 0, 900, 15, func(x): return "Sin límite" if x == 0 else "%d:%02d" % [x / 60, x % 60]))
 	var dl := Label.new()
@@ -1373,7 +1431,7 @@ func _abrir_guia() -> void:
 	var cat := str(Datos.reglas.get("categoria", ""))
 	var info: Dictionary = Categorias.categoria(cat)
 	var tit := Label.new()
-	tit.text = "🧭 Pasos de tu juego" + (" · " + str(info.get("titulo", "")) if info.size() > 0 else "")
+	tit.text = "Pasos de tu juego" + (" · " + Datos.limpiar_emoji(str(info.get("titulo", ""))) if info.size() > 0 else "")
 	tit.add_theme_font_size_override("font_size", 26)
 	tit.add_theme_color_override("font_color", Estilo.TINTA)
 	v0.add_child(tit)
@@ -1391,7 +1449,10 @@ func _abrir_guia() -> void:
 		n += 1
 		var b := Button.new()
 		var pronto: bool = p["abre"] == "pronto"
-		b.text = "%d. %s %s%s\n    %s" % [n, p["emoji"], p["titulo"], "  (pronto)" if pronto else "", p["pregunta"]]
+		b.text = "   %d. %s%s\n   %s" % [n, p["titulo"], "  (pronto)" if pronto else "", p["pregunta"]]
+		b.icon = Datos.textura(str(p["emoji"]))
+		b.expand_icon = true
+		b.add_theme_constant_override("icon_max_width", 36)
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.custom_minimum_size = Vector2(0, 62)
 		b.add_theme_font_size_override("font_size", 16)

@@ -240,7 +240,7 @@ func _mostrar_categorias() -> void:
 func _mostrar_idea() -> void:
 	_en_portada = false
 	var v := _nueva_pantalla()
-	_etiqueta(v, "💡 ¿De qué se trata tu juego?", 36)
+	_etiqueta(v, "¿De qué se trata tu juego?", 36)
 	var ed := TextEdit.new()
 	ed.placeholder_text = "Ej: un juego de celular tipo Run pero en 2D donde un dinosaurio esquiva rocas"
 	ed.custom_minimum_size = Vector2(minf(720.0, size.x - 40.0), 110)

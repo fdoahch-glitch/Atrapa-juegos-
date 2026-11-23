@@ -24,6 +24,8 @@ var _fantasma: Node2D
 var _drag: Dictionary = {}
 var _hover := Vector2i(-1, -1)
 var _cambiado := false
+var _visto := -1
+var vert := false                    # pista de carreras: se ve vertical (avanza hacia arriba)
 
 
 func _ready() -> void:
@@ -46,7 +48,32 @@ func _tema() -> Dictionary:
 	return th
 
 
+## Celdas que ocupa el lienzo en pantalla (ancho, alto).
+func _dims() -> Vector2:
+	var cols: int = Datos.nivel["cols"]
+	return Vector2(Datos.FILAS, cols) if vert else Vector2(cols, Datos.FILAS)
+
+
+## Copia del objeto con su posición girada para dibujarlo en la pista vertical (el dibujo sigue derecho).
+func _m(it: Dictionary) -> Dictionary:
+	if not vert:
+		return it
+	var c := it.duplicate()
+	var cols: int = Datos.nivel["cols"]
+	c["x"] = it["y"]
+	c["y"] = cols - 1 - int(it["x"])
+	return c
+
+
+func _rect_pant(b: Rect2) -> Rect2:
+	if not vert:
+		return b
+	var cols: int = Datos.nivel["cols"]
+	return Rect2(b.position.y, cols - b.position.x - b.size.x, b.size.y, b.size.x)
+
+
 func _process(delta: float) -> void:
+	vert = Datos.es_corredor()
 	t += delta
 	_ajustar()
 	queue_redraw()
@@ -55,10 +82,16 @@ func _process(delta: float) -> void:
 
 
 func _ajustar() -> void:
-	var cols: int = Datos.nivel["cols"]
-	Z = maxf(30.0, size.y / Datos.FILAS) * zoom
-	var ancho := cols * Z
-	var alto := Datos.FILAS * Z
+	var d := _dims()
+	if vert:
+		Z = clampf(minf(size.x / d.x, 64.0), 30.0, 64.0) * zoom
+	else:
+		Z = maxf(30.0, size.y / Datos.FILAS) * zoom
+	var ancho := d.x * Z
+	var alto := d.y * Z
+	if vert and _visto != Datos.idx:
+		_visto = Datos.idx
+		origen.y = size.y - alto   # empieza mostrando la salida (abajo)
 	origen.x = (size.x - ancho) / 2.0 if ancho <= size.x else clampf(origen.x, size.x - ancho, 0.0)
 	origen.y = (size.y - alto) / 2.0 if alto <= size.y else clampf(origen.y, size.y - alto, 0.0)
 	for n in [_mundo, _fantasma]:
@@ -66,15 +99,20 @@ func _ajustar() -> void:
 		n.scale = Vector2(Z / T, Z / T)
 
 
+## Posición en celdas del MUNDO (no de la pantalla) bajo un punto de la pantalla.
 func _celda(p: Vector2) -> Vector2:
-	return (p - origen) / Z
+	var c := (p - origen) / Z
+	if vert:
+		var cols: int = Datos.nivel["cols"]
+		return Vector2(cols - c.y, c.x)
+	return c
 
 
 # ------------------------------------------------------------------ dibujo
 func _draw() -> void:
-	Dibujo.fondo_de(self, Datos.nivel, _tema(), size, -origen.x, t)
+	Dibujo.fondo_de(self, Datos.nivel, _tema(), size, 0.0 if vert else -origen.x, t)
 	# oscurece lo que queda fuera del nivel
-	var mundo := Rect2(origen, Vector2(Datos.nivel["cols"] * Z, Datos.FILAS * Z))
+	var mundo := Rect2(origen, _dims() * Z)
 	var sombra := Color(0.09, 0.07, 0.25, 0.5)
 	draw_rect(Rect2(0, 0, size.x, maxf(0.0, mundo.position.y)), sombra)
 	draw_rect(Rect2(0, mundo.end.y, size.x, maxf(0.0, size.y - mundo.end.y)), sombra)
@@ -102,15 +140,19 @@ func _dibujar_marco_pantalla() -> void:
 func _dibujar_mundo(ci: CanvasItem) -> void:
 	var cols: int = Datos.nivel["cols"]
 	var px := T / Z   # 1 píxel de pantalla en unidades del mundo
-	for i in cols + 1:
-		ci.draw_line(Vector2(i * T, 0), Vector2(i * T, Datos.FILAS * T), Color(1, 1, 1, 0.25), px)
-	for j in Datos.FILAS + 1:
-		ci.draw_line(Vector2(0, j * T), Vector2(cols * T, j * T), Color(1, 1, 1, 0.25), px)
+	var dm := _dims()
+	for i in int(dm.x) + 1:
+		ci.draw_line(Vector2(i * T, 0), Vector2(i * T, dm.y * T), Color(1, 1, 1, 0.25), px)
+	for j in int(dm.y) + 1:
+		ci.draw_line(Vector2(0, j * T), Vector2(dm.x * T, j * T), Color(1, 1, 1, 0.25), px)
 	if Datos.es_corredor():
 		_dibujar_pista(ci, cols)
-	Dibujo.objetos(ci, Datos.nivel["items"], _tema(), t, str(Datos.nivel["hero"]))
+	var lista: Array = []
+	for it0 in Datos.nivel["items"]:
+		lista.append(_m(it0))
+	Dibujo.objetos(ci, lista, _tema(), t, str(Datos.nivel["hero"]))
 	if sel != null and Datos.nivel["items"].has(sel):
-		var b := Datos.caja_de(sel)
+		var b := _rect_pant(Datos.caja_de(sel))
 		var r := Rect2(b.position * T, b.size * T).grow(px)
 		var col := Estilo.MORADO
 		ci.draw_dashed_line(r.position, Vector2(r.end.x, r.position.y), col, 3.0 * px, 8.0 * px)
@@ -120,7 +162,7 @@ func _dibujar_mundo(ci: CanvasItem) -> void:
 		if sel["t"] == "plat":
 			ci.draw_circle(r.end, 11.0 * px, Color.WHITE)
 			ci.draw_arc(r.end, 11.0 * px, 0.0, TAU, 20, col, 3.0 * px)
-		if sel["t"] == "enemy":
+		if sel["t"] == "enemy" and not vert:
 			var yy: float = (float(sel["y"]) + 1.0) * T + 6.0 * px
 			ci.draw_line(Vector2((sel["x"] - sel["r"] + 0.5) * T, yy), Vector2((sel["x"] + sel["r"] + 0.5) * T, yy), Color.WHITE, 5.0 * px)
 
@@ -129,6 +171,17 @@ func _dibujar_mundo(ci: CanvasItem) -> void:
 func _dibujar_pista(ci: CanvasItem, cols: int) -> void:
 	var nombres := ["Izquierda", "Centro", "Derecha"]
 	var fuente := ThemeDB.fallback_font
+	if vert:
+		for i in 3:
+			var fila: int = Datos.fila_de_carril(i)
+			var rv := Rect2((fila - 1) * T, 0, 3 * T, cols * T)
+			ci.draw_rect(rv, Color(0.2, 0.22, 0.3, 0.62))
+			ci.draw_rect(rv, Color(1, 1, 1, 0.55), false, 3.0 * T / Z)
+			ci.draw_string(fuente, Vector2((fila - 1) * T + 6, 22), nombres[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(1, 1, 1, 0.8))
+		ci.draw_string(fuente, Vector2(6, cols * T - 8), "Salida", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1, 1, 1, 0.9))
+		for k in range(2, cols, 6):
+			ci.draw_colored_polygon(PackedVector2Array([Vector2(5.3 * T, (cols - k - 0.3) * T), Vector2(4.7 * T, (cols - k - 0.3) * T), Vector2(5.0 * T, (cols - k - 0.75) * T)]), Color(1, 1, 1, 0.28))
+		return
 	for i in 3:
 		var fila: int = Datos.fila_de_carril(i)
 		var r := Rect2(0, (fila - 1) * T, cols * T, 3 * T)
@@ -148,6 +201,7 @@ func _dibujar_fantasma(ci: CanvasItem) -> void:
 	var it: Dictionary = {"t": d["t"], "x": _hover.x, "y": _hover.y}
 	if Datos.es_corredor() and Datos.TIPOS_PISTA.has(str(d["t"])):
 		it["y"] = Datos.fila_de_carril(Datos.a_carril(_hover.y))
+	it = _m(it)
 	var extra := {}
 	match d["t"]:
 		"plat":
@@ -185,6 +239,8 @@ func _gui_input(ev: InputEvent) -> void:
 				var s := 1.0 if mb.button_index == MOUSE_BUTTON_WHEEL_UP else -1.0
 				if mb.ctrl_pressed:
 					zoom = clampf(zoom + s * 0.1, 0.6, 1.8)
+				elif vert:
+					origen.y += s * 90.0
 				else:
 					origen.x += s * 90.0
 	elif ev is InputEventMouseMotion:

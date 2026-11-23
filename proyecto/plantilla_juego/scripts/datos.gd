@@ -55,7 +55,7 @@ var niveles: Array = []             # copias de todos los niveles (el actual se 
 var idx := 0                        # posición del nivel actual
 var reglas: Dictionary = {}         # reglas del juego completo
 const MAX_NIVELES := 10
-const REGLAS_BASE := {"vidas": 3, "tiempo": 0, "meta": "meta", "pts_coin": 1, "pts_gem": 3, "pts_star": 5, "pts_enemy": 2, "titulo": true, "final": "¡Ganaste el juego!", "musica": "", "mascota": "", "poder": "escudo", "tienda": false, "jugadores": 1, "heroe2": "", "plataforma": "windows", "categoria": "", "subtipo": "", "rend": {}, "dificultad": "normal", "elegir_dificultad": false, "misiones": false, "revivir": 0, "modo_prueba": false, "arma": "pistola", "espera": false, "logros": true}
+const REGLAS_BASE := {"vidas": 3, "tiempo": 0, "meta": "meta", "pts_coin": 1, "pts_gem": 3, "pts_star": 5, "pts_enemy": 2, "titulo": true, "final": "¡Ganaste el juego!", "musica": "", "mascota": "", "poder": "escudo", "tienda": false, "jugadores": 1, "heroe2": "", "plataforma": "windows", "categoria": "", "subtipo": "", "rend": {}, "dificultad": "normal", "elegir_dificultad": false, "misiones": false, "revivir": 0, "modo_prueba": false, "arma": "pistola", "espera": false, "logros": true, "sin_fin": false}
 var historial: Array[String] = []
 var futuro: Array[String] = []
 var _actual := ""
@@ -68,6 +68,17 @@ func _ready() -> void:
 
 
 # ---------------------------------------------------------------- texturas
+## Quita los emojis de un texto (la letra del juego no los dibuja y salen como cuadritos). Los emojis van como icono.
+func limpiar_emoji(s: String) -> String:
+	var r := ""
+	for i in s.length():
+		var c := s.unicode_at(i)
+		if c >= 0x2190 or c == 0xFE0F or c == 0x200D:
+			continue
+		r += s[i]
+	return r.strip_edges()
+
+
 func textura(e: String) -> Texture2D:
 	if e == "":
 		return null

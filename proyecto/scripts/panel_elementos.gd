@@ -30,7 +30,7 @@ func _ready() -> void:
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.add_theme_constant_override("separation", 8)
 	sc.add_child(v)
-	_titulo(v, "🌍 Elementos de «%s»" % str(Datos.nivel.get("name", "este mundo")), 28)
+	_titulo(v, "Elementos de «%s»" % str(Datos.nivel.get("name", "este mundo")), 28)
 	_titulo(v, "Personaje", 20)
 	_modelo(v, "Quién corre", "hero", true)
 	_numero(v, "Tamaño real (alto en metros)", "hero_alto", 0.5, 6.0, 0.1, 1.7)

@@ -121,6 +121,7 @@ func _perder(txt: String) -> void:
 
 # ------------------------------------------------------------------ ayudas de dibujo
 func _txt(ci: CanvasItem, s: String, pos: Vector2, tam: int = 22, col: Color = Color.WHITE, alin: int = 0) -> void:
+	s = Datos.limpiar_emoji(s)
 	var f := ThemeDB.fallback_font
 	var w := f.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, tam).x
 	var x := pos.x
@@ -136,6 +137,7 @@ func _txt(ci: CanvasItem, s: String, pos: Vector2, tam: int = 22, col: Color = C
 
 ## Dibuja un botón y lo registra como zona pulsable con ese id.
 func _boton(ci: CanvasItem, r: Rect2, s: String, col: Color, id: Variant, tam: int = 22, txt_col: Color = Color.WHITE) -> void:
+	s = Datos.limpiar_emoji(s)
 	ci.draw_style_box(Estilo.caja(col, 16), r)
 	var f := ThemeDB.fallback_font
 	var w := f.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 16.0, tam).x
@@ -145,6 +147,7 @@ func _boton(ci: CanvasItem, r: Rect2, s: String, col: Color, id: Variant, tam: i
 
 ## Escribe texto en varias líneas dentro de un ancho. Devuelve el y final.
 func _parrafo(ci: CanvasItem, s: String, pos: Vector2, ancho: float, tam: int = 22, col: Color = Color.WHITE) -> float:
+	s = Datos.limpiar_emoji(s)
 	var f := ThemeDB.fallback_font
 	var linea := ""
 	var y := pos.y

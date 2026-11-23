@@ -27,13 +27,14 @@ func refrescar() -> void:
 	sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var margen := MarginContainer.new()
 	margen.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	for lado in ["left", "right", "top", "bottom"]:
+	for lado in ["left", "right", "bottom"]:
 		margen.add_theme_constant_override("margin_" + lado, 22)
+	margen.add_theme_constant_override("margin_top", 150)   # deja libre la barra de herramientas del editor
 	sc.add_child(margen)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 10)
 	margen.add_child(v)
-	_t(v, "%s %s" % [m["emoji"], m["n"]], 34, Estilo.TINTA)
+	_t(v, str(m["n"]), 34, Estilo.TINTA)
 	_t(v, str(m["info"]), 18, Estilo.SUAVE)
 	var cfg: Dictionary = Datos.nivel.get("mini_cfg", {})
 	for campo in m["campos"]:
@@ -44,6 +45,7 @@ func refrescar() -> void:
 				var te := TextEdit.new()
 				te.custom_minimum_size = Vector2(0, 190)
 				te.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
+				_campo(te)
 				te.text = str(cfg.get(k, ""))
 				te.text_changed.connect(func():
 					Datos.nivel["mini_cfg"][k] = te.text)
@@ -54,6 +56,8 @@ func refrescar() -> void:
 				sb.min_value = 0
 				sb.max_value = 99999
 				sb.value = float(cfg.get(k, 0))
+				sb.get_line_edit().add_theme_color_override("font_color", Color("1e1b4b"))
+				_campo(sb.get_line_edit())
 				sb.value_changed.connect(func(x):
 					Datos.nivel["mini_cfg"][k] = int(x)
 					Datos.confirmar())
@@ -61,6 +65,7 @@ func refrescar() -> void:
 			_:
 				var le := LineEdit.new()
 				le.custom_minimum_size = Vector2(0, 44)
+				_campo(le)
 				le.text = str(cfg.get(k, ""))
 				le.text_changed.connect(func(tx: String):
 					Datos.nivel["mini_cfg"][k] = tx if not (cfg.get(k, "") is float) else float(tx))
@@ -84,6 +89,15 @@ func refrescar() -> void:
 		Datos.confirmar()
 		refrescar())
 	fila.add_child(br)
+
+
+## Campos con fondo blanco y letra oscura (el tema del programa los pone claros sobre claro).
+func _campo(c: Control) -> void:
+	var caja := Estilo.caja(Color.WHITE, 12, 2, Color("c7c2f0"), 8)
+	for k in ["normal", "focus", "read_only"]:
+		c.add_theme_stylebox_override(k, caja)
+	for k in ["font_color", "font_selected_color", "caret_color", "font_placeholder_color"]:
+		c.add_theme_color_override(k, Color("1e1b4b"))
 
 
 func _t(v: Control, s: String, tam: int, col: Color) -> void:
